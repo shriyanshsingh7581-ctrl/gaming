@@ -1,0 +1,6 @@
+{
+  "name": "SHARK EXCH — Live Gaming & Sports Exchange",
+  "description": "Production-ready Gaming & Exchange Web Application with Firebase Authentication, Realtime Database synchronization, instant UPI/Bank deposits, withdrawals, and Master Admin Panel.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

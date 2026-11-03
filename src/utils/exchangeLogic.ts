@@ -1,0 +1,324 @@
+/**
+ * Pure business logic for SHARK EXCH:
+ * - Wallet balance calculations (deposits, withdrawals, refunds, admin adjustments)
+ * - Form & UTR validations
+ * - Firebase config JSON/snippet parser
+ * - Mini-game payout & multiplier math (Aviatrix & Mines)
+ */
+
+export interface UserProfile {
+  uid: string;
+  name: string;
+  email: string;
+  phone: string;
+  password?: string;
+  walletBalance: number;
+  status: 'Active' | 'Blocked';
+  createdAt: string;
+}
+
+export interface DepositRecord {
+  id: string;
+  uid: string;
+  userName: string;
+  userEmail: string;
+  amount: number;
+  utr: string;
+  screenshotUrl: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  createdAt: string;
+}
+
+export interface WithdrawalRecord {
+  id: string;
+  uid: string;
+  userName: string;
+  userEmail: string;
+  userPhone: string;
+  amount: number;
+  method: 'UPI' | 'BANK';
+  upiId?: string;
+  bankName?: string;
+  accountHolder?: string;
+  accountNumber?: string;
+  ifsc?: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  createdAt: string;
+}
+
+export interface IdRequestRecord {
+  id: string;
+  uid: string;
+  userName: string;
+  userEmail: string;
+  userPhone: string;
+  platform: string;
+  preferredUsername: string;
+  depositAmount: number;
+  status: 'Pending' | 'Created' | 'Rejected';
+  assignedId?: string;
+  assignedPassword?: string;
+  createdAt: string;
+}
+
+export interface PaymentSettings {
+  upiId: string;
+  merchantName: string;
+  qrCodeUrl: string;
+  bankName: string;
+  accountHolder: string;
+  accountNumber: string;
+  ifsc: string;
+  minDeposit: number;
+  minWithdrawal: number;
+  updatedAt: string;
+}
+
+export interface BannerSlide {
+  id: string;
+  tag: string;
+  title: string;
+  subtitle: string;
+  ctaText: string;
+  accentColor: string;
+  imageUrl?: string;
+}
+
+export interface FirebaseConfigInput {
+  apiKey: string;
+  authDomain: string;
+  databaseURL: string;
+  projectId: string;
+  storageBucket?: string;
+  messagingSenderId?: string;
+  appId?: string;
+}
+
+export function validateUtr(utr: string): { valid: boolean; error?: string } {
+  const cleaned = utr.trim();
+  if (!/^\d{12}$/.test(cleaned)) {
+    return {
+      valid: false,
+      error: 'UTR / Reference Number must be an exact 12-digit numeric code.',
+    };
+  }
+  return { valid: true };
+}
+
+export function validateDepositInput(
+  amount: number,
+  utr: string,
+  minDeposit = 100
+): { valid: boolean; error?: string } {
+  if (!Number.isFinite(amount) || amount < minDeposit) {
+    return {
+      valid: false,
+      error: `Minimum deposit amount is ₹${minDeposit.toLocaleString('en-IN')}.`,
+    };
+  }
+  return validateUtr(utr);
+}
+
+export function validateWithdrawalInput(params: {
+  amount: number;
+  walletBalance: number;
+  method: 'UPI' | 'BANK';
+  upiId?: string;
+  accountHolder?: string;
+  accountNumber?: string;
+  ifsc?: string;
+  minWithdrawal?: number;
+}): { valid: boolean; error?: string } {
+  const minW = params.minWithdrawal ?? 500;
+  if (!Number.isFinite(params.amount) || params.amount < minW) {
+    return {
+      valid: false,
+      error: `Minimum withdrawal amount is ₹${minW.toLocaleString('en-IN')}.`,
+    };
+  }
+  if (params.amount > params.walletBalance) {
+    return {
+      valid: false,
+      error: `Insufficient wallet balance (Available: ₹${params.walletBalance.toLocaleString('en-IN')}).`,
+    };
+  }
+  if (params.method === 'UPI') {
+    const upi = (params.upiId ?? '').trim();
+    if (!upi || !upi.includes('@') || upi.length < 5) {
+      return {
+        valid: false,
+        error: 'Please enter a valid UPI ID (e.g. username@okaxis).',
+      };
+    }
+  } else {
+    const holder = (params.accountHolder ?? '').trim();
+    const acc = (params.accountNumber ?? '').trim();
+    const ifsc = (params.ifsc ?? '').trim().toUpperCase();
+    if (!holder || holder.length < 2) {
+      return { valid: false, error: 'Account Holder Name is required.' };
+    }
+    if (!/^\d{8,18}$/.test(acc)) {
+      return {
+        valid: false,
+        error: 'Bank Account Number must be 8 to 18 digits.',
+      };
+    }
+    if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc) && ifsc.length < 8) {
+      return {
+        valid: false,
+        error: 'Please enter a valid 11-character IFSC Code (e.g. HDFC0001234).',
+      };
+    }
+  }
+  return { valid: true };
+}
+
+export function calculateWalletAfterDepositApproval(
+  currentBalance: number,
+  depositAmount: number
+): number {
+  if (!Number.isFinite(depositAmount) || depositAmount <= 0) {
+    return Math.max(0, Math.round(currentBalance));
+  }
+  return Math.max(0, Math.round(currentBalance + depositAmount));
+}
+
+export function calculateWalletAfterWithdrawalRequest(
+  currentBalance: number,
+  withdrawalAmount: number
+): number {
+  if (!Number.isFinite(withdrawalAmount) || withdrawalAmount <= 0) {
+    return Math.max(0, Math.round(currentBalance));
+  }
+  if (withdrawalAmount > currentBalance) {
+    throw new Error('Insufficient wallet balance');
+  }
+  return Math.max(0, Math.round(currentBalance - withdrawalAmount));
+}
+
+export function calculateWalletAfterWithdrawalRejection(
+  currentBalance: number,
+  refundAmount: number
+): number {
+  if (!Number.isFinite(refundAmount) || refundAmount <= 0) {
+    return Math.max(0, Math.round(currentBalance));
+  }
+  return Math.max(0, Math.round(currentBalance + refundAmount));
+}
+
+export function calculateAdminBalanceAdjustment(
+  currentBalance: number,
+  delta: number
+): number {
+  if (!Number.isFinite(delta)) return Math.max(0, Math.round(currentBalance));
+  return Math.max(0, Math.round(currentBalance + delta));
+}
+
+export function computeAdminSummaryStats(
+  users: UserProfile[],
+  deposits: DepositRecord[],
+  withdrawals: WithdrawalRecord[]
+) {
+  const totalCustomers = users.length;
+  const pendingDeposits = deposits.filter((d) => d.status === 'Pending').length;
+  const pendingWithdrawals = withdrawals.filter((w) => w.status === 'Pending').length;
+  const totalWalletBalance = users.reduce(
+    (sum, u) => sum + (Number.isFinite(u.walletBalance) ? u.walletBalance : 0),
+    0
+  );
+  return {
+    totalCustomers,
+    pendingDeposits,
+    pendingWithdrawals,
+    totalWalletBalance,
+  };
+}
+
+/**
+ * Parses either a strict JSON object OR a JavaScript `const firebaseConfig = { ... }` snippet
+ * pasted directly from the Firebase Console.
+ */
+export function parseFirebaseConfigSnippet(rawInput: string): {
+  valid: boolean;
+  config?: FirebaseConfigInput;
+  error?: string;
+} {
+  const trimmed = rawInput.trim();
+  if (!trimmed) {
+    return { valid: false, error: 'Please paste your Firebase configuration JSON.' };
+  }
+
+  try {
+    // Try direct JSON parse first
+    const parsed = JSON.parse(trimmed);
+    if (parsed && typeof parsed === 'object' && parsed.apiKey && parsed.projectId) {
+      return {
+        valid: true,
+        config: {
+          apiKey: String(parsed.apiKey).trim(),
+          authDomain: String(parsed.authDomain || `${parsed.projectId}.firebaseapp.com`).trim(),
+          databaseURL: String(
+            parsed.databaseURL || `https://${parsed.projectId}-default-rtdb.firebaseio.com`
+          ).trim(),
+          projectId: String(parsed.projectId).trim(),
+          storageBucket: parsed.storageBucket ? String(parsed.storageBucket).trim() : '',
+          messagingSenderId: parsed.messagingSenderId ? String(parsed.messagingSenderId).trim() : '',
+          appId: parsed.appId ? String(parsed.appId).trim() : '',
+        },
+      };
+    }
+  } catch {
+    // Fallback to regex extraction from JS snippet
+  }
+
+  const extractKey = (key: string): string => {
+    const regex = new RegExp(`["']?${key}["']?\\s*:\\s*["']([^"']+)["']`);
+    const match = trimmed.match(regex);
+    return match ? match[1].trim() : '';
+  };
+
+  const apiKey = extractKey('apiKey');
+  const projectId = extractKey('projectId');
+  const authDomain = extractKey('authDomain') || (projectId ? `${projectId}.firebaseapp.com` : '');
+  const databaseURL =
+    extractKey('databaseURL') ||
+    (projectId ? `https://${projectId}-default-rtdb.firebaseio.com` : '');
+
+  if (!apiKey || !projectId) {
+    return {
+      valid: false,
+      error: 'Config must include at least "apiKey" and "projectId".',
+    };
+  }
+
+  return {
+    valid: true,
+    config: {
+      apiKey,
+      authDomain,
+      databaseURL,
+      projectId,
+      storageBucket: extractKey('storageBucket'),
+      messagingSenderId: extractKey('messagingSenderId'),
+      appId: extractKey('appId'),
+    },
+  };
+}
+
+/**
+ * Calculates Mines game multiplier based on grid size (25 tiles), number of bombs, and safe picks uncovered.
+ */
+export function calculateMinesMultiplier(bombs: number, safePicks: number): number {
+  if (safePicks <= 0) return 1.0;
+  const totalTiles = 25;
+  const safeTiles = totalTiles - bombs;
+  if (safePicks > safeTiles) return 1.0;
+
+  let probability = 1;
+  for (let i = 0; i < safePicks; i++) {
+    probability *= (safeTiles - i) / (totalTiles - i);
+  }
+  const houseEdge = 0.97;
+  const rawMultiplier = houseEdge / probability;
+  return Math.max(1.01, Number(rawMultiplier.toFixed(2)));
+}
