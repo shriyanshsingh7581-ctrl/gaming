@@ -270,7 +270,7 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
               </div>
             </div>
 
-            {/* Highlighted Offer Callout Bar Directly Under Poster */}
+              {/* Highlighted Offer Callout Bar Directly Under Poster */}
             <div className="relative rounded-2xl bg-gradient-to-r from-[#1c0414] via-[#2b0822] to-[#1c0414] border-2 border-[#facc15] px-3.5 py-3 sm:px-5 sm:py-3.5 text-center shadow-[0_0_28px_rgba(250,204,21,0.45)] space-y-2">
               <h2
                 data-testid="hero-mega-offer-headline"
@@ -298,6 +298,20 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
               >
                 {subOfferHeadline}
               </p>
+            </div>
+
+            {/* SPIN THE WHEEL PROMOTIONAL BANNER DIRECTLY BELOW MAIN FRONT BANNER */}
+            <div
+              data-testid="front-below-spin-wheel-banner"
+              className="relative rounded-2xl overflow-hidden border-2 border-[#facc15] bg-[#090514] shadow-[0_0_32px_rgba(250,204,21,0.45)] select-none"
+            >
+              <img
+                src={OFFICIAL_POSTER_ASSETS.spinWheelPoster}
+                alt="SHARK EXCHANGE — SPIN THE WHEEL: Spin & Win Exciting Rewards Instantly!"
+                data-testid="front-below-spin-wheel-poster-img"
+                referrerPolicy="no-referrer"
+                className="w-full h-auto object-contain block pointer-events-none"
+              />
             </div>
           </div>
         </section>
