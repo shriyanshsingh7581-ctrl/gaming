@@ -4,10 +4,9 @@
  * Uses standard Firebase modular v10+ SDK:
  * (`initializeApp`, `getAuth`, `createUserWithEmailAndPassword`, `signInWithEmailAndPassword`,
  *  `signOut`, `onAuthStateChanged`, `getDatabase`, `ref`, `set`, `push`, `update`, `onValue`)
- *
- * Includes a seamless "Firebase Config Setup Modal / Hybrid Fallback Mode" so the app never
- * crashes before Firebase keys are entered, and immediately switches to live Firebase
- * Realtime Database as soon as config keys are provided via .env or Admin Panel Tab 5.
+ * PLUS live synchronization with the provisioned AI Studio Firebase database
+ * (`firebase-applet-config.json`) so all customer, staff (Mohit A1), and master admin (4455)
+ * actions & In-App Live Chat Messenger (/chats/{userId}) sync instantaneously across devices.
  */
 
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
@@ -29,12 +28,24 @@ import {
   Database,
 } from 'firebase/database';
 import {
+  getFirestore,
+  doc,
+  setDoc,
+  onSnapshot,
+  getDocFromServer,
+  Firestore,
+} from 'firebase/firestore';
+import provisionedFirebaseConfig from '../firebase-applet-config.json';
+import {
   UserProfile,
   DepositRecord,
   WithdrawalRecord,
   IdRequestRecord,
   PaymentSettings,
   BannerSlide,
+  StaffMember,
+  ChatMessage,
+  ChatThread,
   FirebaseConfigInput,
   calculateWalletAfterDepositApproval,
   calculateWalletAfterWithdrawalRequest,
@@ -45,6 +56,35 @@ import {
 const STORAGE_CONFIG_KEY = 'shark_exch_firebase_config_v1';
 const STORAGE_DB_KEY = 'shark_exch_hybrid_rtdb_v1';
 const STORAGE_SESSION_UID_KEY = 'shark_exch_active_uid_v1';
+const STORAGE_GUEST_CHAT_KEY = 'shark_exch_guest_chat_id_v1';
+const CLOUD_MIRROR_COLLECTION = 'exchangeState';
+const CLOUD_MIRROR_DOC_ID = 'live_rtdb_mirror';
+
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
 
 // Default UPI QR SVG data URI (Crisp scan-ready QR graphic with SHARK EXCH center emblem)
 export const DEFAULT_QR_SVG_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(`
@@ -104,6 +144,51 @@ export const DEFAULT_QR_SVG_DATA_URI = `data:image/svg+xml;utf8,${encodeURICompo
 </svg>
 `)}`;
 
+export const INITIAL_STAFF: Record<string, StaffMember> = {
+  mohita1: {
+    staffId: 'Mohit A1',
+    name: 'Mohit A1',
+    password: '1122',
+    status: 'Active',
+    createdAt: '2026-11-01T10:00:00.000Z',
+  },
+  staff2: {
+    staffId: 'staff2',
+    name: 'Staff 2',
+    password: '2233',
+    status: 'Active',
+    createdAt: '2026-11-01T10:05:00.000Z',
+  },
+};
+
+export const INITIAL_CHATS: Record<string, ChatThread> = {
+  usr_demo_aarav: {
+    userId: 'usr_demo_aarav',
+    userName: 'Aarav Singhania',
+    userEmail: 'aarav.vip@sharkexch.in',
+    lastMessage: 'Hello Support, please check my VIP bonus status.',
+    lastTimestamp: '2026-11-03T09:10:00.000Z',
+    unreadForAdmin: 1,
+    unreadForCustomer: 0,
+    messages: {
+      msg_demo_1: {
+        id: 'msg_demo_1',
+        sender: 'admin',
+        senderName: 'SHARK EXCH Support',
+        text: 'Welcome to SHARK EXCH 24/7 In-App Live Support! How can we help you today?',
+        timestamp: '2026-11-03T09:05:00.000Z',
+      },
+      msg_demo_2: {
+        id: 'msg_demo_2',
+        sender: 'customer',
+        senderName: 'Aarav Singhania',
+        text: 'Hello Support, please check my VIP bonus status.',
+        timestamp: '2026-11-03T09:10:00.000Z',
+      },
+    },
+  },
+};
+
 export interface HybridDatabaseSchema {
   users: Record<string, UserProfile>;
   deposits: Record<string, DepositRecord>;
@@ -111,6 +196,8 @@ export interface HybridDatabaseSchema {
   idRequests: Record<string, IdRequestRecord>;
   paymentSettings: PaymentSettings;
   banners: BannerSlide[];
+  staff: Record<string, StaffMember>;
+  chats: Record<string, ChatThread>;
 }
 
 export const INITIAL_BANNERS: BannerSlide[] = [
@@ -258,23 +345,47 @@ const INITIAL_SEED_DB: HybridDatabaseSchema = {
   },
   paymentSettings: INITIAL_PAYMENT_SETTINGS,
   banners: INITIAL_BANNERS,
+  staff: INITIAL_STAFF,
+  chats: INITIAL_CHATS,
 };
 
-// Read env vars or saved runtime Firebase config
+function normalizeStaffStore(rawStaff?: Record<string, StaffMember>): Record<string, StaffMember> {
+  const next: Record<string, StaffMember> = { ...INITIAL_STAFF };
+  if (rawStaff && typeof rawStaff === 'object') {
+    for (const [key, val] of Object.entries(rawStaff)) {
+      if (!val) continue;
+      if (key === 'staff1' || val.staffId?.toLowerCase() === 'staff1') {
+        next.mohita1 = {
+          ...val,
+          staffId: 'Mohit A1',
+          name: 'Mohit A1',
+          password: val.password || '1122',
+        };
+      } else {
+        next[key] = val;
+      }
+    }
+  }
+  return next;
+}
+
+// Read saved runtime Firebase config, .env vars, or provisioned firebase-applet-config.json
 function getEnvOrSavedFirebaseConfig(): FirebaseConfigInput | null {
   try {
-    const saved = localStorage.getItem(STORAGE_CONFIG_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed && parsed.apiKey && parsed.projectId) {
-        return parsed;
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_CONFIG_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.apiKey && parsed.projectId) {
+          return parsed;
+        }
       }
     }
   } catch {
     // ignore storage errors
   }
 
-  const env = (import.meta as unknown as { env: Record<string, string | undefined> }).env || {};
+  const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env || {};
   if (env.VITE_FIREBASE_API_KEY && env.VITE_FIREBASE_PROJECT_ID) {
     return {
       apiKey: env.VITE_FIREBASE_API_KEY,
@@ -289,14 +400,67 @@ function getEnvOrSavedFirebaseConfig(): FirebaseConfigInput | null {
       appId: env.VITE_FIREBASE_APP_ID || '',
     };
   }
+
+  if (provisionedFirebaseConfig && provisionedFirebaseConfig.apiKey && provisionedFirebaseConfig.projectId) {
+    return {
+      apiKey: provisionedFirebaseConfig.apiKey,
+      authDomain:
+        provisionedFirebaseConfig.authDomain ||
+        `${provisionedFirebaseConfig.projectId}.firebaseapp.com`,
+      databaseURL: `https://${provisionedFirebaseConfig.projectId}-default-rtdb.firebaseio.com`,
+      projectId: provisionedFirebaseConfig.projectId,
+      storageBucket: provisionedFirebaseConfig.storageBucket || '',
+      messagingSenderId: provisionedFirebaseConfig.messagingSenderId || '',
+      appId: provisionedFirebaseConfig.appId || '',
+    };
+  }
+
   return null;
 }
 
 let firebaseApp: FirebaseApp | null = null;
 let firebaseAuth: Auth | null = null;
 let firebaseDb: Database | null = null;
+let firestoreDb: Firestore | null = null;
 let isLiveFirebaseConnected = false;
 let currentFirebaseConfig: FirebaseConfigInput | null = getEnvOrSavedFirebaseConfig();
+
+export function handleFirestoreError(
+  error: unknown,
+  operationType: OperationType,
+  path: string | null
+) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: firebaseAuth?.currentUser?.uid,
+      email: firebaseAuth?.currentUser?.email,
+      emailVerified: firebaseAuth?.currentUser?.emailVerified,
+      isAnonymous: firebaseAuth?.currentUser?.isAnonymous,
+      tenantId: firebaseAuth?.currentUser?.tenantId,
+      providerInfo:
+        firebaseAuth?.currentUser?.providerData?.map((provider) => ({
+          providerId: provider.providerId,
+          email: provider.email,
+        })) || [],
+    },
+    operationType,
+    path,
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+async function testConnection() {
+  if (!firestoreDb) return;
+  try {
+    await getDocFromServer(doc(firestoreDb, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error('Please check your Firebase configuration.');
+    }
+  }
+}
 
 function initFirebaseInstance(config: FirebaseConfigInput | null) {
   if (!config || !config.apiKey || !config.projectId) {
@@ -311,14 +475,36 @@ function initFirebaseInstance(config: FirebaseConfigInput | null) {
         : initializeApp({
             apiKey: config.apiKey,
             authDomain: config.authDomain,
-            databaseURL: config.databaseURL,
+            databaseURL:
+              config.databaseURL || `https://${config.projectId}-default-rtdb.firebaseio.com`,
             projectId: config.projectId,
             storageBucket: config.storageBucket,
             messagingSenderId: config.messagingSenderId,
             appId: config.appId,
           });
     firebaseAuth = getAuth(firebaseApp);
-    firebaseDb = getDatabase(firebaseApp);
+
+    // Initialize provisioned Cloud Firestore instance
+    if (
+      provisionedFirebaseConfig?.firestoreDatabaseId &&
+      config.projectId === provisionedFirebaseConfig.projectId
+    ) {
+      firestoreDb = getFirestore(firebaseApp, provisionedFirebaseConfig.firestoreDatabaseId);
+      if (typeof window !== 'undefined') {
+        testConnection();
+      }
+    }
+
+    // Initialize Firebase Realtime Database instance if databaseURL is configured via env or Admin Tab 5
+    const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env || {};
+    const hasExplicitRtdbUrl = Boolean(
+      env.VITE_FIREBASE_DATABASE_URL ||
+        (typeof window !== 'undefined' && localStorage.getItem(STORAGE_CONFIG_KEY))
+    );
+    if (hasExplicitRtdbUrl && config.databaseURL) {
+      firebaseDb = getDatabase(firebaseApp, config.databaseURL);
+    }
+
     isLiveFirebaseConnected = true;
   } catch (err) {
     console.warn('Firebase initialization fell back to Hybrid Realtime mode:', err);
@@ -328,25 +514,31 @@ function initFirebaseInstance(config: FirebaseConfigInput | null) {
 
 initFirebaseInstance(currentFirebaseConfig);
 
-// Hybrid Local Realtime Database Store with Instant Cross-Tab Broadcast
+// Hybrid Local + Cloud Realtime Database Store with Instant Cross-Tab & Cloud Sync
 function loadHybridStore(): HybridDatabaseSchema {
   try {
-    const raw = localStorage.getItem(STORAGE_DB_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return {
-        users: parsed.users || INITIAL_SEED_DB.users,
-        deposits: parsed.deposits || INITIAL_SEED_DB.deposits,
-        withdrawals: parsed.withdrawals || INITIAL_SEED_DB.withdrawals,
-        idRequests: parsed.idRequests || INITIAL_SEED_DB.idRequests,
-        paymentSettings: parsed.paymentSettings || INITIAL_PAYMENT_SETTINGS,
-        banners: parsed.banners || INITIAL_BANNERS,
-      };
+    if (typeof window !== 'undefined') {
+      const raw = localStorage.getItem(STORAGE_DB_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return {
+          users: parsed.users || INITIAL_SEED_DB.users,
+          deposits: parsed.deposits || INITIAL_SEED_DB.deposits,
+          withdrawals: parsed.withdrawals || INITIAL_SEED_DB.withdrawals,
+          idRequests: parsed.idRequests || INITIAL_SEED_DB.idRequests,
+          paymentSettings: parsed.paymentSettings || INITIAL_PAYMENT_SETTINGS,
+          banners: parsed.banners || INITIAL_BANNERS,
+          staff: normalizeStaffStore(parsed.staff),
+          chats: parsed.chats || INITIAL_CHATS,
+        };
+      }
     }
   } catch {
     // ignore
   }
-  localStorage.setItem(STORAGE_DB_KEY, JSON.stringify(INITIAL_SEED_DB));
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_DB_KEY, JSON.stringify(INITIAL_SEED_DB));
+  }
   return INITIAL_SEED_DB;
 }
 
@@ -377,11 +569,36 @@ if (typeof window !== 'undefined') {
   });
 }
 
+async function syncStateToCloudMirror(nextStore: HybridDatabaseSchema): Promise<void> {
+  if (!firestoreDb) return;
+  const mirrorPath = `${CLOUD_MIRROR_COLLECTION}/${CLOUD_MIRROR_DOC_ID}`;
+  try {
+    await setDoc(doc(firestoreDb, CLOUD_MIRROR_COLLECTION, CLOUD_MIRROR_DOC_ID), {
+      users: nextStore.users,
+      deposits: nextStore.deposits,
+      withdrawals: nextStore.withdrawals,
+      idRequests: nextStore.idRequests,
+      paymentSettings: nextStore.paymentSettings,
+      banners: nextStore.banners,
+      staff: nextStore.staff,
+      chats: nextStore.chats,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('Missing or insufficient permissions')) {
+      handleFirestoreError(error, OperationType.WRITE, mirrorPath);
+    }
+  }
+}
+
 function saveHybridStore(nextStore: HybridDatabaseSchema) {
-  localStorage.setItem(STORAGE_DB_KEY, JSON.stringify(nextStore));
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_DB_KEY, JSON.stringify(nextStore));
+  }
   broadcastChannel?.postMessage({ type: 'DB_UPDATED', timestamp: Date.now() });
   notifyDbListeners();
   notifyAuthListeners();
+  void syncStateToCloudMirror(nextStore);
 }
 
 function notifyDbListeners() {
@@ -390,6 +607,7 @@ function notifyDbListeners() {
 }
 
 function notifyAuthListeners() {
+  if (typeof window === 'undefined') return;
   const activeUid = localStorage.getItem(STORAGE_SESSION_UID_KEY);
   const store = loadHybridStore();
   const user = activeUid && store.users[activeUid] ? store.users[activeUid] : null;
@@ -397,18 +615,21 @@ function notifyAuthListeners() {
 }
 
 /**
- * Subscribe to real-time updates across `/users`, `/deposits`, `/withdrawals`, `/paymentSettings`, and `/idRequests`
+ * Subscribe to real-time updates across `/users`, `/deposits`, `/withdrawals`, `/paymentSettings`, `/idRequests`, `/staff`, and `/chats`
  */
 export function subscribeToRealtimeData(callback: ListenerCallback): () => void {
   dbListeners.add(callback);
   const initialStore = loadHybridStore();
   callback(initialStore);
 
-  let unsubFirebase: (() => void) | null = null;
+  let unsubRtdb: (() => void) | null = null;
+  let unsubFirestore: (() => void) | null = null;
+
+  // 1. Live Firebase Realtime Database listener (when explicit RTDB URL is active)
   if (isLiveFirebaseConnected && firebaseDb) {
     try {
       const rootRef = ref(firebaseDb, '/');
-      unsubFirebase = onValue(
+      unsubRtdb = onValue(
         rootRef,
         (snap) => {
           const val = snap.val();
@@ -421,17 +642,64 @@ export function subscribeToRealtimeData(callback: ListenerCallback): () => void 
               idRequests: val.idRequests || current.idRequests,
               paymentSettings: val.paymentSettings || current.paymentSettings,
               banners: val.banners || current.banners,
+              staff: normalizeStaffStore(val.staff || current.staff),
+              chats: val.chats || current.chats,
             };
             localStorage.setItem(STORAGE_DB_KEY, JSON.stringify(merged));
             dbListeners.forEach((cb) => cb(merged));
             notifyAuthListeners();
           } else {
-            // Seed empty live Firebase DB with initial structure
             set(rootRef, initialStore).catch(() => {});
           }
         },
         () => {
-          // If Firebase permission or network fails, hybrid store continues seamlessly
+          // Fallback gracefully
+        }
+      );
+    } catch {
+      // ignore
+    }
+  }
+
+  // 2. Live Provisioned Firebase Cloud Mirror listener (`firebase-applet-config.json`)
+  if (isLiveFirebaseConnected && firestoreDb) {
+    const mirrorPath = `${CLOUD_MIRROR_COLLECTION}/${CLOUD_MIRROR_DOC_ID}`;
+    try {
+      unsubFirestore = onSnapshot(
+        doc(firestoreDb, CLOUD_MIRROR_COLLECTION, CLOUD_MIRROR_DOC_ID),
+        (docSnap) => {
+          if (docSnap.exists()) {
+            const val = docSnap.data();
+            const current = loadHybridStore();
+            const merged: HybridDatabaseSchema = {
+              users: (val.users as Record<string, UserProfile>) || current.users,
+              deposits: (val.deposits as Record<string, DepositRecord>) || current.deposits,
+              withdrawals:
+                (val.withdrawals as Record<string, WithdrawalRecord>) || current.withdrawals,
+              idRequests:
+                (val.idRequests as Record<string, IdRequestRecord>) || current.idRequests,
+              paymentSettings:
+                (val.paymentSettings as PaymentSettings) || current.paymentSettings,
+              banners: (val.banners as BannerSlide[]) || current.banners,
+              staff: normalizeStaffStore(
+                (val.staff as Record<string, StaffMember>) || current.staff
+              ),
+              chats: (val.chats as Record<string, ChatThread>) || current.chats,
+            };
+            localStorage.setItem(STORAGE_DB_KEY, JSON.stringify(merged));
+            dbListeners.forEach((cb) => cb(merged));
+            notifyAuthListeners();
+          } else {
+            void syncStateToCloudMirror(initialStore);
+          }
+        },
+        (error) => {
+          if (
+            error instanceof Error &&
+            error.message.includes('Missing or insufficient permissions')
+          ) {
+            handleFirestoreError(error, OperationType.GET, mirrorPath);
+          }
         }
       );
     } catch {
@@ -441,7 +709,8 @@ export function subscribeToRealtimeData(callback: ListenerCallback): () => void 
 
   return () => {
     dbListeners.delete(callback);
-    if (unsubFirebase) unsubFirebase();
+    if (unsubRtdb) unsubRtdb();
+    if (unsubFirestore) unsubFirestore();
   };
 }
 
@@ -519,7 +788,6 @@ export async function registerCustomerWithEmail(params: {
       if (message.includes('email-already-in-use')) {
         throw new Error('This Email ID is already registered in Firebase.');
       }
-      // If API key is invalid/unconfigured, proceed with hybrid UID
     }
   }
 
@@ -542,7 +810,7 @@ export async function registerCustomerWithEmail(params: {
     try {
       await set(ref(firebaseDb, `users/${uid}`), newUser);
     } catch {
-      // synced locally
+      // synced via cloud mirror
     }
   }
 
@@ -578,7 +846,6 @@ export async function loginCustomerWithEmail(
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '';
       if (msg.includes('blocked by Admin')) throw err;
-      // Fallback to checking `/users` table
     }
   }
 
@@ -704,11 +971,11 @@ export async function submitWithdrawalRequest(params: {
     userPhone: liveUser.phone,
     amount: Math.round(params.amount),
     method: params.method,
-    upiId: params.upiId?.trim(),
-    bankName: params.bankName?.trim(),
-    accountHolder: params.accountHolder?.trim(),
-    accountNumber: params.accountNumber?.trim(),
-    ifsc: params.ifsc?.trim().toUpperCase(),
+    upiId: params.upiId?.trim() || '',
+    bankName: params.bankName?.trim() || '',
+    accountHolder: params.accountHolder?.trim() || '',
+    accountNumber: params.accountNumber?.trim() || '',
+    ifsc: params.ifsc?.trim().toUpperCase() || '',
     status: 'Pending',
     createdAt: new Date().toISOString(),
   };
@@ -1022,10 +1289,13 @@ export function getFirebaseConnectionStatus() {
   return {
     isLiveFirebaseConnected,
     config: currentFirebaseConfig,
-    projectId: currentFirebaseConfig?.projectId || 'shark-exch-rtdb (Hybrid Live Sync)',
+    projectId:
+      currentFirebaseConfig?.projectId ||
+      provisionedFirebaseConfig?.projectId ||
+      'shark-exch-rtdb',
     databaseURL:
       currentFirebaseConfig?.databaseURL ||
-      'https://shark-exch-default-rtdb.firebaseio.com',
+      `https://${provisionedFirebaseConfig?.projectId || 'shark-exch'}-default-rtdb.firebaseio.com`,
   };
 }
 
@@ -1038,7 +1308,395 @@ export function saveRuntimeFirebaseConfig(config: FirebaseConfigInput): void {
 
 export function clearRuntimeFirebaseConfig(): void {
   localStorage.removeItem(STORAGE_CONFIG_KEY);
-  currentFirebaseConfig = null;
-  isLiveFirebaseConnected = false;
+  currentFirebaseConfig = getEnvOrSavedFirebaseConfig();
+  initFirebaseInstance(currentFirebaseConfig);
   notifyDbListeners();
+}
+
+/**
+ * Master Admin Only: Create a new Staff Account (`/staff/{staffId}`)
+ */
+export async function adminCreateStaffAccount(params: {
+  staffId: string;
+  name: string;
+  password: string;
+}): Promise<StaffMember> {
+  const rawId = params.staffId.trim();
+  const storageKey = rawId.toLowerCase().replace(/\s+/g, '');
+  const cleanName = params.name.trim();
+  const cleanPass = params.password.trim();
+
+  if (!storageKey || storageKey.length < 3) {
+    throw new Error('Staff ID must be at least 3 characters.');
+  }
+  if (!cleanName) {
+    throw new Error('Please enter Staff Name.');
+  }
+  if (!cleanPass || cleanPass.length < 4) {
+    throw new Error('Staff Password must be at least 4 characters.');
+  }
+
+  const store = loadHybridStore();
+  const member: StaffMember = {
+    staffId: rawId,
+    name: cleanName,
+    password: cleanPass,
+    status: 'Active',
+    createdAt: new Date().toISOString(),
+  };
+
+  store.staff[storageKey] = member;
+  saveHybridStore(store);
+
+  if (isLiveFirebaseConnected && firebaseDb) {
+    try {
+      await set(ref(firebaseDb, `staff/${storageKey}`), member);
+    } catch {
+      // ignore
+    }
+  }
+  return member;
+}
+
+function findStaffKey(staffMap: Record<string, StaffMember>, staffId: string): string | null {
+  const clean = staffId.trim().toLowerCase().replace(/\s+/g, '');
+  for (const [k, v] of Object.entries(staffMap)) {
+    if (
+      k.toLowerCase().replace(/\s+/g, '') === clean ||
+      v.staffId.toLowerCase().replace(/\s+/g, '') === clean ||
+      v.name.toLowerCase().replace(/\s+/g, '') === clean
+    ) {
+      return k;
+    }
+  }
+  return null;
+}
+
+/**
+ * Master Admin Only: Change Staff Password (`/staff/{staffKey}/password`)
+ */
+export async function adminChangeStaffPassword(
+  staffId: string,
+  newPassword: string
+): Promise<void> {
+  const cleanPass = newPassword.trim();
+  if (!cleanPass || cleanPass.length < 4) {
+    throw new Error('Password must be at least 4 characters.');
+  }
+
+  const store = loadHybridStore();
+  const key = findStaffKey(store.staff, staffId);
+  if (!key || !store.staff[key]) throw new Error('Staff member not found.');
+
+  store.staff[key] = {
+    ...store.staff[key],
+    password: cleanPass,
+  };
+  saveHybridStore(store);
+
+  if (isLiveFirebaseConnected && firebaseDb) {
+    try {
+      await update(ref(firebaseDb, `staff/${key}`), { password: cleanPass });
+    } catch {
+      // ignore
+    }
+  }
+}
+
+/**
+ * Master Admin Only: Block or Unblock Staff Member (`/staff/{staffKey}/status`)
+ */
+export async function adminToggleStaffStatus(
+  staffId: string
+): Promise<'Active' | 'Blocked'> {
+  const store = loadHybridStore();
+  const key = findStaffKey(store.staff, staffId);
+  if (!key || !store.staff[key]) throw new Error('Staff member not found.');
+
+  const target = store.staff[key];
+  const nextStatus: 'Active' | 'Blocked' =
+    target.status === 'Active' ? 'Blocked' : 'Active';
+  store.staff[key] = {
+    ...target,
+    status: nextStatus,
+  };
+  saveHybridStore(store);
+
+  if (isLiveFirebaseConnected && firebaseDb) {
+    try {
+      await update(ref(firebaseDb, `staff/${key}`), { status: nextStatus });
+    } catch {
+      // ignore
+    }
+  }
+  return nextStatus;
+}
+
+/**
+ * Staff & Master Admin Action: Create a New Customer User ID & Gaming Exchange ID directly from the Panel
+ * Saves to `/users/{uid}` and `/idRequests/{requestId}` in Firebase Realtime Database.
+ */
+export async function panelCreateCustomerUserAndExchangeId(params: {
+  name: string;
+  phone: string;
+  email: string;
+  password: string;
+  initialWalletBalance: number;
+  platform: string;
+  exchangeUsername: string;
+  exchangePassword: string;
+}): Promise<{ user: UserProfile; idRecord: IdRequestRecord }> {
+  const cleanName = params.name.trim();
+  const cleanPhone = params.phone.trim();
+  const cleanEmail = params.email.trim().toLowerCase();
+  const cleanPass = params.password.trim();
+  const cleanExchUser = params.exchangeUsername.trim();
+  const cleanExchPass = params.exchangePassword.trim();
+
+  if (!cleanName || !cleanEmail || !cleanPass) {
+    throw new Error('Customer Name, Email ID, and Password are required.');
+  }
+
+  const store = loadHybridStore();
+  const uid = `usr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  const newUser: UserProfile = {
+    uid,
+    name: cleanName,
+    email: cleanEmail,
+    phone: cleanPhone || '+91 90000 00000',
+    password: cleanPass,
+    walletBalance: Math.max(0, Math.round(params.initialWalletBalance || 0)),
+    status: 'Active',
+    createdAt: new Date().toISOString(),
+  };
+
+  const requestId = `idreq_${Date.now()}`;
+  const idRecord: IdRequestRecord = {
+    id: requestId,
+    uid,
+    userName: cleanName,
+    userEmail: cleanEmail,
+    userPhone: newUser.phone,
+    platform: params.platform || 'SHARK EXCH VIP PRO',
+    preferredUsername: cleanExchUser || cleanName.toLowerCase().replace(/\s+/g, '_'),
+    depositAmount: newUser.walletBalance,
+    status: 'Created',
+    assignedId: cleanExchUser
+      ? cleanExchUser.toUpperCase()
+      : `SHK_${cleanName.toUpperCase().replace(/\s+/g, '')}`,
+    assignedPassword: cleanExchPass || cleanPass,
+    createdAt: new Date().toISOString(),
+  };
+
+  store.users[uid] = newUser;
+  store.idRequests[requestId] = idRecord;
+  saveHybridStore(store);
+
+  if (isLiveFirebaseConnected && firebaseDb) {
+    try {
+      await set(ref(firebaseDb, `users/${uid}`), newUser);
+      await set(ref(firebaseDb, `idRequests/${requestId}`), idRecord);
+    } catch {
+      // ignore
+    }
+  }
+
+  return { user: newUser, idRecord };
+}
+
+/* ============================================================================
+ * IN-APP LIVE CHAT MESSENGER (`/chats/{userId}`)
+ * Real-time Customer <-> Admin/Staff (Mohit A1) Support without exposing any phone number
+ * ============================================================================ */
+
+export function getOrCreateGuestChatIdentity(): {
+  userId: string;
+  userName: string;
+  userEmail: string;
+} {
+  if (typeof window === 'undefined') {
+    return { userId: 'guest_visitor', userName: 'Guest Player', userEmail: 'guest@sharkexch.in' };
+  }
+  try {
+    const existing = localStorage.getItem(STORAGE_GUEST_CHAT_KEY);
+    if (existing) {
+      const parsed = JSON.parse(existing);
+      if (parsed && parsed.userId) return parsed;
+    }
+  } catch {
+    // ignore
+  }
+  const suffix = Math.floor(1000 + Math.random() * 9000);
+  const identity = {
+    userId: `guest_${suffix}`,
+    userName: `VIP Guest #${suffix}`,
+    userEmail: `guest${suffix}@sharkexch.in`,
+  };
+  try {
+    localStorage.setItem(STORAGE_GUEST_CHAT_KEY, JSON.stringify(identity));
+  } catch {
+    // ignore
+  }
+  return identity;
+}
+
+export async function sendCustomerChatMessage(params: {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  text: string;
+}): Promise<ChatMessage> {
+  const cleanText = params.text.trim();
+  if (!cleanText) {
+    throw new Error('Message cannot be empty.');
+  }
+
+  const store = loadHybridStore();
+  const nowIso = new Date().toISOString();
+  const msgId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+
+  const existingThread: ChatThread = store.chats[params.userId] || {
+    userId: params.userId,
+    userName: params.userName || 'Customer',
+    userEmail: params.userEmail || '',
+    lastMessage: cleanText,
+    lastTimestamp: nowIso,
+    unreadForAdmin: 0,
+    unreadForCustomer: 0,
+    messages: {
+      welcome_auto: {
+        id: 'welcome_auto',
+        sender: 'admin',
+        senderName: 'Mohit A1 · Live Support',
+        text: 'Welcome to SHARK EXCH Official In-App Support! How can we help you with your ID, Deposit, or Withdrawal?',
+        timestamp: new Date(Date.now() - 1000).toISOString(),
+      },
+    },
+  };
+
+  const newMsg: ChatMessage = {
+    id: msgId,
+    sender: 'customer',
+    senderName: params.userName || existingThread.userName,
+    text: cleanText,
+    timestamp: nowIso,
+  };
+
+  const updatedThread: ChatThread = {
+    ...existingThread,
+    userName: params.userName || existingThread.userName,
+    userEmail: params.userEmail || existingThread.userEmail,
+    lastMessage: cleanText,
+    lastTimestamp: nowIso,
+    unreadForAdmin: (existingThread.unreadForAdmin || 0) + 1,
+    unreadForCustomer: 0,
+    messages: {
+      ...(existingThread.messages || {}),
+      [msgId]: newMsg,
+    },
+  };
+
+  store.chats[params.userId] = updatedThread;
+  saveHybridStore(store);
+
+  if (isLiveFirebaseConnected && firebaseDb) {
+    try {
+      await set(ref(firebaseDb, `chats/${params.userId}`), updatedThread);
+    } catch {
+      // synced via cloud mirror
+    }
+  }
+
+  return newMsg;
+}
+
+export async function sendAdminChatMessage(params: {
+  userId: string;
+  userName?: string;
+  userEmail?: string;
+  senderName: string;
+  text: string;
+}): Promise<ChatMessage> {
+  const cleanText = params.text.trim();
+  if (!cleanText) {
+    throw new Error('Reply message cannot be empty.');
+  }
+
+  const store = loadHybridStore();
+  const nowIso = new Date().toISOString();
+  const msgId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+
+  const targetUser = store.users[params.userId];
+  const existingThread: ChatThread = store.chats[params.userId] || {
+    userId: params.userId,
+    userName: params.userName || targetUser?.name || 'Customer',
+    userEmail: params.userEmail || targetUser?.email || '',
+    lastMessage: cleanText,
+    lastTimestamp: nowIso,
+    unreadForAdmin: 0,
+    unreadForCustomer: 0,
+    messages: {},
+  };
+
+  const newMsg: ChatMessage = {
+    id: msgId,
+    sender: 'admin',
+    senderName: params.senderName || 'SHARK EXCH Support',
+    text: cleanText,
+    timestamp: nowIso,
+  };
+
+  const updatedThread: ChatThread = {
+    ...existingThread,
+    lastMessage: cleanText,
+    lastTimestamp: nowIso,
+    unreadForAdmin: 0,
+    unreadForCustomer: (existingThread.unreadForCustomer || 0) + 1,
+    messages: {
+      ...(existingThread.messages || {}),
+      [msgId]: newMsg,
+    },
+  };
+
+  store.chats[params.userId] = updatedThread;
+  saveHybridStore(store);
+
+  if (isLiveFirebaseConnected && firebaseDb) {
+    try {
+      await set(ref(firebaseDb, `chats/${params.userId}`), updatedThread);
+    } catch {
+      // synced via cloud mirror
+    }
+  }
+
+  return newMsg;
+}
+
+export async function markChatThreadRead(params: {
+  userId: string;
+  viewer: 'customer' | 'admin';
+}): Promise<void> {
+  const store = loadHybridStore();
+  const thread = store.chats[params.userId];
+  if (!thread) return;
+
+  if (params.viewer === 'customer' && !thread.unreadForCustomer) return;
+  if (params.viewer === 'admin' && !thread.unreadForAdmin) return;
+
+  const updatedThread: ChatThread = {
+    ...thread,
+    unreadForCustomer: params.viewer === 'customer' ? 0 : thread.unreadForCustomer,
+    unreadForAdmin: params.viewer === 'admin' ? 0 : thread.unreadForAdmin,
+  };
+
+  store.chats[params.userId] = updatedThread;
+  saveHybridStore(store);
+
+  if (isLiveFirebaseConnected && firebaseDb) {
+    try {
+      await set(ref(firebaseDb, `chats/${params.userId}`), updatedThread);
+    } catch {
+      // ignore
+    }
+  }
 }

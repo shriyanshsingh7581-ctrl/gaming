@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidExchangeState(data) {
+      return data.keys().hasAll(['users', 'deposits', 'withdrawals', 'idRequests', 'paymentSettings', 'banners', 'staff', 'updatedAt']) &&
+             data.keys().hasOnly(['users', 'deposits', 'withdrawals', 'idRequests', 'paymentSettings', 'banners', 'staff', 'chats', 'updatedAt']) &&
+             data.users is map &&
+             data.deposits is map &&
+             data.withdrawals is map &&
+             data.idRequests is map &&
+             data.paymentSettings is map &&
+             data.banners is list && data.banners.size() <= 20 &&
+             data.staff is map &&
+             (!('chats' in data) || data.chats is map) &&
+             data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    match /exchangeState/{stateId} {
+      allow get: if isValidId(stateId);
+      allow create: if isValidId(stateId) && isValidExchangeState(request.resource.data);
+      allow update: if isValidId(stateId) && isValidExchangeState(request.resource.data);
+      allow delete: if false;
+    }
+
+    match /test/{docId} {
+      allow get: if isValidId(docId);
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "entities": {
+    "ExchangeState": {
+      "title": "ExchangeState",
+      "description": "Real-time synchronized state mirroring Firebase Realtime Database nodes (/users, /deposits, /withdrawals, /idRequests, /paymentSettings, /banners, /staff).",
+      "type": "object",
+      "properties": {
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last state synchronization"
+        }
+      },
+      "required": ["updatedAt"]
+    }
+  },
+  "firestore": {
+    "/exchangeState/{stateId}": {
+      "schema": {
+        "$ref": "#/entities/ExchangeState"
+      },
+      "description": "Live synchronized state document for SHARK EXCH customer, staff, and master admin panels."
+    }
+  }
+}

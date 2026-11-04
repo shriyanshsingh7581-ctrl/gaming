@@ -9,9 +9,13 @@ import {
   calculateWalletAfterWithdrawalRejection,
   calculateAdminBalanceAdjustment,
   computeAdminSummaryStats,
+  computeTotalAdminUnreadChats,
   parseFirebaseConfigSnippet,
   calculateMinesMultiplier,
   isStandaloneAdminUrl,
+  isStaffLoginUrl,
+  verifyMasterAdminPin,
+  verifyStaffCredentials,
 } from './exchangeLogic';
 
 test('validateUtr accepts exact 12-digit numeric strings and rejects invalid ones', () => {
@@ -28,7 +32,6 @@ test('validateDepositInput enforces minimum deposit and 12-digit UTR', () => {
 });
 
 test('validateWithdrawalInput checks wallet balance, minimum withdrawal, and UPI/Bank details', () => {
-  // Valid UPI withdrawal
   assert.equal(
     validateWithdrawalInput({
       amount: 1000,
@@ -39,7 +42,6 @@ test('validateWithdrawalInput checks wallet balance, minimum withdrawal, and UPI
     true
   );
 
-  // Exceeds wallet balance
   assert.equal(
     validateWithdrawalInput({
       amount: 3000,
@@ -50,7 +52,6 @@ test('validateWithdrawalInput checks wallet balance, minimum withdrawal, and UPI
     false
   );
 
-  // Invalid Bank details
   assert.equal(
     validateWithdrawalInput({
       amount: 1000,
@@ -63,7 +64,6 @@ test('validateWithdrawalInput checks wallet balance, minimum withdrawal, and UPI
     false
   );
 
-  // Valid Bank withdrawal
   assert.equal(
     validateWithdrawalInput({
       amount: 1000,
@@ -176,12 +176,76 @@ test('calculateMinesMultiplier increases with safe picks and more bombs', () => 
   assert.equal(mHighBomb > m2, true);
 });
 
-test('isStandaloneAdminUrl detects dedicated admin links (/admin, ?admin=true, #admin) and keeps / for customers', () => {
+test('isStandaloneAdminUrl detects dedicated admin and staff links (/admin, /staff, ?admin=true, ?staff=true) and keeps / for customers', () => {
   assert.equal(isStandaloneAdminUrl('/', '', ''), false);
   assert.equal(isStandaloneAdminUrl('/index.html', '', '#top'), false);
   assert.equal(isStandaloneAdminUrl('/admin', '', ''), true);
-  assert.equal(isStandaloneAdminUrl('/admin/', '', ''), true);
+  assert.equal(isStandaloneAdminUrl('/staff', '', ''), true);
   assert.equal(isStandaloneAdminUrl('/', '?admin=true', ''), true);
-  assert.equal(isStandaloneAdminUrl('/', '', '#admin'), true);
+  assert.equal(isStandaloneAdminUrl('/', '?staff=true', ''), true);
+  assert.equal(isStaffLoginUrl('/staff', '', ''), true);
+  assert.equal(isStaffLoginUrl('/', '?staff=true', ''), true);
+  assert.equal(isStaffLoginUrl('/admin', '', ''), false);
 });
 
+test('verifyMasterAdminPin (4455), verifyStaffCredentials (Mohit A1 / 1122), and computeTotalAdminUnreadChats', () => {
+  assert.equal(verifyMasterAdminPin('4455'), true);
+  assert.equal(verifyMasterAdminPin('7777'), false);
+
+  const defaultStaff = [
+    {
+      staffId: 'Mohit A1',
+      name: 'Mohit A1',
+      password: '1122',
+      status: 'Active' as const,
+      createdAt: '2026-11-03',
+    },
+    {
+      staffId: 'staff2',
+      name: 'Staff 2',
+      password: '2233',
+      status: 'Active' as const,
+      createdAt: '2026-11-03',
+    },
+    {
+      staffId: 'staff_blocked',
+      name: 'Blocked Staff',
+      password: '9999',
+      status: 'Blocked' as const,
+      createdAt: '2026-11-03',
+    },
+  ];
+
+  assert.equal(verifyStaffCredentials(defaultStaff, 'Mohit A1', '1122').valid, true);
+  assert.equal(verifyStaffCredentials(defaultStaff, 'mohita1', '1122').valid, true);
+  assert.equal(verifyStaffCredentials(defaultStaff, 'staff1', '1122').valid, true);
+  assert.equal(verifyStaffCredentials(defaultStaff, 'staff2', '2233').valid, true);
+  assert.equal(verifyStaffCredentials(defaultStaff, 'Mohit A1', 'wrong').valid, false);
+  assert.equal(verifyStaffCredentials(defaultStaff, 'staff_blocked', '9999').valid, false);
+
+  assert.equal(
+    computeTotalAdminUnreadChats([
+      {
+        userId: 'u1',
+        userName: 'Aarav',
+        userEmail: 'a@b.c',
+        lastMessage: 'Hi',
+        lastTimestamp: '2026-11-03',
+        unreadForAdmin: 2,
+        unreadForCustomer: 0,
+        messages: {},
+      },
+      {
+        userId: 'u2',
+        userName: 'Kabir',
+        userEmail: 'k@b.c',
+        lastMessage: 'UTR check',
+        lastTimestamp: '2026-11-03',
+        unreadForAdmin: 3,
+        unreadForCustomer: 1,
+        messages: {},
+      },
+    ]),
+    5
+  );
+});

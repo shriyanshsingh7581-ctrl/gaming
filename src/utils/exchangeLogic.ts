@@ -4,6 +4,7 @@
  * - Form & UTR validations
  * - Firebase config JSON/snippet parser
  * - Mini-game payout & multiplier math (Aviatrix & Mines)
+ * - Master Admin (4455) & Staff (Mohit A1 / 1122) authentication & Live Chat helpers
  */
 
 export interface UserProfile {
@@ -92,6 +93,25 @@ export interface FirebaseConfigInput {
   storageBucket?: string;
   messagingSenderId?: string;
   appId?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  sender: 'customer' | 'admin';
+  senderName: string;
+  text: string;
+  timestamp: string;
+}
+
+export interface ChatThread {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  lastMessage: string;
+  lastTimestamp: string;
+  unreadForAdmin: number;
+  unreadForCustomer: number;
+  messages: Record<string, ChatMessage>;
 }
 
 export function validateUtr(utr: string): { valid: boolean; error?: string } {
@@ -323,9 +343,71 @@ export function calculateMinesMultiplier(bombs: number, safePicks: number): numb
   return Math.max(1.01, Number(rawMultiplier.toFixed(2)));
 }
 
+export interface StaffMember {
+  staffId: string;
+  name: string;
+  password: string;
+  status: 'Active' | 'Blocked';
+  createdAt: string;
+}
+
+export const MASTER_ADMIN_PIN = '4455';
+
+export function verifyMasterAdminPin(inputPin: string): boolean {
+  return inputPin.trim() === MASTER_ADMIN_PIN;
+}
+
+export function verifyStaffCredentials(
+  staffList: StaffMember[],
+  staffIdInput: string,
+  passwordInput: string
+): { valid: boolean; staff?: StaffMember; error?: string } {
+  const cleanInput = staffIdInput.trim().toLowerCase();
+  const compactInput = cleanInput.replace(/\s+/g, '');
+
+  const matched = staffList.find((s) => {
+    const idLower = s.staffId.trim().toLowerCase();
+    const idCompact = idLower.replace(/\s+/g, '');
+    const nameLower = s.name.trim().toLowerCase();
+    const nameCompact = nameLower.replace(/\s+/g, '');
+    const isPrimaryStaffAlias =
+      (idCompact === 'mohita1' || nameCompact === 'mohita1' || idCompact === 'staff1') &&
+      (compactInput === 'mohita1' || compactInput === 'staff1');
+
+    return (
+      idLower === cleanInput ||
+      idCompact === compactInput ||
+      nameLower === cleanInput ||
+      nameCompact === compactInput ||
+      isPrimaryStaffAlias
+    );
+  });
+
+  if (!matched || matched.password !== passwordInput.trim()) {
+    return {
+      valid: false,
+      error: 'Invalid Staff ID or Password. Default: Mohit A1 (1122).',
+    };
+  }
+  if (matched.status === 'Blocked') {
+    return {
+      valid: false,
+      error: 'This Staff account has been blocked by the Master Admin.',
+    };
+  }
+  return { valid: true, staff: matched };
+}
+
 /**
- * Determines whether the current URL is the standalone Master Admin Panel link
- * (`/admin`, `/master-admin`, `/?admin=true`, or `/#admin`).
+ * Computes total unread customer messages across all chat threads for Admin/Staff badge
+ */
+export function computeTotalAdminUnreadChats(chats: ChatThread[]): number {
+  return chats.reduce((sum, thread) => sum + (thread.unreadForAdmin || 0), 0);
+}
+
+/**
+ * Determines whether the current URL is the standalone Master Admin or Staff Panel link
+ * (`/admin`, `/staff`, `/?admin=true`, `/?staff=true`, `/#admin`, `/#staff`).
  */
 export function isStandaloneAdminUrl(
   pathname: string,
@@ -336,19 +418,50 @@ export function isStandaloneAdminUrl(
   if (
     cleanPath === '/admin' ||
     cleanPath.endsWith('/admin') ||
+    cleanPath === '/staff' ||
+    cleanPath.endsWith('/staff') ||
     cleanPath === '/master-admin' ||
     cleanPath === '/owner'
   ) {
     return true;
   }
   const params = new URLSearchParams(search || '');
-  if (params.get('admin') === 'true' || params.get('panel') === 'admin') {
+  if (
+    params.get('admin') === 'true' ||
+    params.get('staff') === 'true' ||
+    params.get('panel') === 'admin' ||
+    params.get('panel') === 'staff'
+  ) {
     return true;
   }
   const cleanHash = (hash || '').toLowerCase();
-  if (cleanHash === '#admin' || cleanHash === '#/admin') {
+  if (
+    cleanHash === '#admin' ||
+    cleanHash === '#/admin' ||
+    cleanHash === '#staff' ||
+    cleanHash === '#/staff'
+  ) {
     return true;
   }
   return false;
 }
 
+/**
+ * Detects if the URL specifically requested the Staff Login tab (`/staff`, `?staff=true`, `#staff`)
+ */
+export function isStaffLoginUrl(
+  pathname: string,
+  search: string,
+  hash = ''
+): boolean {
+  const cleanPath = (pathname || '').toLowerCase().replace(/\/+$/, '');
+  if (cleanPath === '/staff' || cleanPath.endsWith('/staff')) {
+    return true;
+  }
+  const params = new URLSearchParams(search || '');
+  if (params.get('staff') === 'true' || params.get('panel') === 'staff') {
+    return true;
+  }
+  const cleanHash = (hash || '').toLowerCase();
+  return cleanHash === '#staff' || cleanHash === '#/staff';
+}

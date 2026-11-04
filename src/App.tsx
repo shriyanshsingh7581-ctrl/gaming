@@ -11,7 +11,10 @@ import {
   IdRequestRecord,
   PaymentSettings,
   BannerSlide,
+  StaffMember,
+  ChatThread,
   isStandaloneAdminUrl,
+  isStaffLoginUrl,
 } from './utils/exchangeLogic';
 import {
   subscribeToRealtimeData,
@@ -19,6 +22,8 @@ import {
   logoutCustomer,
   INITIAL_PAYMENT_SETTINGS,
   INITIAL_BANNERS,
+  INITIAL_STAFF,
+  INITIAL_CHATS,
 } from './firebase';
 import { SharkHeader } from './components/SharkHeader';
 import { BannerAndGames, GameCategoryType } from './components/BannerAndGames';
@@ -30,6 +35,7 @@ import {
 } from './components/CustomerModals';
 import { MiniGameModal } from './components/MiniGameModal';
 import { AdminPanel } from './components/AdminPanel';
+import { LiveChatWidget, OfficialWhatsAppLogoSvg } from './components/LiveChatWidget';
 import {
   Home,
   KeyRound,
@@ -45,7 +51,7 @@ import {
 } from 'lucide-react';
 
 export default function App() {
-  // Standalone Admin Route Detection (`/admin`, `/?admin=true`, or `/#admin`)
+  // Standalone Admin or Staff Route Detection (`/admin`, `/staff`, `/?admin=true`, `/?staff=true`)
   const [isAdminRoute, setIsAdminRoute] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return isStandaloneAdminUrl(
@@ -57,6 +63,19 @@ export default function App() {
     return false;
   });
 
+  const [initialAdminLoginMode, setInitialAdminLoginMode] = useState<'master' | 'staff'>(() => {
+    if (typeof window !== 'undefined') {
+      return isStaffLoginUrl(
+        window.location.pathname,
+        window.location.search,
+        window.location.hash
+      )
+        ? 'staff'
+        : 'master';
+    }
+    return 'master';
+  });
+
   useEffect(() => {
     const syncRoute = () => {
       setIsAdminRoute(
@@ -65,6 +84,15 @@ export default function App() {
           window.location.search,
           window.location.hash
         )
+      );
+      setInitialAdminLoginMode(
+        isStaffLoginUrl(
+          window.location.pathname,
+          window.location.search,
+          window.location.hash
+        )
+          ? 'staff'
+          : 'master'
       );
     };
     window.addEventListener('popstate', syncRoute);
@@ -85,6 +113,12 @@ export default function App() {
     INITIAL_PAYMENT_SETTINGS
   );
   const [banners, setBanners] = useState<BannerSlide[]>(INITIAL_BANNERS);
+  const [staffList, setStaffList] = useState<StaffMember[]>(
+    Object.values(INITIAL_STAFF)
+  );
+  const [chatsMap, setChatsMap] = useState<Record<string, ChatThread>>(
+    INITIAL_CHATS
+  );
 
   // Modals & Interactive States
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
@@ -92,6 +126,7 @@ export default function App() {
   const [depositModalOpen, setDepositModalOpen] = useState<boolean>(false);
   const [withdrawModalOpen, setWithdrawModalOpen] = useState<boolean>(false);
   const [createIdModalOpen, setCreateIdModalOpen] = useState<boolean>(false);
+  const [liveChatOpen, setLiveChatOpen] = useState<boolean>(false);
   const [activeGame, setActiveGame] = useState<GameCategoryType | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [rightPanelTab, setRightPanelTab] = useState<'my-wallet' | 'live-feed'>('my-wallet');
@@ -110,11 +145,14 @@ export default function App() {
       const idReqList = Object.values(snapshot.idRequests || {}).sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
+      const staffArr = Object.values(snapshot.staff || INITIAL_STAFF);
 
       setUsers(userList);
       setDeposits(depList);
       setWithdrawals(wdrList);
       setIdRequests(idReqList);
+      setStaffList(staffArr);
+      setChatsMap(snapshot.chats || INITIAL_CHATS);
       if (snapshot.paymentSettings) setPaymentSettings(snapshot.paymentSettings);
       if (snapshot.banners && snapshot.banners.length > 0) setBanners(snapshot.banners);
     });
@@ -159,7 +197,7 @@ export default function App() {
     ? idRequests.filter((r) => r.uid === currentUser.uid)
     : [];
 
-  /* ---------------- RENDER STANDALONE MASTER OWNER ADMIN PANEL (`/admin`) ---------------- */
+  /* ---------------- RENDER STANDALONE MASTER ADMIN OR STAFF PANEL (`/admin` or `/staff`) ---------------- */
   if (isAdminRoute) {
     return (
       <>
@@ -178,6 +216,9 @@ export default function App() {
           idRequests={idRequests}
           paymentSettings={paymentSettings}
           banners={banners}
+          staffList={staffList}
+          chatsMap={chatsMap}
+          initialLoginMode={initialAdminLoginMode}
           onBackToLobby={handleBackToLobby}
           onNotify={showToast}
         />
@@ -219,7 +260,7 @@ export default function App() {
         >
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
-              Quick Wallet & IDs
+              Quick Wallet &amp; IDs
             </p>
             <div className="space-y-1.5">
               <button
@@ -245,6 +286,14 @@ export default function App() {
               >
                 <ArrowDownCircle className="w-4 h-4 shrink-0" />
                 <span>Withdraw Winnings</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLiveChatOpen(true)}
+                className="w-full py-2 px-3 rounded-xl bg-[#25D366]/15 hover:bg-[#25D366]/25 border border-[#25D366]/40 text-[#25D366] font-extrabold text-xs flex items-center gap-2.5 cursor-pointer"
+              >
+                <OfficialWhatsAppLogoSvg className="w-4 h-4 shrink-0 text-[#25D366]" />
+                <span>24/7 Live Chat Support</span>
               </button>
             </div>
           </div>
@@ -643,7 +692,15 @@ export default function App() {
         </button>
       </nav>
 
-      {/* 4. CUSTOMER & GAME MODALS */}
+      {/* 4. BUILT-IN IN-APP LIVE CHAT MESSENGER WITH OFFICIAL WHATSAPP LOGO TRIGGER */}
+      <LiveChatWidget
+        currentUser={currentUser}
+        chatsMap={chatsMap}
+        isOpen={liveChatOpen}
+        onOpenChange={setLiveChatOpen}
+      />
+
+      {/* 5. CUSTOMER & GAME MODALS */}
       <AuthModal
         isOpen={authModalOpen}
         initialMode={authInitialMode}
