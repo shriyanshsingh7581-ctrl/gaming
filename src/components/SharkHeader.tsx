@@ -5,6 +5,7 @@ import { LogOut, User as UserIcon, PlusCircle } from 'lucide-react';
 interface SharkHeaderProps {
   currentUser: UserProfile | null;
   onOpenAuth: (mode: 'login' | 'signup') => void;
+  onOpenProfile?: () => void;
   onLogout: () => void;
   onOpenDeposit: () => void;
   onOpenWithdraw: () => void;
@@ -12,7 +13,7 @@ interface SharkHeaderProps {
 
 /**
  * Exact replication of the "SHARK EXCH" Top Header Section:
- * - Top Auth Bar: Logged-in user's Email/Name, Login/Sign Up button, and EN badge (No Admin button on customer website).
+ * - Top Auth Bar: Logged-in user's Interactive Profile Pill (Name + Email + My Profile modal trigger), Logout button, and EN badge.
  * - Golden-Yellow (#facc15) Header Banner with 3 signature rounded Black (#090d16) cards:
  *   1. Left Vertical Black Card: "Deposit" + bold double upward white chevrons (⏫)
  *   2. Center Large Black Card: Bold italic "SHARK" (white) + "EXCH" (yellow), "WALLET BALANCE" + stacked coins + live balance
@@ -21,6 +22,7 @@ interface SharkHeaderProps {
 export const SharkHeader: React.FC<SharkHeaderProps> = ({
   currentUser,
   onOpenAuth,
+  onOpenProfile,
   onLogout,
   onOpenDeposit,
   onOpenWithdraw,
@@ -49,34 +51,53 @@ export const SharkHeader: React.FC<SharkHeaderProps> = ({
         {/* Zone 2: Customer Auth Status & Language Badge */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           {currentUser ? (
-            <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1">
-              <UserIcon className="w-3.5 h-3.5 text-[#facc15] shrink-0" />
-              <div className="text-left max-w-[130px] sm:max-w-[220px]">
-                <p className="text-[11px] sm:text-xs font-semibold text-white truncate leading-tight">
-                  {currentUser.name}
-                </p>
-                <p className="hidden sm:block text-[10px] text-slate-400 truncate leading-tight">
-                  {currentUser.email}
-                </p>
-              </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                data-testid="header-user-profile-btn"
+                onClick={onOpenProfile}
+                className="flex items-center gap-2 bg-[#131c2e] hover:bg-[#1b2740] border border-[#facc15]/50 rounded-xl px-2.5 py-1.5 transition-colors cursor-pointer"
+              >
+                <div className="w-6 h-6 rounded-lg bg-[#facc15] text-black font-black text-xs flex items-center justify-center shrink-0">
+                  {(currentUser.name || 'U').charAt(0).toUpperCase()}
+                </div>
+                <div className="text-left max-w-[125px] sm:max-w-[200px]">
+                  <p className="text-[11px] sm:text-xs font-extrabold text-white truncate leading-tight">
+                    {currentUser.name}
+                  </p>
+                  <p className="text-[9px] sm:text-[10px] text-[#facc15] font-bold truncate leading-tight">
+                    My Profile · ₹{currentUser.walletBalance.toLocaleString('en-IN')}
+                  </p>
+                </div>
+              </button>
+
               <button
                 type="button"
                 onClick={onLogout}
                 title="Log Out"
                 aria-label="Log Out"
-                className="p-1 rounded hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
+                className="p-2 rounded-xl bg-white/5 hover:bg-red-500/20 border border-white/10 text-slate-300 hover:text-red-400 transition-colors cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => onOpenAuth('login')}
-              className="px-3 sm:px-4 py-1.5 rounded-lg bg-[#facc15] hover:bg-[#eab308] text-black font-bold text-xs tracking-wide transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
-            >
-              Login / Sign Up
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => onOpenAuth('signup')}
+                className="px-2.5 sm:px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs tracking-wide transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
+              >
+                Sign Up
+              </button>
+              <button
+                type="button"
+                onClick={() => onOpenAuth('login')}
+                className="px-3 sm:px-4 py-1.5 rounded-lg bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold text-xs tracking-wide transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
+              >
+                Login
+              </button>
+            </div>
           )}
 
           {/* Language Badge (EN) matching reference top-right */}

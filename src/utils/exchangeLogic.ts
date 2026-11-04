@@ -65,18 +65,19 @@ export interface IdRequestRecord {
 }
 
 export interface ExchangePlatformItem {
+  id: number;
   index: number;
   name: string;
   url: string;
 }
 
 export const OFFICIAL_EXCHANGE_PLATFORMS: ExchangePlatformItem[] = [
-  { index: 1, name: 'Dexch99.now', url: 'https://dexch99.now' },
-  { index: 2, name: 'lexch247.com', url: 'https://lexch247.com' },
-  { index: 3, name: 'bet11play.co', url: 'https://bet11play.co' },
-  { index: 4, name: 'kingreddy99.com', url: 'https://kingreddy99.com' },
-  { index: 5, name: 'loto365.co', url: 'https://loto365.co' },
-  { index: 6, name: 'wexch777.com', url: 'https://wexch777.com' },
+  { id: 1, index: 1, name: 'Dexch99.now', url: 'https://dexch99.now' },
+  { id: 2, index: 2, name: 'lexch247.com', url: 'https://lexch247.com' },
+  { id: 3, index: 3, name: 'bet11play.co', url: 'https://bet11play.co' },
+  { id: 4, index: 4, name: 'kingreddy99.com', url: 'https://kingreddy99.com' },
+  { id: 5, index: 5, name: 'loto365.co', url: 'https://loto365.co' },
+  { id: 6, index: 6, name: 'wexch777.com', url: 'https://wexch777.com' },
 ];
 
 export interface PaymentSettings {
@@ -100,7 +101,19 @@ export interface BannerSlide {
   ctaText: string;
   accentColor: string;
   imageUrl?: string;
+  secondaryImageUrl?: string;
 }
+
+export const CELEBRITY_BANNER_ASSETS = {
+  heroSalman: '/assets/aistudio/images__3__432421dc.jpeg',
+  heroinePriyanka: '/assets/aistudio/images__5__3b40ba5b.jpeg',
+  heroSrk: '/assets/aistudio/Shah_Rukh_Khan_graces_the_launch_of_the_new_Santro_db1554ea.jpg',
+  heroineSonam: '/assets/aistudio/images__4__830ffbdc.jpeg',
+  glamourModel1: '/assets/aistudio/vip_glamour_model_1.jpg',
+  glamourModel2: '/assets/aistudio/vip_glamour_model_2.jpg',
+  glamourModel3: '/assets/aistudio/vip_glamour_model_3.jpg',
+  glamourModel4: '/assets/aistudio/vip_glamour_model_4.jpg',
+} as const;
 
 export interface FirebaseConfigInput {
   apiKey: string;
@@ -423,9 +436,9 @@ export function computeTotalAdminUnreadChats(chats: ChatThread[]): number {
 }
 
 /**
- * Determines whether the current URL is the standalone Master Admin link
- * (`/admin`, `/?admin=true`, `/#admin`).
- * Staff Login (`Mohit A1`) opens exclusively from this same Master Admin link.
+ * Determines whether the current URL is a standalone Admin or Staff route
+ * (`/admin`, `/?admin=true`, `/#admin`, `/staff`, `/?staff=true`, `/#staff`).
+ * Customer homepage (`/`) never shows any admin or staff links.
  */
 export function isStandaloneAdminUrl(
   pathname: string,
@@ -437,29 +450,58 @@ export function isStandaloneAdminUrl(
     cleanPath === '/admin' ||
     cleanPath.endsWith('/admin') ||
     cleanPath === '/master-admin' ||
-    cleanPath === '/owner'
+    cleanPath === '/owner' ||
+    cleanPath === '/staff' ||
+    cleanPath.endsWith('/staff')
   ) {
     return true;
   }
   const params = new URLSearchParams(search || '');
-  if (params.get('admin') === 'true' || params.get('panel') === 'admin') {
+  if (
+    params.get('admin') === 'true' ||
+    params.get('panel') === 'admin' ||
+    params.get('staff') === 'true' ||
+    params.get('panel') === 'staff'
+  ) {
     return true;
   }
   const cleanHash = (hash || '').toLowerCase();
-  if (cleanHash === '#admin' || cleanHash === '#/admin') {
+  if (
+    cleanHash === '#admin' ||
+    cleanHash === '#/admin' ||
+    cleanHash === '#staff' ||
+    cleanHash === '#/staff'
+  ) {
     return true;
   }
   return false;
 }
 
 /**
- * Staff Login opens on the Master Admin link (`/admin` or `?admin=true`) via the Staff tab.
+ * Determines whether the current URL is the strictly separated Staff Panel route
+ * (`/staff`, `/?staff=true`, `/#staff`).
+ * When true, the login screen and panel must ONLY show Staff Login and completely hide Master Admin.
  */
 export function isStaffLoginUrl(
-  _pathname: string,
+  pathname: string,
   search: string,
-  _hash = ''
+  hash = ''
 ): boolean {
+  const cleanPath = (pathname || '').toLowerCase().replace(/\/+$/, '');
+  if (cleanPath === '/staff' || cleanPath.endsWith('/staff')) {
+    return true;
+  }
   const params = new URLSearchParams(search || '');
-  return params.get('admin') === 'true' && params.get('role') === 'staff';
+  if (
+    params.get('staff') === 'true' ||
+    params.get('panel') === 'staff' ||
+    params.get('role') === 'staff'
+  ) {
+    return true;
+  }
+  const cleanHash = (hash || '').toLowerCase();
+  if (cleanHash === '#staff' || cleanHash === '#/staff') {
+    return true;
+  }
+  return false;
 }

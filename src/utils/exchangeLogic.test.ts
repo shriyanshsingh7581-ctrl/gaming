@@ -161,7 +161,7 @@ test('computeAdminSummaryStats aggregates live counts and platform balance accur
 test('parseFirebaseConfigSnippet parses both JSON and JS Firebase Console snippets', () => {
   const jsonResult = parseFirebaseConfigSnippet(
     JSON.stringify({
-      apiKey: 'AIzaSyTestKey123',
+      apiKey: 'TEST_FIREBASE_KEY_123',
       projectId: 'shark-exch-live',
       databaseURL: 'https://shark-exch-live-default-rtdb.firebaseio.com',
     })
@@ -171,7 +171,7 @@ test('parseFirebaseConfigSnippet parses both JSON and JS Firebase Console snippe
 
   const jsSnippet = `
     const firebaseConfig = {
-      apiKey: "AIzaSyJSKey999",
+      apiKey: "TEST_JS_KEY_999",
       authDomain: "shark-exch.firebaseapp.com",
       databaseURL: "https://shark-exch-default-rtdb.firebaseio.com",
       projectId: "shark-exch"
@@ -179,7 +179,7 @@ test('parseFirebaseConfigSnippet parses both JSON and JS Firebase Console snippe
   `;
   const snippetResult = parseFirebaseConfigSnippet(jsSnippet);
   assert.equal(snippetResult.valid, true);
-  assert.equal(snippetResult.config?.apiKey, 'AIzaSyJSKey999');
+  assert.equal(snippetResult.config?.apiKey, 'TEST_JS_KEY_999');
   assert.equal(snippetResult.config?.projectId, 'shark-exch');
 });
 
@@ -192,15 +192,17 @@ test('calculateMinesMultiplier increases with safe picks and more bombs', () => 
   assert.equal(mHighBomb > m2, true);
 });
 
-test('isStandaloneAdminUrl opens exclusively via Master Admin link (/admin, ?admin=true) and not separate /staff link', () => {
+test('isStandaloneAdminUrl and isStaffLoginUrl strictly separate /staff (?staff=true) from /admin (?admin=true)', () => {
   assert.equal(isStandaloneAdminUrl('/', '', ''), false);
   assert.equal(isStandaloneAdminUrl('/index.html', '', '#top'), false);
-  assert.equal(isStandaloneAdminUrl('/staff', '', ''), false);
-  assert.equal(isStandaloneAdminUrl('/', '?staff=true', ''), false);
+  assert.equal(isStandaloneAdminUrl('/staff', '', ''), true);
+  assert.equal(isStandaloneAdminUrl('/', '?staff=true', ''), true);
   assert.equal(isStandaloneAdminUrl('/admin', '', ''), true);
   assert.equal(isStandaloneAdminUrl('/', '?admin=true', ''), true);
-  assert.equal(isStaffLoginUrl('/admin', '?admin=true&role=staff', ''), true);
+  assert.equal(isStaffLoginUrl('/staff', '', ''), true);
+  assert.equal(isStaffLoginUrl('/', '?staff=true', ''), true);
   assert.equal(isStaffLoginUrl('/admin', '', ''), false);
+  assert.equal(isStaffLoginUrl('/', '?admin=true', ''), false);
 });
 
 test('verifyMasterAdminPin (4455), verifyStaffCredentials (Mohit A1 / 1122), and computeTotalAdminUnreadChats', () => {

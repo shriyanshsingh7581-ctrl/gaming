@@ -16,6 +16,7 @@ import {
   verifyStaffCredentials,
   MASTER_ADMIN_PIN,
   OFFICIAL_EXCHANGE_PLATFORMS,
+  CELEBRITY_BANNER_ASSETS,
 } from '../utils/exchangeLogic';
 import {
   adminAdjustUserBalance,
@@ -24,6 +25,7 @@ import {
   adminResolveWithdrawal,
   adminResolveIdRequest,
   adminSavePaymentSettings,
+  adminSaveBanners,
   adminCreateStaffAccount,
   adminChangeStaffPassword,
   adminToggleStaffStatus,
@@ -95,13 +97,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   withdrawals,
   idRequests,
   paymentSettings,
+  banners,
   staffList,
   chatsMap,
   initialLoginMode = 'master',
   onBackToLobby,
   onNotify,
 }) => {
-  // Login Gate State
+  // Login Gate State — Strictly separated: `/staff` only shows Staff Login; `/admin` shows Master Admin Login
+  const isStrictStaffRoute = initialLoginMode === 'staff';
   const [loginTab, setLoginTab] = useState<'master' | 'staff'>(initialLoginMode);
   const [activeRole, setActiveRole] = useState<'none' | 'master' | 'staff'>('none');
   const [loggedInStaff, setLoggedInStaff] = useState<StaffMember | null>(null);
@@ -127,6 +131,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [accountHolder, setAccountHolder] = useState<string>(paymentSettings.accountHolder);
   const [accountNumber, setAccountNumber] = useState<string>(paymentSettings.accountNumber);
   const [ifsc, setIfsc] = useState<string>(paymentSettings.ifsc);
+
+  // Front-Page Hero Promotional Banner State (Master Admin Editable)
+  const [bannerHeroImageUrl, setBannerHeroImageUrl] = useState<string>(
+    banners[0]?.imageUrl || CELEBRITY_BANNER_ASSETS.heroSalman
+  );
+  const [bannerHeroineImageUrl, setBannerHeroineImageUrl] = useState<string>(
+    banners[0]?.secondaryImageUrl || CELEBRITY_BANNER_ASSETS.heroinePriyanka
+  );
+  const [bannerHeadline, setBannerHeadline] = useState<string>(
+    banners[0]?.title || '🔥 SHARK EXCH MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥'
+  );
+  const [bannerSubtitle, setBannerSubtitle] = useState<string>(
+    banners[0]?.subtitle ||
+      'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal'
+  );
+
+  useEffect(() => {
+    if (banners && banners[0]) {
+      setBannerHeroImageUrl(banners[0].imageUrl || CELEBRITY_BANNER_ASSETS.heroSalman);
+      setBannerHeroineImageUrl(
+        banners[0].secondaryImageUrl || CELEBRITY_BANNER_ASSETS.heroinePriyanka
+      );
+      setBannerHeadline(
+        banners[0].title || '🔥 SHARK EXCH MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥'
+      );
+      setBannerSubtitle(
+        banners[0].subtitle ||
+          'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal'
+      );
+    }
+  }, [banners]);
 
   useEffect(() => {
     setUpiId(paymentSettings.upiId);
@@ -269,7 +304,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   /* ============================================================================
-   * MASTER ADMIN (4455) & STAFF (Mohit A1 / 1122) LOGIN GATE SCREEN
+   * STRICTLY SEPARATED LOGIN GATE:
+   * - Staff Route (`/staff` or `?staff=true`): ONLY shows Staff Login (Mohit A1). Zero Master Admin tab/reference.
+   * - Master Admin Route (`/admin` or `?admin=true`): ONLY shows Master Admin Login (PIN: 4455).
    * ============================================================================ */
   if (activeRole === 'none') {
     const primaryStaff =
@@ -280,16 +317,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           s.staffId.toLowerCase() === 'mohita1'
       ) || staffList[0];
 
+    const showStaffForm = isStrictStaffRoute || loginTab === 'staff';
+
     return (
       <div className="min-h-screen bg-[#070a10] text-white flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-md rounded-3xl bg-[#0c111d] border border-[#facc15]/40 shadow-2xl overflow-hidden">
+        <div
+          data-testid={showStaffForm ? 'staff-only-login-card' : 'master-only-login-card'}
+          className="w-full max-w-md rounded-3xl bg-[#0c111d] border border-[#facc15]/40 shadow-2xl overflow-hidden"
+        >
           <div className="bg-[#facc15] px-6 py-4 flex items-center justify-between text-[#090d16]">
             <div className="flex items-center gap-2">
-              <Lock className="w-5 h-5 stroke-[2.5]" />
+              {showStaffForm ? (
+                <UserCheck className="w-5 h-5 stroke-[2.5]" />
+              ) : (
+                <Lock className="w-5 h-5 stroke-[2.5]" />
+              )}
               <span className="font-shark italic font-black text-xl">
-                {loginTab === 'master'
-                  ? 'MASTER OWNER ADMIN GATE'
-                  : 'STAFF ADMIN PANEL (MOHIT A1)'}
+                {showStaffForm
+                  ? 'STAFF LOGIN PANEL (MOHIT A1)'
+                  : 'MASTER OWNER ADMIN GATE'}
               </span>
             </div>
             <button
@@ -301,43 +347,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </button>
           </div>
 
-          {/* Role Switcher Tabs: Master Admin vs Staff Login */}
-          <div className="grid grid-cols-2 gap-2 p-2 bg-[#090d16] border-b border-white/10">
-            <button
-              type="button"
-              onClick={() => {
-                setLoginTab('master');
-                setAuthError('');
-              }}
-              className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                loginTab === 'master'
-                  ? 'bg-[#facc15] text-black shadow'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Lock className="w-3.5 h-3.5" />
-              <span>Master Admin (4455)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setLoginTab('staff');
-                setAuthError('');
-              }}
-              className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                loginTab === 'staff'
-                  ? 'bg-[#facc15] text-black shadow'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <UserCheck className="w-3.5 h-3.5" />
-              <span>Staff Login (Mohit A1)</span>
-            </button>
-          </div>
-
-          {loginTab === 'master' ? (
-            /* MASTER ADMIN LOGIN FORM (PIN: 4455) */
+          {!showStaffForm ? (
+            /* MASTER ADMIN LOGIN FORM (PIN: 4455) — ONLY ON `/admin` OR `?admin=true` */
             <form onSubmit={handleMasterUnlock} className="p-6 space-y-4">
               <div className="p-3 rounded-xl bg-[#facc15]/10 border border-[#facc15]/30 text-center">
                 <p className="text-xs font-bold text-[#facc15]">
@@ -395,7 +406,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
             </form>
           ) : (
-            /* STAFF LOGIN FORM (Default: Mohit A1 / 1122) */
+            /* STAFF LOGIN FORM (Default: Mohit A1 / 1122) — STRICTLY NO MASTER ADMIN TABS OR REFERENCES */
             <form onSubmit={handleStaffLogin} className="p-6 space-y-4">
               <div className="p-3 rounded-xl bg-sky-500/10 border border-sky-500/30 text-center space-y-1">
                 <p className="text-xs font-bold text-sky-300">
@@ -405,7 +416,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   </span>
                 </p>
                 <p className="text-[11px] text-slate-400">
-                  🔒 UPI QR Code &amp; Bank Details are strictly Read-Only for Staff
+                  🔒 Authorised Staff Portal · QR &amp; Payment Settings are Read-Only
                 </p>
               </div>
 
@@ -507,6 +518,42 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleBannerHeroFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isMasterAdmin) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setBannerHeroImageUrl(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveFrontBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isMasterAdmin) return;
+    const updatedSlide1: BannerSlide = {
+      id: 'banner-1',
+      tag: 'SHARK EXCH OFFICIAL MEGA OFFER',
+      title:
+        bannerHeadline.trim() ||
+        '🔥 SHARK EXCH MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥',
+      subtitle:
+        bannerSubtitle.trim() ||
+        'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal',
+      ctaText: 'Create ID',
+      accentColor: '#facc15',
+      imageUrl: bannerHeroImageUrl.trim() || CELEBRITY_BANNER_ASSETS.heroSalman,
+      secondaryImageUrl:
+        bannerHeroineImageUrl.trim() || CELEBRITY_BANNER_ASSETS.heroinePriyanka,
+    };
+    const nextBanners = [updatedSlide1, ...(banners.slice(1) || [])];
+    await adminSaveBanners(nextBanners);
+    onNotify('Updated Front-Page Promotional Hero Banner & Offer in Firebase!');
   };
 
   const handleSavePaymentSettings = async (e: React.FormEvent) => {
@@ -651,17 +698,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <span>+ Create Customer / Exchange ID</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              const fullUrl = `${window.location.origin}/admin`;
-              navigator.clipboard?.writeText(fullUrl).catch(() => {});
-              onNotify(`Copied Master Admin & Staff Login Link: ${fullUrl}`);
-            }}
-            className="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/40 text-xs font-bold text-emerald-300 cursor-pointer"
-          >
-            🔗 Copy Master Link (/admin)
-          </button>
+          {isMasterAdmin ? (
+            <button
+              type="button"
+              onClick={() => {
+                const fullUrl = `${window.location.origin}/admin`;
+                navigator.clipboard?.writeText(fullUrl).catch(() => {});
+                onNotify(`Copied Master Admin Link: ${fullUrl}`);
+              }}
+              className="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/40 text-xs font-bold text-emerald-300 cursor-pointer"
+            >
+              🔗 Copy Master Link (/admin)
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                const fullUrl = `${window.location.origin}/staff`;
+                navigator.clipboard?.writeText(fullUrl).catch(() => {});
+                onNotify(`Copied Staff Login Link: ${fullUrl}`);
+              }}
+              className="px-3 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/40 text-xs font-bold text-sky-300 cursor-pointer"
+            >
+              🔗 Copy Staff Link (/staff)
+            </button>
+          )}
 
           {isMasterAdmin && (
             <button
@@ -680,7 +741,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             className="px-3 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-xs font-bold text-red-300 flex items-center gap-1 cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span>Switch Role / Logout</span>
+            <span>Logout</span>
           </button>
 
           <button
@@ -1474,6 +1535,122 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 )}
               </div>
             </form>
+
+            {/* Master Admin Front-Page Hero Promotional Banner Photo & Offer Editor */}
+            {isMasterAdmin && (
+              <form
+                onSubmit={handleSaveFrontBanner}
+                className="pt-6 border-t border-white/10 space-y-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-base font-bold text-[#facc15]">
+                      🎬 Front-Page Celebrity Promo Banner &amp; Mega Offer Editor (`/banners`)
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Update or replace the front-page Hero/Heroine celebrity photos and Mega Offer text anytime.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold text-slate-300">
+                      Primary Hero Banner Photo (Upload or Select Preset)
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={bannerHeroImageUrl}
+                        alt="Hero Preview"
+                        className="w-20 h-20 rounded-xl object-cover object-top border border-[#facc15]"
+                      />
+                      <div className="flex-1 space-y-2">
+                        <label
+                          htmlFor="admin-banner-photo-upload"
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white cursor-pointer"
+                        >
+                          <Upload className="w-3.5 h-3.5 text-[#facc15]" />
+                          <span>Upload Custom Banner Photo</span>
+                        </label>
+                        <input
+                          id="admin-banner-photo-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleBannerHeroFileUpload}
+                          className="hidden"
+                        />
+                        <div className="flex flex-wrap gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setBannerHeroImageUrl(CELEBRITY_BANNER_ASSETS.heroSalman)}
+                            className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/15 text-[11px] text-amber-300 cursor-pointer"
+                          >
+                            Hero Photo 1
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setBannerHeroImageUrl(CELEBRITY_BANNER_ASSETS.heroSrk)}
+                            className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/15 text-[11px] text-sky-300 cursor-pointer"
+                          >
+                            Hero Photo 2
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setBannerHeroineImageUrl(CELEBRITY_BANNER_ASSETS.heroinePriyanka)
+                            }
+                            className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/15 text-[11px] text-pink-300 cursor-pointer"
+                          >
+                            Heroine Photo 1
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setBannerHeroineImageUrl(CELEBRITY_BANNER_ASSETS.heroineSonam)
+                            }
+                            className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/15 text-[11px] text-emerald-300 cursor-pointer"
+                          >
+                            Heroine Photo 2
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                        Main Offer Headline
+                      </label>
+                      <input
+                        type="text"
+                        value={bannerHeadline}
+                        onChange={(e) => setBannerHeadline(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-[#090d16] border border-white/15 text-xs text-[#facc15] font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                        Sub-Headline Text
+                      </label>
+                      <input
+                        type="text"
+                        value={bannerSubtitle}
+                        onChange={(e) => setBannerSubtitle(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-[#090d16] border border-white/15 text-xs text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-xs cursor-pointer"
+                >
+                  💾 Save Front-Page Promo Banner (`/banners`)
+                </button>
+              </form>
+            )}
           </section>
         )}
 
@@ -2050,22 +2227,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h2 className="text-lg font-bold text-white">
-                    Registered Staff Accounts (Opens via Master Link `/admin`)
+                    Registered Staff Accounts (Dedicated Staff Route `/staff`)
                   </h2>
                   <p className="text-xs text-slate-400">
-                    Staff members log in from the same Master Admin link (<strong>/admin</strong>) by selecting the <strong>Staff Login (Mohit A1)</strong> tab.
+                    Staff members log in via the separate Staff link (<strong>/staff</strong> or <strong>?staff=true</strong>), which shows only the Staff Login screen and hides all Master Admin options.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => {
-                    const fullUrl = `${window.location.origin}/admin`;
+                    const fullUrl = `${window.location.origin}/staff`;
                     navigator.clipboard?.writeText(fullUrl).catch(() => {});
-                    onNotify(`Copied Master Link for Staff Login: ${fullUrl}`);
+                    onNotify(`Copied Separate Staff Login Link: ${fullUrl}`);
                   }}
                   className="px-3 py-2 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-xs cursor-pointer"
                 >
-                  🔗 Copy Master Link (/admin)
+                  🔗 Copy Staff Login Link (/staff)
                 </button>
               </div>
 
@@ -2547,7 +2724,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <form onSubmit={handleSaveFirebaseConfig} className="space-y-4">
               <textarea
                 rows={7}
-                placeholder={`{\n  "apiKey": "AIzaSy...",\n  "authDomain": "your-app.firebaseapp.com",\n  "databaseURL": "https://your-app-default-rtdb.firebaseio.com",\n  "projectId": "your-app"\n}`}
+                placeholder={`{\n  "apiKey": "YOUR_FIREBASE_API_KEY",\n  "authDomain": "your-app.firebaseapp.com",\n  "databaseURL": "https://your-app-default-rtdb.firebaseio.com",\n  "projectId": "your-app"\n}`}
                 value={firebaseRawJson}
                 onChange={(e) => setFirebaseRawJson(e.target.value)}
                 className="w-full p-3.5 rounded-xl bg-[#090d16] border border-white/15 font-mono-tabular text-xs text-white focus:outline-none focus:border-[#facc15]"

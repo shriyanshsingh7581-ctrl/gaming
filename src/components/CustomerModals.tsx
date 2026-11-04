@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   UserProfile,
+  DepositRecord,
+  WithdrawalRecord,
+  IdRequestRecord,
   PaymentSettings,
   OFFICIAL_EXCHANGE_PLATFORMS,
   validateDepositInput,
@@ -9,6 +12,8 @@ import {
 import {
   registerCustomerWithEmail,
   loginCustomerWithEmail,
+  loginWithGoogleFirebase,
+  updateCustomerProfile,
   submitDepositRequest,
   submitWithdrawalRequest,
   submitCreateIdRequest,
@@ -27,10 +32,19 @@ import {
   UserPlus,
   LogIn,
   KeyRound,
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User as UserIcon,
+  Phone,
+  LogOut,
+  ExternalLink,
+  Save,
 } from 'lucide-react';
 
 /* ============================================================================
- * 1. EMAIL & PASSWORD SIGN-UP / LOGIN MODAL
+ * 1. GOOGLE FIREBASE AUTHENTICATION — EMAIL ID & PASSWORD + GOOGLE SIGN-IN MODAL
  * ============================================================================ */
 interface AuthModalProps {
   isOpen: boolean;
@@ -50,8 +64,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+      setError('');
+    }
+  }, [initialMode, isOpen]);
 
   if (!isOpen) return null;
 
@@ -81,6 +104,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
+  const handleGoogleLogin = async () => {
+    setError('');
+    setGoogleLoading(true);
+    try {
+      const user = await loginWithGoogleFirebase();
+      onSuccess(user, `Welcome to SHARK EXCH, ${user.name}! Signed in via Google Firebase Auth.`);
+      onClose();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Google Sign-In failed.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   const handleQuickDemoLogin = async () => {
     setError('');
     setLoading(true);
@@ -102,15 +139,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       aria-labelledby="auth-modal-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
     >
-      <div className="w-full max-w-md rounded-3xl bg-[#0c111d] border border-[#facc15]/30 shadow-2xl overflow-hidden">
+      <div className="w-full max-w-md rounded-3xl bg-[#0c111d] border border-[#facc15]/30 shadow-2xl overflow-hidden max-h-[92vh] overflow-y-auto">
         {/* Modal Header */}
         <div className="bg-[#facc15] px-6 py-4 flex items-center justify-between text-[#090d16]">
           <div className="flex items-center gap-2">
             <span className="font-shark italic font-black text-2xl tracking-wide">
               SHARK EXCH
             </span>
-            <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-black/15">
-              Firebase Auth
+            <span className="text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-black/15">
+              Google Firebase Auth
             </span>
           </div>
           <button
@@ -153,16 +190,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             }`}
           >
             <UserPlus className="w-4 h-4" />
-            <span>Create Account (Sign Up)</span>
+            <span>Sign Up (New Email ID)</span>
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <h2 id="auth-modal-title" className="text-lg font-bold text-white">
-            {mode === 'login'
-              ? 'Customer Sign In'
-              : 'Create New Shark Exch Account'}
-          </h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 id="auth-modal-title" className="text-lg font-bold text-white">
+              {mode === 'login'
+                ? 'Sign In with Email ID & Password'
+                : 'Register with Email ID & Password'}
+            </h2>
+            <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-md">
+              Firebase Secured
+            </span>
+          </div>
 
           {error && (
             <div
@@ -220,15 +262,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             >
               Email ID
             </label>
-            <input
-              id="auth-email"
-              type="email"
-              required
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
-            />
+            <div className="relative">
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                id="auth-email"
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="yourname@gmail.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
+              />
+            </div>
           </div>
 
           <div>
@@ -238,28 +284,95 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             >
               Password
             </label>
-            <input
-              id="auth-password"
-              type="password"
-              required
-              placeholder="Minimum 6 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
-            />
+            <div className="relative">
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                id="auth-password"
+                type={showPassword ? 'text' : 'password'}
+                required
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                placeholder="Minimum 6 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || googleLoading}
             className="w-full py-3 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-sm tracking-wide shadow-lg transition-transform active:scale-98 cursor-pointer disabled:opacity-50"
           >
             {loading
-              ? 'Connecting to Firebase...'
+              ? 'Authenticating with Firebase...'
               : mode === 'login'
-              ? 'Log In to Wallet'
-              : 'Create Account & Sync to Firebase'}
+              ? 'Log In with Email ID & Password'
+              : 'Create Account with Email ID & Password'}
           </button>
+
+          {/* Divider */}
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-white/10" />
+            <span className="flex-shrink mx-3 text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+              OR GOOGLE FIREBASE AUTH
+            </span>
+            <div className="flex-grow border-t border-white/10" />
+          </div>
+
+          {/* Official Google Firebase Sign-In Button */}
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={loading || googleLoading}
+            className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm flex items-center justify-center gap-2.5 shadow transition-colors cursor-pointer disabled:opacity-50"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="#4285F4"
+                d="M23.49 12.275c0-.85-.075-1.675-.215-2.475H12v4.685h6.445c-.28 1.495-1.125 2.765-2.395 3.615v3h3.875c2.265-2.085 3.565-5.16 3.565-8.825z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 24c3.24 0 5.955-1.075 7.94-2.91l-3.875-3c-1.075.72-2.45 1.145-4.065 1.145-3.125 0-5.77-2.11-6.715-4.945H1.28v3.095C3.255 21.305 7.31 24 12 24z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.285 14.29c-.24-.72-.375-1.49-.375-2.29s.135-1.57.375-2.29V6.615H1.28C.465 8.24 0 10.065 0 12s.465 3.76 1.28 5.385l4.005-3.095z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 4.75c1.76 0 3.34.605 4.585 1.795l3.435-3.435C17.95 1.185 15.235 0 12 0 7.31 0 3.255 2.695 1.28 6.615l4.005 3.095c.945-2.835 3.59-4.96 6.715-4.96z"
+              />
+            </svg>
+            <span>
+              {googleLoading ? 'Connecting to Google...' : 'Continue with Google Account'}
+            </span>
+          </button>
+
+          <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
+            <span className="text-xs text-slate-400">
+              {mode === 'login' ? "Don't have an account?" : 'Already have an Email ID account?'}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setMode(mode === 'login' ? 'signup' : 'login');
+                setError('');
+              }}
+              className="text-xs font-bold text-[#facc15] hover:underline cursor-pointer"
+            >
+              {mode === 'login' ? 'Create New Account →' : 'Log In Here →'}
+            </button>
+          </div>
 
           {mode === 'login' && (
             <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
@@ -269,7 +382,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <button
                 type="button"
                 onClick={handleQuickDemoLogin}
-                className="text-xs font-bold text-[#facc15] hover:underline cursor-pointer"
+                className="text-xs font-bold text-emerald-400 hover:underline cursor-pointer"
               >
                 1-Click Demo VIP Login
               </button>
@@ -1216,6 +1329,546 @@ export const CreateIdModal: React.FC<CreateIdModalProps> = ({
               : `Submit Create ID Request (${platform})`}
           </button>
         </form>
+      </div>
+    </div>
+  );
+};
+
+/* ============================================================================
+ * 5. CUSTOMER VIP PROFILE, EXCHANGE IDs & WALLET DASHBOARD MODAL
+ * ============================================================================ */
+interface UserProfileModalProps {
+  isOpen: boolean;
+  currentUser: UserProfile | null;
+  myDeposits: DepositRecord[];
+  myWithdrawals: WithdrawalRecord[];
+  myIdRequests: IdRequestRecord[];
+  onClose: () => void;
+  onOpenDeposit: () => void;
+  onOpenWithdraw: () => void;
+  onOpenCreateId: () => void;
+  onLogout: () => void;
+  onSuccess: (message: string) => void;
+}
+
+export const UserProfileModal: React.FC<UserProfileModalProps> = ({
+  isOpen,
+  currentUser,
+  myDeposits,
+  myWithdrawals,
+  myIdRequests,
+  onClose,
+  onOpenDeposit,
+  onOpenWithdraw,
+  onOpenCreateId,
+  onLogout,
+  onSuccess,
+}) => {
+  const [activeTab, setActiveTab] = useState<'profile' | 'ids' | 'transactions'>('profile');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (currentUser && isOpen) {
+      setName(currentUser.name || '');
+      setPhone(currentUser.phone || '');
+      setNewPassword('');
+      setError('');
+    }
+  }, [currentUser, isOpen]);
+
+  if (!isOpen || !currentUser) return null;
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSaving(true);
+    try {
+      await updateCustomerProfile(currentUser.uid, {
+        name,
+        phone,
+        ...(newPassword.trim() ? { password: newPassword.trim() } : {}),
+      });
+      setNewPassword('');
+      onSuccess('Your VIP Profile has been updated!');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not update profile.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCopyText = (text: string, key: string) => {
+    navigator.clipboard?.writeText(text).catch(() => {});
+    setCopiedKey(key);
+    setTimeout(() => {
+      setCopiedKey((prev) => (prev === key ? null : prev));
+    }, 2000);
+  };
+
+  const totalApprovedDeposits = myDeposits
+    .filter((d) => d.status === 'Approved')
+    .reduce((sum, d) => sum + d.amount, 0);
+  const totalApprovedWithdrawals = myWithdrawals
+    .filter((w) => w.status === 'Approved')
+    .reduce((sum, w) => sum + w.amount, 0);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="user-profile-modal-title"
+      data-testid="user-profile-modal"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85"
+    >
+      <div className="w-full max-w-lg rounded-3xl bg-[#0c111d] border-2 border-[#facc15]/50 shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
+        {/* Luxury Gold Header */}
+        <div className="bg-gradient-to-r from-[#facc15] via-yellow-300 to-[#eab308] px-5 py-4 flex items-center justify-between text-[#090d16] shrink-0">
+          <div className="flex items-center gap-2.5">
+            <UserIcon className="w-6 h-6 stroke-[2.5]" />
+            <div>
+              <h2
+                id="user-profile-modal-title"
+                className="font-shark italic font-black text-xl tracking-wide leading-none"
+              >
+                MY VIP PROFILE &amp; ACCOUNT
+              </h2>
+              <p className="text-[11px] font-bold opacity-85 mt-0.5">
+                SHARK EXCH · Official Verified Member
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close Profile Modal"
+            className="p-1.5 rounded-full hover:bg-black/15 transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Top User Summary Banner */}
+        <div className="p-4 bg-[#090d16] border-b border-white/10 space-y-3 shrink-0">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#facc15] to-amber-500 text-black font-black text-xl flex items-center justify-center shadow-lg shrink-0">
+                {(currentUser.name || 'V').charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-extrabold text-base text-white truncate">
+                    {currentUser.name}
+                  </h3>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-extrabold text-[10px] uppercase">
+                    <ShieldCheck className="w-3 h-3" />
+                    {currentUser.status}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 truncate">{currentUser.email}</p>
+                <p className="text-[11px] font-mono-tabular text-[#facc15]">
+                  {currentUser.phone} · ID: {currentUser.uid.slice(0, 12)}
+                </p>
+              </div>
+            </div>
+
+            <div className="text-right shrink-0">
+              <span className="block text-[10px] font-bold uppercase text-slate-400">
+                Wallet Balance
+              </span>
+              <span className="font-mono-tabular font-black text-xl text-[#facc15]">
+                ₹{currentUser.walletBalance.toLocaleString('en-IN')}
+              </span>
+            </div>
+          </div>
+
+          {/* Quick Wallet Action Strip */}
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenDeposit();
+              }}
+              className="py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <ArrowUpCircle className="w-3.5 h-3.5" />
+              <span>Deposit</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenWithdraw();
+              }}
+              className="py-2 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <ArrowDownCircle className="w-3.5 h-3.5" />
+              <span>Withdraw</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenCreateId();
+              }}
+              className="py-2 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-[#facc15] border border-[#facc15]/40 font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Create ID</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="grid grid-cols-3 p-2 gap-1.5 bg-[#090d16] border-b border-white/10 shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab('profile')}
+            className={`py-2 px-2 rounded-xl font-bold text-xs cursor-pointer transition-colors ${
+              activeTab === 'profile'
+                ? 'bg-[#facc15] text-black'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Profile Details
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('ids')}
+            className={`py-2 px-2 rounded-xl font-bold text-xs cursor-pointer transition-colors ${
+              activeTab === 'ids'
+                ? 'bg-[#facc15] text-black'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            My IDs ({myIdRequests.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('transactions')}
+            className={`py-2 px-2 rounded-xl font-bold text-xs cursor-pointer transition-colors ${
+              activeTab === 'transactions'
+                ? 'bg-[#facc15] text-black'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            History ({myDeposits.length + myWithdrawals.length})
+          </button>
+        </div>
+
+        {/* Tab Body */}
+        <div className="p-5 overflow-y-auto space-y-4 flex-1">
+          {activeTab === 'profile' && (
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              {error && (
+                <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-xs font-medium">
+                  {error}
+                </div>
+              )}
+
+              {/* Account Stats Summary */}
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="p-2.5 rounded-xl bg-[#090d16] border border-white/10">
+                  <span className="block text-[10px] text-slate-400 uppercase">Total Deposits</span>
+                  <span className="font-mono-tabular font-bold text-xs text-emerald-400">
+                    ₹{totalApprovedDeposits.toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-[#090d16] border border-white/10">
+                  <span className="block text-[10px] text-slate-400 uppercase">Withdrawals</span>
+                  <span className="font-mono-tabular font-bold text-xs text-amber-300">
+                    ₹{totalApprovedWithdrawals.toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-[#090d16] border border-white/10">
+                  <span className="block text-[10px] text-slate-400 uppercase">Active IDs</span>
+                  <span className="font-mono-tabular font-bold text-xs text-[#facc15]">
+                    {myIdRequests.filter((r) => r.status === 'Created').length}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Registered Email ID (Firebase Auth)
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    disabled
+                    value={currentUser.email}
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#090d16]/60 border border-white/10 text-slate-400 text-sm cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="profile-edit-name"
+                  className="block text-xs font-semibold text-slate-300 mb-1"
+                >
+                  Full Name
+                </label>
+                <div className="relative">
+                  <UserIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    id="profile-edit-name"
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="profile-edit-phone"
+                  className="block text-xs font-semibold text-slate-300 mb-1"
+                >
+                  Mobile Number
+                </label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    id="profile-edit-phone"
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="profile-edit-password"
+                  className="block text-xs font-semibold text-slate-300 mb-1"
+                >
+                  Change Password (Optional)
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    id="profile-edit-password"
+                    type="password"
+                    placeholder="Leave blank to keep current password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 pt-2">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 py-3 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{saving ? 'Saving...' : 'Save Profile Changes'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onLogout();
+                  }}
+                  className="py-3 px-4 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-300 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Log Out</span>
+                </button>
+              </div>
+            </form>
+          )}
+
+          {activeTab === 'ids' && (
+            <div className="space-y-3">
+              {myIdRequests.length === 0 ? (
+                <div className="text-center py-8 space-y-3">
+                  <KeyRound className="w-8 h-8 text-[#facc15] mx-auto opacity-80" />
+                  <p className="text-xs text-slate-300">
+                    You have not requested any Exchange IDs yet.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenCreateId();
+                    }}
+                    className="px-4 py-2 rounded-xl bg-[#facc15] text-black font-extrabold text-xs cursor-pointer"
+                  >
+                    Create Your First Exchange ID
+                  </button>
+                </div>
+              ) : (
+                myIdRequests.map((req, idx) => {
+                  const matchedExch = OFFICIAL_EXCHANGE_PLATFORMS.find(
+                    (e) => e.name.toLowerCase() === (req.platform || '').toLowerCase()
+                  );
+                  const exchUrl = matchedExch
+                    ? matchedExch.url
+                    : `https://${(req.platform || 'dexch99.now').toLowerCase().replace(/\s+/g, '')}`;
+
+                  return (
+                    <div
+                      key={`profile-id-${req.id || idx}-${idx}`}
+                      className="p-3.5 rounded-2xl bg-[#090d16] border border-[#facc15]/40 space-y-2 text-xs"
+                    >
+                      <div className="flex items-center justify-between">
+                        <a
+                          href={exchUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-extrabold text-sm text-[#facc15] hover:underline inline-flex items-center gap-1"
+                        >
+                          <span>{req.platform}</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                        <span
+                          className={`px-2 py-0.5 rounded font-bold text-[10px] ${
+                            req.status === 'Created'
+                              ? 'bg-emerald-500/20 text-emerald-300'
+                              : 'bg-amber-500/20 text-amber-300'
+                          }`}
+                        >
+                          {req.status === 'Created' ? 'Active ID' : 'Pending Approval'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span>
+                          Preferred Username:{' '}
+                          <strong className="text-white font-mono-tabular">
+                            {req.preferredUsername}
+                          </strong>
+                        </span>
+                        <span className="font-mono-tabular text-emerald-400 font-bold">
+                          ₹{req.depositAmount.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+
+                      {req.assignedId ? (
+                        <div className="p-2.5 rounded-xl bg-[#0c111d] border border-emerald-500/40 space-y-2">
+                          <div className="flex items-center justify-between font-mono-tabular">
+                            <span className="text-slate-400">User ID:</span>
+                            <strong className="text-[#facc15]">{req.assignedId}</strong>
+                          </div>
+                          <div className="flex items-center justify-between font-mono-tabular">
+                            <span className="text-slate-400">Password:</span>
+                            <strong className="text-emerald-300">{req.assignedPassword}</strong>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleCopyText(
+                                `Exchange: ${req.platform} | User ID: ${req.assignedId} | Password: ${req.assignedPassword}`,
+                                `prof-id-${req.id}`
+                              )
+                            }
+                            className="w-full py-1.5 rounded-lg bg-[#facc15] text-black font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            {copiedKey === `prof-id-${req.id}` ? (
+                              <>
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5" />
+                                <span>Copy ID &amp; Password</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-amber-300">
+                          ⏳ Admin/Staff is verifying your payment and generating your ID...
+                        </p>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+
+          {activeTab === 'transactions' && (
+            <div className="space-y-2.5">
+              {myDeposits.length === 0 && myWithdrawals.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center py-8">
+                  No deposits or withdrawals recorded yet.
+                </p>
+              ) : (
+                <>
+                  {myDeposits.map((dep, idx) => (
+                    <div
+                      key={`prof-dep-${dep.id || idx}-${idx}`}
+                      className="p-3 rounded-xl bg-[#090d16] border border-white/10 flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <span className="font-bold text-emerald-400">
+                          Deposit +₹{dep.amount.toLocaleString('en-IN')}
+                        </span>
+                        <span className="block text-[10px] text-slate-400 font-mono-tabular">
+                          UTR: {dep.utr}
+                        </span>
+                      </div>
+                      <span
+                        className={`font-bold ${
+                          dep.status === 'Approved'
+                            ? 'text-emerald-400'
+                            : dep.status === 'Pending'
+                            ? 'text-amber-400'
+                            : 'text-red-400'
+                        }`}
+                      >
+                        {dep.status}
+                      </span>
+                    </div>
+                  ))}
+                  {myWithdrawals.map((wdr, idx) => (
+                    <div
+                      key={`prof-wdr-${wdr.id || idx}-${idx}`}
+                      className="p-3 rounded-xl bg-[#090d16] border border-white/10 flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <span className="font-bold text-amber-300">
+                          Withdraw -₹{wdr.amount.toLocaleString('en-IN')}
+                        </span>
+                        <span className="block text-[10px] text-slate-400 font-mono-tabular">
+                          {wdr.method === 'UPI' ? wdr.upiId : wdr.accountNumber}
+                        </span>
+                      </div>
+                      <span
+                        className={`font-bold ${
+                          wdr.status === 'Approved'
+                            ? 'text-emerald-400'
+                            : wdr.status === 'Pending'
+                            ? 'text-amber-400'
+                            : 'text-red-400'
+                        }`}
+                      >
+                        {wdr.status}
+                      </span>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

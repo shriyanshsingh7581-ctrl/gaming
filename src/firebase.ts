@@ -14,6 +14,8 @@ import {
   getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
   signOut,
   onAuthStateChanged,
   Auth,
@@ -35,7 +37,6 @@ import {
   getDocFromServer,
   Firestore,
 } from 'firebase/firestore';
-import provisionedFirebaseConfig from '../firebase-applet-config.json';
 import {
   UserProfile,
   DepositRecord,
@@ -51,6 +52,7 @@ import {
   calculateWalletAfterWithdrawalRequest,
   calculateWalletAfterWithdrawalRejection,
   calculateAdminBalanceAdjustment,
+  CELEBRITY_BANNER_ASSETS,
 } from './utils/exchangeLogic';
 
 const STORAGE_CONFIG_KEY = 'shark_exch_firebase_config_v1';
@@ -59,6 +61,37 @@ const STORAGE_SESSION_UID_KEY = 'shark_exch_active_uid_v1';
 const STORAGE_GUEST_CHAT_KEY = 'shark_exch_guest_chat_id_v1';
 const CLOUD_MIRROR_COLLECTION = 'exchangeState';
 const CLOUD_MIRROR_DOC_ID = 'live_rtdb_mirror';
+
+interface ProvisionedFirebaseConfig {
+  projectId?: string;
+  appId?: string;
+  apiKey?: string;
+  authDomain?: string;
+  firestoreDatabaseId?: string;
+  storageBucket?: string;
+  messagingSenderId?: string;
+}
+
+const globbedConfigs = (
+  import.meta as unknown as {
+    glob?: (
+      pattern: string,
+      opts: { eager: boolean; import?: string }
+    ) => Record<string, ProvisionedFirebaseConfig>;
+  }
+).glob
+  ? (
+      import.meta as unknown as {
+        glob: (
+          pattern: string,
+          opts: { eager: boolean; import: string }
+        ) => Record<string, ProvisionedFirebaseConfig>;
+      }
+    ).glob('../firebase-applet-config.json', { eager: true, import: 'default' })
+  : {};
+
+const provisionedFirebaseConfig: ProvisionedFirebaseConfig | null =
+  Object.values(globbedConfigs)[0] || null;
 
 export enum OperationType {
   CREATE = 'create',
@@ -203,28 +236,25 @@ export interface HybridDatabaseSchema {
 export const INITIAL_BANNERS: BannerSlide[] = [
   {
     id: 'banner-1',
-    tag: '#PLAYSAFE',
-    title: 'SEXY LIVE CASINO & VIP TABLES',
-    subtitle: '200% Welcome Exchange Bonus · Instant 60-Second UPI Withdrawals · 24/7 VIP Host',
-    ctaText: 'Play Live Casino',
-    accentColor: '#ec4899',
-    imageUrl: '/assets/aistudio/IMG-20261103-WA0184_268471ee.jpg',
+    tag: 'SHARK EXCH OFFICIAL MEGA OFFER',
+    title: '🔥 SHARK EXCH MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥',
+    subtitle:
+      'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal',
+    ctaText: 'Create ID',
+    accentColor: '#facc15',
+    imageUrl: CELEBRITY_BANNER_ASSETS.heroSalman,
+    secondaryImageUrl: CELEBRITY_BANNER_ASSETS.heroinePriyanka,
   },
   {
     id: 'banner-2',
-    tag: 'AVIATRIX CRASH',
-    title: 'FLY UP TO 10,000X MULTIPLIER',
-    subtitle: 'Provably Fair Space Jet Crash Exchange · Auto Cashout & Live Bet Slip',
-    ctaText: 'Launch Aviatrix',
-    accentColor: '#3b82f6',
-  },
-  {
-    id: 'banner-3',
-    tag: 'CRICKET & MINES',
-    title: 'ZERO MARGIN LIVE SPORTS EXCHANGE',
-    subtitle: 'Instant Master IDs for Diamond Exch, Lotus365 & SkyExch with 5% Every Deposit Bonus',
-    ctaText: 'Create Instant ID',
-    accentColor: '#facc15',
+    tag: 'VIP CELEBRITY GAMING EXCHANGE',
+    title: '🔥 SHARK EXCH MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥',
+    subtitle:
+      'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal',
+    ctaText: 'Create ID',
+    accentColor: '#ec4899',
+    imageUrl: CELEBRITY_BANNER_ASSETS.heroSrk,
+    secondaryImageUrl: CELEBRITY_BANNER_ASSETS.heroineSonam,
   },
 ];
 
@@ -369,6 +399,23 @@ function normalizeStaffStore(rawStaff?: Record<string, StaffMember>): Record<str
     }
   }
   return next;
+}
+
+function normalizeBannersStore(rawBanners?: BannerSlide[]): BannerSlide[] {
+  if (!Array.isArray(rawBanners) || rawBanners.length === 0) {
+    return INITIAL_BANNERS;
+  }
+  // Upgrade old legacy default banners if they still have the old #PLAYSAFE default title
+  const first = rawBanners[0];
+  if (
+    first &&
+    (first.tag === '#PLAYSAFE' ||
+      first.title === 'SEXY LIVE CASINO & VIP TABLES' ||
+      first.imageUrl === '/assets/aistudio/IMG-20261103-WA0184_268471ee.jpg')
+  ) {
+    return INITIAL_BANNERS;
+  }
+  return rawBanners;
 }
 
 // Read saved runtime Firebase config, .env vars, or provisioned firebase-applet-config.json
@@ -529,7 +576,7 @@ function loadHybridStore(): HybridDatabaseSchema {
           withdrawals: parsed.withdrawals || INITIAL_SEED_DB.withdrawals,
           idRequests: parsed.idRequests || INITIAL_SEED_DB.idRequests,
           paymentSettings: parsed.paymentSettings || INITIAL_PAYMENT_SETTINGS,
-          banners: parsed.banners || INITIAL_BANNERS,
+          banners: normalizeBannersStore(parsed.banners),
           staff: normalizeStaffStore(parsed.staff),
           chats: parsed.chats || INITIAL_CHATS,
         };
@@ -682,7 +729,9 @@ export function subscribeToRealtimeData(callback: ListenerCallback): () => void 
                 (val.idRequests as Record<string, IdRequestRecord>) || current.idRequests,
               paymentSettings:
                 (val.paymentSettings as PaymentSettings) || current.paymentSettings,
-              banners: (val.banners as BannerSlide[]) || current.banners,
+              banners: normalizeBannersStore(
+                (val.banners as BannerSlide[]) || current.banners
+              ),
               staff: normalizeStaffStore(
                 (val.staff as Record<string, StaffMember>) || current.staff
               ),
@@ -728,6 +777,39 @@ export function subscribeToAuthState(callback: AuthListenerCallback): () => void
     try {
       unsubAuth = onAuthStateChanged(firebaseAuth, (fbUser) => {
         if (fbUser) {
+          const store = loadHybridStore();
+          const fbEmail = (fbUser.email || '').trim().toLowerCase();
+
+          if (!store.users[fbUser.uid]) {
+            const existingByEmail = fbEmail
+              ? Object.values(store.users).find(
+                  (u) => u && u.email && u.email.toLowerCase() === fbEmail
+                )
+              : undefined;
+
+            if (existingByEmail) {
+              localStorage.setItem(STORAGE_SESSION_UID_KEY, existingByEmail.uid);
+              notifyAuthListeners();
+              return;
+            }
+
+            const syncedProfile: UserProfile = {
+              uid: fbUser.uid,
+              name:
+                fbUser.displayName ||
+                (fbEmail ? fbEmail.split('@')[0] : 'VIP Player'),
+              email: fbEmail || `${fbUser.uid}@sharkexch.in`,
+              phone: fbUser.phoneNumber || '+91 98000 00000',
+              walletBalance: 0,
+              status: 'Active',
+              createdAt: new Date().toISOString(),
+            };
+            store.users[fbUser.uid] = syncedProfile;
+            localStorage.setItem(STORAGE_SESSION_UID_KEY, fbUser.uid);
+            saveHybridStore(store);
+            return;
+          }
+
           localStorage.setItem(STORAGE_SESSION_UID_KEY, fbUser.uid);
           notifyAuthListeners();
         }
@@ -773,10 +855,15 @@ export async function registerCustomerWithEmail(params: {
 
   const store = loadHybridStore();
   const existingUser = Object.values(store.users).find(
-    (u) => u.email.toLowerCase() === cleanEmail
+    (u) => u && u.email && u.email.toLowerCase() === cleanEmail
   );
   if (existingUser) {
-    throw new Error('An account with this Email ID already exists. Please Log In.');
+    if (existingUser.password === password) {
+      localStorage.setItem(STORAGE_SESSION_UID_KEY, existingUser.uid);
+      notifyAuthListeners();
+      return existingUser;
+    }
+    throw new Error('An account with this Email ID already exists. Please switch to Login.');
   }
 
   let uid = `usr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -788,8 +875,14 @@ export async function registerCustomerWithEmail(params: {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       if (message.includes('email-already-in-use')) {
-        throw new Error('This Email ID is already registered in Firebase.');
+        try {
+          const signInCred = await signInWithEmailAndPassword(firebaseAuth, cleanEmail, password);
+          uid = signInCred.user.uid;
+        } catch {
+          throw new Error('This Email ID is already registered. Please Log In with your password.');
+        }
       }
+      // If Email/Password provider is not enabled yet in Firebase Console, continue seamlessly with Hybrid Cloud Mirror
     }
   }
 
@@ -833,27 +926,62 @@ export async function loginCustomerWithEmail(
 
   const store = loadHybridStore();
 
-  if (isLiveFirebaseConnected && firebaseAuth) {
+  // 1. Try Firebase Auth (`signInWithEmailAndPassword`)
+  if (isLiveFirebaseConnected && firebaseAuth && cleanEmail.includes('@')) {
     try {
       const cred = await signInWithEmailAndPassword(firebaseAuth, cleanEmail, password);
       const fbUid = cred.user.uid;
-      if (store.users[fbUid]) {
-        if (store.users[fbUid].status === 'Blocked') {
+
+      const existingByUid = store.users[fbUid];
+      const existingByEmail = Object.values(store.users).find(
+        (u) => u && u.email && u.email.toLowerCase() === cleanEmail
+      );
+      const targetUser = existingByUid || existingByEmail;
+
+      if (targetUser) {
+        if (targetUser.status === 'Blocked') {
           throw new Error('Your account has been temporarily blocked by Admin.');
         }
-        localStorage.setItem(STORAGE_SESSION_UID_KEY, fbUid);
-        notifyAuthListeners();
-        return store.users[fbUid];
+        targetUser.password = password;
+        store.users[targetUser.uid] = targetUser;
+        localStorage.setItem(STORAGE_SESSION_UID_KEY, targetUser.uid);
+        saveHybridStore(store);
+        return targetUser;
       }
+
+      // Profile exists in Firebase Auth but not yet in local/mirror store — create it now
+      const recoveredUser: UserProfile = {
+        uid: fbUid,
+        name: cred.user.displayName || cleanEmail.split('@')[0],
+        email: cleanEmail,
+        phone: cred.user.phoneNumber || '+91 98000 00000',
+        password,
+        walletBalance: 0,
+        status: 'Active',
+        createdAt: new Date().toISOString(),
+      };
+      store.users[fbUid] = recoveredUser;
+      localStorage.setItem(STORAGE_SESSION_UID_KEY, fbUid);
+      saveHybridStore(store);
+      return recoveredUser;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '';
       if (msg.includes('blocked by Admin')) throw err;
     }
   }
 
-  const matchedUser = Object.values(store.users).find(
-    (u) => u.email.toLowerCase() === cleanEmail && u.password === password
-  );
+  // 2. Match against Hybrid / Cloud Mirror database (by Email ID, Mobile Number, or Username)
+  const normalizedPhoneInput = cleanEmail.replace(/\s+/g, '');
+  const matchedUser = Object.values(store.users).find((u) => {
+    if (!u) return false;
+    const emailMatch = u.email && u.email.toLowerCase() === cleanEmail;
+    const phoneMatch =
+      u.phone &&
+      normalizedPhoneInput.length >= 8 &&
+      u.phone.replace(/\s+/g, '').endsWith(normalizedPhoneInput.slice(-10));
+    const nameMatch = u.name && u.name.toLowerCase() === cleanEmail;
+    return (emailMatch || phoneMatch || nameMatch) && u.password === password;
+  });
 
   if (!matchedUser) {
     throw new Error('Invalid Email ID or Password. Please check your credentials or Sign Up.');
@@ -863,9 +991,85 @@ export async function loginCustomerWithEmail(
     throw new Error('Your account has been blocked by the Administrator. Contact support.');
   }
 
+  // Sync account into Firebase Auth in the background if not yet created there
+  if (isLiveFirebaseConnected && firebaseAuth && matchedUser.email.includes('@')) {
+    createUserWithEmailAndPassword(firebaseAuth, matchedUser.email, password).catch(() => {
+      // ignore if already exists
+    });
+  }
+
   localStorage.setItem(STORAGE_SESSION_UID_KEY, matchedUser.uid);
   notifyAuthListeners();
   return matchedUser;
+}
+
+/**
+ * Customer Log In / Sign Up with Google Firebase Authentication (`GoogleAuthProvider` + `signInWithPopup`)
+ */
+export async function loginWithGoogleFirebase(): Promise<UserProfile> {
+  const store = loadHybridStore();
+
+  if (isLiveFirebaseConnected && firebaseAuth) {
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const cred = await signInWithPopup(firebaseAuth, provider);
+      const fbUser = cred.user;
+      const fbEmail = (fbUser.email || `${fbUser.uid}@gmail.com`).trim().toLowerCase();
+
+      const existingUser =
+        store.users[fbUser.uid] ||
+        Object.values(store.users).find(
+          (u) => u && u.email && u.email.toLowerCase() === fbEmail
+        );
+
+      if (existingUser) {
+        if (existingUser.status === 'Blocked') {
+          throw new Error('Your account has been blocked by the Administrator.');
+        }
+        localStorage.setItem(STORAGE_SESSION_UID_KEY, existingUser.uid);
+        saveHybridStore(store);
+        return existingUser;
+      }
+
+      const googleUser: UserProfile = {
+        uid: fbUser.uid,
+        name: fbUser.displayName || fbEmail.split('@')[0] || 'Google VIP User',
+        email: fbEmail,
+        phone: fbUser.phoneNumber || '+91 98000 00000',
+        walletBalance: 0,
+        status: 'Active',
+        createdAt: new Date().toISOString(),
+      };
+
+      store.users[fbUser.uid] = googleUser;
+      localStorage.setItem(STORAGE_SESSION_UID_KEY, fbUser.uid);
+      saveHybridStore(store);
+
+      if (firebaseDb) {
+        try {
+          await set(ref(firebaseDb, `users/${fbUser.uid}`), googleUser);
+        } catch {
+          // synced via cloud mirror
+        }
+      }
+
+      return googleUser;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('blocked by the Administrator')) {
+        throw err;
+      }
+      if (msg.includes('popup-closed-by-user') || msg.includes('cancelled-popup-request')) {
+        throw new Error('Google Sign-In window was closed. Please try again or use Email & Password.');
+      }
+      throw new Error(
+        'Google Sign-In popup could not complete on this domain. Please use Email ID & Password below.'
+      );
+    }
+  }
+
+  throw new Error('Firebase Auth is initializing. Please use Email ID & Password below.');
 }
 
 /**
@@ -881,6 +1085,58 @@ export async function logoutCustomer(): Promise<void> {
     }
   }
   notifyAuthListeners();
+}
+
+/**
+ * Update Logged-In Customer Profile (`/users/{uid}`)
+ */
+export async function updateCustomerProfile(
+  uid: string,
+  updates: { name?: string; phone?: string; password?: string }
+): Promise<UserProfile> {
+  const store = loadHybridStore();
+  const existing = store.users[uid];
+  if (!existing) {
+    throw new Error('User profile not found.');
+  }
+
+  const cleanName = updates.name !== undefined ? updates.name.trim() : existing.name;
+  const cleanPhone = updates.phone !== undefined ? updates.phone.trim() : existing.phone;
+  const cleanPassword =
+    updates.password && updates.password.trim().length >= 6
+      ? updates.password.trim()
+      : existing.password;
+
+  if (!cleanName || cleanName.length < 2) {
+    throw new Error('Please enter a valid Full Name.');
+  }
+  if (!cleanPhone || cleanPhone.length < 8) {
+    throw new Error('Please enter a valid 10-digit Mobile Number.');
+  }
+
+  const updated: UserProfile = {
+    ...existing,
+    name: cleanName,
+    phone: cleanPhone,
+    ...(cleanPassword ? { password: cleanPassword } : {}),
+  };
+
+  store.users[uid] = updated;
+  saveHybridStore(store);
+
+  if (isLiveFirebaseConnected && firebaseDb) {
+    try {
+      await update(ref(firebaseDb, `users/${uid}`), {
+        name: updated.name,
+        phone: updated.phone,
+        ...(cleanPassword ? { password: cleanPassword } : {}),
+      });
+    } catch {
+      // synced via cloud mirror
+    }
+  }
+
+  return updated;
 }
 
 /**

@@ -33,6 +33,7 @@ import {
   DepositModal,
   WithdrawModal,
   CreateIdModal,
+  UserProfileModal,
 } from './components/CustomerModals';
 import { MiniGameModal } from './components/MiniGameModal';
 import { AdminPanel } from './components/AdminPanel';
@@ -130,6 +131,7 @@ export default function App() {
   const [depositModalOpen, setDepositModalOpen] = useState<boolean>(false);
   const [withdrawModalOpen, setWithdrawModalOpen] = useState<boolean>(false);
   const [createIdModalOpen, setCreateIdModalOpen] = useState<boolean>(false);
+  const [profileModalOpen, setProfileModalOpen] = useState<boolean>(false);
   const [selectedExchangeForModal, setSelectedExchangeForModal] = useState<string>(
     OFFICIAL_EXCHANGE_PLATFORMS[0].name
   );
@@ -277,6 +279,7 @@ export default function App() {
       <SharkHeader
         currentUser={currentUser}
         onOpenAuth={handleOpenAuth}
+        onOpenProfile={() => setProfileModalOpen(true)}
         onLogout={async () => {
           await logoutCustomer();
           showToast('You have been logged out.');
@@ -336,66 +339,46 @@ export default function App() {
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
               Featured Exchange Games
             </p>
-            <div className="space-y-1">
-              <button
-                type="button"
-                onClick={() => setActiveGame('aviatrix')}
-                className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 hover:text-[#facc15] font-semibold text-xs flex items-center justify-between cursor-pointer"
-              >
+            <div className="space-y-1 select-none">
+              <div className="w-full py-2 px-3 rounded-xl text-slate-200 font-semibold text-xs flex items-center justify-between cursor-default">
                 <span className="flex items-center gap-2">
                   <Rocket className="w-4 h-4 text-sky-400" />
                   <span>Aviatrix Crash</span>
                 </span>
                 <span className="font-mono-tabular text-[10px] text-sky-400">10,000x</span>
-              </button>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => setActiveGame('mines')}
-                className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 hover:text-[#facc15] font-semibold text-xs flex items-center justify-between cursor-pointer"
-              >
+              <div className="w-full py-2 px-3 rounded-xl text-slate-200 font-semibold text-xs flex items-center justify-between cursor-default">
                 <span className="flex items-center gap-2">
                   <Bomb className="w-4 h-4 text-red-400" />
                   <span>MINES Turbo</span>
                 </span>
                 <span className="font-mono-tabular text-[10px] text-red-400">97% RTP</span>
-              </button>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => setActiveGame('cricket')}
-                className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 hover:text-[#facc15] font-semibold text-xs flex items-center justify-between cursor-pointer"
-              >
+              <div className="w-full py-2 px-3 rounded-xl text-slate-200 font-semibold text-xs flex items-center justify-between cursor-default">
                 <span className="flex items-center gap-2">
                   <Trophy className="w-4 h-4 text-emerald-400" />
                   <span>Cricket Live</span>
                 </span>
                 <span className="font-mono-tabular text-[10px] text-emerald-400">In-Play</span>
-              </button>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => setActiveGame('color')}
-                className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 hover:text-[#facc15] font-semibold text-xs flex items-center justify-between cursor-pointer"
-              >
+              <div className="w-full py-2 px-3 rounded-xl text-slate-200 font-semibold text-xs flex items-center justify-between cursor-default">
                 <span className="flex items-center gap-2">
                   <Zap className="w-4 h-4 text-purple-400" />
                   <span>Color Prediction</span>
                 </span>
                 <span className="font-mono-tabular text-[10px] text-purple-400">WinGo</span>
-              </button>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => setActiveGame('casino')}
-                className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 hover:text-[#facc15] font-semibold text-xs flex items-center justify-between cursor-pointer"
-              >
+              <div className="w-full py-2 px-3 rounded-xl text-slate-200 font-semibold text-xs flex items-center justify-between cursor-default">
                 <span className="flex items-center gap-2">
                   <Flame className="w-4 h-4 text-pink-400" />
                   <span>Sexy Live Casino</span>
                 </span>
                 <span className="font-mono-tabular text-[10px] text-pink-400">VIP</span>
-              </button>
+              </div>
             </div>
           </div>
         </aside>
@@ -404,8 +387,13 @@ export default function App() {
         <div className="space-y-5 min-w-0">
           <BannerAndGames
             banners={banners}
+            currentUser={currentUser}
+            activeIdCount={myIdRequests.filter((r) => r.status === 'Created').length}
             onOpenCreateId={() => handleOpenCreateIdForExchange(OFFICIAL_EXCHANGE_PLATFORMS[0].name)}
-            onSelectGame={(game) => setActiveGame(game)}
+            onOpenSignUp={() => handleOpenAuth('signup')}
+            onOpenLogin={() => handleOpenAuth('login')}
+            onOpenProfile={() => setProfileModalOpen(true)}
+            onOpenDeposit={() => setDepositModalOpen(true)}
           />
 
           {/* 6 Official Exchange Links Section (Replaced Old Live Exchange Markets) */}
@@ -627,7 +615,39 @@ export default function App() {
                   </button>
                 </div>
               ) : (
-                <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
+                  {/* Customer Profile Summary Card in Right Panel */}
+                  <div
+                    data-testid="right-panel-user-profile-card"
+                    className="p-3.5 rounded-2xl bg-gradient-to-br from-[#11192e] to-[#0c1220] border border-[#facc15]/40 space-y-2.5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-[#facc15] text-black font-black text-sm flex items-center justify-center shrink-0">
+                          {(currentUser.name || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-extrabold text-xs text-white truncate">
+                            {currentUser.name}
+                          </p>
+                          <p className="text-[10px] text-slate-400 truncate">
+                            {currentUser.email}
+                          </p>
+                          <p className="text-[10px] font-mono-tabular text-[#facc15]">
+                            {currentUser.phone}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setProfileModalOpen(true)}
+                        className="px-2.5 py-1.5 rounded-lg bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-[11px] shrink-0 cursor-pointer"
+                      >
+                        My Profile
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Active Issued Exchange IDs (`My IDs`) */}
                   {myIdRequests.map((req, reqIdx) => {
                     const matchedExch = OFFICIAL_EXCHANGE_PLATFORMS.find(
@@ -883,10 +903,7 @@ export default function App() {
           type="button"
           onClick={() => {
             if (currentUser) {
-              setRightPanelTab('my-wallet');
-              document
-                .getElementById('wallet-history-section')
-                ?.scrollIntoView({ behavior: 'smooth' });
+              setProfileModalOpen(true);
             } else {
               handleOpenAuth('login');
             }
@@ -895,7 +912,7 @@ export default function App() {
         >
           <UserIcon className="w-4 h-4" />
           <span className="text-[10px] font-medium mt-0.5">
-            {currentUser ? 'My Wallet' : 'Login'}
+            {currentUser ? 'My Profile' : 'Login'}
           </span>
         </button>
       </nav>
@@ -961,6 +978,23 @@ export default function App() {
           handleOpenAuth('login');
         }}
         onNotify={(msg) => showToast(msg)}
+      />
+
+      <UserProfileModal
+        isOpen={profileModalOpen}
+        currentUser={currentUser}
+        myDeposits={myDeposits}
+        myWithdrawals={myWithdrawals}
+        myIdRequests={myIdRequests}
+        onClose={() => setProfileModalOpen(false)}
+        onOpenDeposit={() => setDepositModalOpen(true)}
+        onOpenWithdraw={() => setWithdrawModalOpen(true)}
+        onOpenCreateId={() => handleOpenCreateIdForExchange(OFFICIAL_EXCHANGE_PLATFORMS[0].name)}
+        onLogout={async () => {
+          await logoutCustomer();
+          showToast('You have been logged out.');
+        }}
+        onSuccess={(msg) => showToast(msg)}
       />
     </div>
   );
