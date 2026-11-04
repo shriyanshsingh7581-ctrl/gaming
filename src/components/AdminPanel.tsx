@@ -15,6 +15,7 @@ import {
   verifyMasterAdminPin,
   verifyStaffCredentials,
   MASTER_ADMIN_PIN,
+  OFFICIAL_EXCHANGE_PLATFORMS,
 } from '../utils/exchangeLogic';
 import {
   adminAdjustUserBalance,
@@ -149,14 +150,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [newCustEmail, setNewCustEmail] = useState<string>('');
   const [newCustPassword, setNewCustPassword] = useState<string>('');
   const [newCustBalance, setNewCustBalance] = useState<string>('0');
-  const [newCustPlatform, setNewCustPlatform] = useState<string>('SHARK EXCH VIP PRO');
+  const [newCustPlatform, setNewCustPlatform] = useState<string>(
+    OFFICIAL_EXCHANGE_PLATFORMS[0].name
+  );
   const [newExchUsername, setNewExchUsername] = useState<string>('');
   const [newExchPassword, setNewExchPassword] = useState<string>('');
 
   // Tab 3: Screenshot Preview Modal
   const [previewDeposit, setPreviewDeposit] = useState<DepositRecord | null>(null);
 
-  // Tab 5: Firebase Config Setup Modal / Editor State
+  // Tab 5: Approve & Create ID Custom User ID / Password Inputs + Firebase Config Setup Modal
+  const [approvingIdReqId, setApprovingIdReqId] = useState<string | null>(null);
+  const [customIssuedUserId, setCustomIssuedUserId] = useState<string>('');
+  const [customIssuedPassword, setCustomIssuedPassword] = useState<string>('');
   const [isFirebaseModalOpen, setIsFirebaseModalOpen] = useState<boolean>(false);
   const [firebaseRawJson, setFirebaseRawJson] = useState<string>('');
   const [firebaseConfigError, setFirebaseConfigError] = useState<string>('');
@@ -648,14 +654,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           <button
             type="button"
             onClick={() => {
-              const linkPath = isStaff ? '/staff' : '/admin';
-              const fullUrl = `${window.location.origin}${linkPath}`;
+              const fullUrl = `${window.location.origin}/admin`;
               navigator.clipboard?.writeText(fullUrl).catch(() => {});
-              onNotify(`Copied Link: ${fullUrl}`);
+              onNotify(`Copied Master Admin & Staff Login Link: ${fullUrl}`);
             }}
             className="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/40 text-xs font-bold text-emerald-300 cursor-pointer"
           >
-            🔗 Copy {isStaff ? 'Staff (/staff)' : 'Admin (/admin)'} Link
+            🔗 Copy Master Link (/admin)
           </button>
 
           {isMasterAdmin && (
@@ -826,6 +831,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('firebase')}
+            data-testid="tab-id-requests"
             className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition-colors ${
               activeTab === 'firebase'
                 ? 'bg-[#facc15] text-black'
@@ -833,7 +839,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             }`}
           >
             <KeyRound className="w-4 h-4" />
-            <span>5. Exchange IDs &amp; Firebase ({idRequests.length})</span>
+            <span>5. ID Requests / Create IDs ({idRequests.length})</span>
           </button>
 
           <button
@@ -928,8 +934,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {filteredCustomers.map((u) => (
-                    <tr key={u.uid} className="hover:bg-white/[0.02]">
+                  {filteredCustomers.map((u, idx) => (
+                    <tr key={`cust-${u.uid || idx}-${idx}`} className="hover:bg-white/[0.02]">
                       <td className="py-3 px-3 font-mono-tabular text-slate-400">
                         {u.uid}
                       </td>
@@ -1022,9 +1028,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   No withdrawal requests found.
                 </p>
               ) : (
-                withdrawals.map((w) => (
+                withdrawals.map((w, idx) => (
                   <div
-                    key={w.id}
+                    key={`wdr-${w.id || idx}-${idx}`}
                     className="rounded-2xl bg-[#090d16] border border-white/10 p-4 flex flex-wrap items-center justify-between gap-4"
                   >
                     <div className="space-y-1">
@@ -1142,9 +1148,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   No deposit submissions yet.
                 </p>
               ) : (
-                deposits.map((d) => (
+                deposits.map((d, idx) => (
                   <div
-                    key={d.id}
+                    key={`dep-${d.id || idx}-${idx}`}
                     className="rounded-2xl bg-[#090d16] border border-white/10 p-4 flex flex-wrap items-center justify-between gap-4"
                   >
                     <div className="flex items-center gap-4">
@@ -1482,7 +1488,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <div className="flex items-center gap-2">
                   <KeyRound className="w-5 h-5 text-[#facc15]" />
                   <h2 className="text-lg font-bold text-white">
-                    Customer Exchange IDs (`/idRequests`)
+                    ID Requests / Create IDs (`/idRequests`)
                   </h2>
                 </div>
                 <button
@@ -1494,44 +1500,196 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </button>
               </div>
 
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {idRequests.map((req) => (
-                  <div
-                    key={req.id}
-                    className="p-3.5 rounded-xl bg-[#090d16] border border-white/10 flex items-center justify-between gap-3 text-xs"
-                  >
-                    <div>
-                      <div className="font-bold text-white">
-                        {req.platform} —{' '}
-                        <span className="text-[#facc15]">{req.preferredUsername}</span>
+              <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+                {idRequests.map((req, idx) => {
+                  const isApprovingThis = approvingIdReqId === req.id;
+                  return (
+                    <div
+                      key={`admin-idreq-${req.id || idx}-${idx}`}
+                      data-testid={`admin-idreq-card-${req.id}`}
+                      className="p-4 rounded-xl bg-[#090d16] border border-white/10 space-y-3 text-xs"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="px-2 py-0.5 rounded bg-[#facc15]/15 border border-[#facc15]/40 text-[#facc15] font-extrabold">
+                              {req.platform}
+                            </span>
+                            <span className="font-bold text-white">
+                              Requested Username:{' '}
+                              <span className="font-mono-tabular text-[#facc15]">
+                                {req.preferredUsername}
+                              </span>
+                            </span>
+                          </div>
+                          <div className="text-slate-300">
+                            Customer: <span className="font-bold text-white">{req.userName}</span> ({req.userEmail}) · {req.phone}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3 text-slate-400">
+                            <span>
+                              Payment / Refill:{' '}
+                              <strong className="font-mono-tabular text-emerald-400">
+                                ₹{req.depositAmount.toLocaleString('en-IN')}
+                              </strong>
+                            </span>
+                            {req.utr && (
+                              <span>
+                                UTR:{' '}
+                                <strong className="font-mono-tabular text-sky-300">
+                                  {req.utr}
+                                </strong>
+                              </span>
+                            )}
+                            {req.screenshotUrl && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPreviewDeposit({
+                                    id: req.id,
+                                    uid: req.uid,
+                                    userName: req.userName,
+                                    userEmail: req.userEmail,
+                                    amount: req.depositAmount,
+                                    utr: req.utr || 'ID-REF',
+                                    screenshotUrl: req.screenshotUrl || '',
+                                    status: 'Pending',
+                                    createdAt: req.createdAt,
+                                  })
+                                }
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 border border-white/15 text-[#facc15] font-semibold cursor-pointer"
+                              >
+                                <Eye className="w-3 h-3" />
+                                <span>View Payment Proof</span>
+                              </button>
+                            )}
+                          </div>
+
+                          {req.assignedId && (
+                            <div className="pt-1 text-emerald-400 font-mono-tabular font-bold">
+                              ✅ Assigned User ID: {req.assignedId} · Password: {req.assignedPassword}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {req.status === 'Pending' ? (
+                            !isApprovingThis && (
+                              <button
+                                type="button"
+                                data-testid={`approve-id-open-btn-${req.id}`}
+                                onClick={() => {
+                                  setApprovingIdReqId(req.id);
+                                  setCustomIssuedUserId(req.preferredUsername);
+                                  setCustomIssuedPassword(
+                                    `Shark@${Math.floor(1000 + Math.random() * 9000)}`
+                                  );
+                                }}
+                                className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold cursor-pointer"
+                              >
+                                Approve &amp; Create ID
+                              </button>
+                            )
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold">
+                                {req.status}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setApprovingIdReqId(req.id);
+                                  setCustomIssuedUserId(req.assignedId || req.preferredUsername);
+                                  setCustomIssuedPassword(req.assignedPassword || 'Shark@9921');
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/15 text-slate-300 font-semibold cursor-pointer"
+                              >
+                                Edit ID/Pass
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-slate-400 mt-0.5">
-                        {req.userName} ({req.userEmail}) · Refill: ₹
-                        {req.depositAmount.toLocaleString('en-IN')}
-                      </div>
-                      {req.assignedId && (
-                        <div className="text-emerald-400 font-mono-tabular mt-1">
-                          Issued ID: {req.assignedId} / Pass: {req.assignedPassword}
+
+                      {/* Inline Admin / Staff Form to Enter Final User ID & Password */}
+                      {isApprovingThis && (
+                        <div className="pt-3 border-t border-white/10 bg-[#0c111d] p-3.5 rounded-xl space-y-3">
+                          <p className="text-[11px] font-bold text-[#facc15] uppercase tracking-wider">
+                            Enter Final {req.platform} User ID &amp; Password for {req.userName}
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label
+                                htmlFor={`final-userid-${req.id}`}
+                                className="block text-[11px] text-slate-300 font-semibold mb-1"
+                              >
+                                Assigned User ID *
+                              </label>
+                              <input
+                                id={`final-userid-${req.id}`}
+                                data-testid={`input-assigned-userid-${req.id}`}
+                                type="text"
+                                required
+                                placeholder="e.g. DEX99_RAHUL"
+                                value={customIssuedUserId}
+                                onChange={(e) => setCustomIssuedUserId(e.target.value)}
+                                className="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-[#facc15]/50 text-white font-mono-tabular text-xs focus:outline-none focus:border-[#facc15]"
+                              />
+                            </div>
+                            <div>
+                              <label
+                                htmlFor={`final-pass-${req.id}`}
+                                className="block text-[11px] text-slate-300 font-semibold mb-1"
+                              >
+                                Assigned Password *
+                              </label>
+                              <input
+                                id={`final-pass-${req.id}`}
+                                data-testid={`input-assigned-password-${req.id}`}
+                                type="text"
+                                required
+                                placeholder="e.g. Pass@4455"
+                                value={customIssuedPassword}
+                                onChange={(e) => setCustomIssuedPassword(e.target.value)}
+                                className="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-[#facc15]/50 text-white font-mono-tabular text-xs focus:outline-none focus:border-[#facc15]"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setApprovingIdReqId(null)}
+                              className="px-3 py-1.5 rounded-lg bg-white/10 text-slate-300 font-bold cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              data-testid={`confirm-approve-id-btn-${req.id}`}
+                              onClick={async () => {
+                                const finalId = customIssuedUserId.trim() || req.preferredUsername;
+                                const finalPass = customIssuedPassword.trim() || 'Shark@123';
+                                await adminResolveIdRequest(
+                                  req.id,
+                                  'Created',
+                                  finalId,
+                                  finalPass
+                                );
+                                setApprovingIdReqId(null);
+                                onNotify(
+                                  `Approved & sent ${req.platform} ID (${finalId}) & Password to ${req.userName}!`
+                                );
+                              }}
+                              className="px-4 py-1.5 rounded-lg bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold cursor-pointer"
+                            >
+                              ✅ Save &amp; Send ID to Customer
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
-
-                    {req.status === 'Pending' ? (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          await adminResolveIdRequest(req.id, 'Created');
-                          onNotify(`Issued ${req.platform} ID for ${req.userName}!`);
-                        }}
-                        className="px-3 py-1.5 rounded-lg bg-emerald-500 text-black font-bold cursor-pointer shrink-0"
-                      >
-                        Approve &amp; Issue ID
-                      </button>
-                    ) : (
-                      <span className="text-emerald-400 font-bold">{req.status}</span>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
 
@@ -1889,13 +2047,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
             {/* Right Table: Active & Pre-Configured Staff Accounts (`Mohit A1`, `staff2`, etc.) */}
             <section className="lg:col-span-2 rounded-2xl bg-[#0c111d] border border-white/10 p-6 space-y-4">
-              <div>
-                <h2 className="text-lg font-bold text-white">
-                  Registered Staff Accounts (`/staff`)
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Manage default Staff <strong>Mohit A1</strong> (Pass: 1122) and additional staff members. Change passwords or block/unblock access in real time.
-                </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-lg font-bold text-white">
+                    Registered Staff Accounts (Opens via Master Link `/admin`)
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Staff members log in from the same Master Admin link (<strong>/admin</strong>) by selecting the <strong>Staff Login (Mohit A1)</strong> tab.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const fullUrl = `${window.location.origin}/admin`;
+                    navigator.clipboard?.writeText(fullUrl).catch(() => {});
+                    onNotify(`Copied Master Link for Staff Login: ${fullUrl}`);
+                  }}
+                  className="px-3 py-2 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-xs cursor-pointer"
+                >
+                  🔗 Copy Master Link (/admin)
+                </button>
               </div>
 
               <div className="space-y-3">
@@ -1935,6 +2106,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveRole('staff');
+                          setLoggedInStaff(st);
+                          setActiveTab('customers');
+                          onNotify(`Switched to Staff Panel as ${st.name}!`);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-xs font-bold text-emerald-300 cursor-pointer"
+                      >
+                        👤 Open {st.name} Panel
+                      </button>
+
                       {editingStaffPassId === st.staffId ? (
                         <div className="flex items-center gap-1.5">
                           <input
@@ -2128,10 +2312,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     onChange={(e) => setNewCustPlatform(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-[#090d16] border border-white/15 text-white"
                   >
-                    <option value="SHARK EXCH VIP PRO">SHARK EXCH VIP PRO</option>
-                    <option value="DIAMOND EXCH 99">DIAMOND EXCH 99</option>
-                    <option value="LOTUS 365 EXCHANGE">LOTUS 365 EXCHANGE</option>
-                    <option value="SKY EXCH INTERNATIONAL">SKY EXCH INTERNATIONAL</option>
+                    {OFFICIAL_EXCHANGE_PLATFORMS.map((exch) => (
+                      <option key={exch.id} value={exch.name}>
+                        {exch.id}. {exch.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>

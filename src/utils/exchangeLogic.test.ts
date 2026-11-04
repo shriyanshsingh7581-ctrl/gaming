@@ -16,7 +16,23 @@ import {
   isStaffLoginUrl,
   verifyMasterAdminPin,
   verifyStaffCredentials,
+  OFFICIAL_EXCHANGE_PLATFORMS,
 } from './exchangeLogic';
+
+test('OFFICIAL_EXCHANGE_PLATFORMS lists the 6 official exchange platforms in order', () => {
+  assert.equal(OFFICIAL_EXCHANGE_PLATFORMS.length, 6);
+  assert.deepEqual(
+    OFFICIAL_EXCHANGE_PLATFORMS.map((e) => e.name),
+    [
+      'Dexch99.now',
+      'lexch247.com',
+      'bet11play.co',
+      'kingreddy99.com',
+      'loto365.co',
+      'wexch777.com',
+    ]
+  );
+});
 
 test('validateUtr accepts exact 12-digit numeric strings and rejects invalid ones', () => {
   assert.equal(validateUtr('412389012345').valid, true);
@@ -176,15 +192,14 @@ test('calculateMinesMultiplier increases with safe picks and more bombs', () => 
   assert.equal(mHighBomb > m2, true);
 });
 
-test('isStandaloneAdminUrl detects dedicated admin and staff links (/admin, /staff, ?admin=true, ?staff=true) and keeps / for customers', () => {
+test('isStandaloneAdminUrl opens exclusively via Master Admin link (/admin, ?admin=true) and not separate /staff link', () => {
   assert.equal(isStandaloneAdminUrl('/', '', ''), false);
   assert.equal(isStandaloneAdminUrl('/index.html', '', '#top'), false);
+  assert.equal(isStandaloneAdminUrl('/staff', '', ''), false);
+  assert.equal(isStandaloneAdminUrl('/', '?staff=true', ''), false);
   assert.equal(isStandaloneAdminUrl('/admin', '', ''), true);
-  assert.equal(isStandaloneAdminUrl('/staff', '', ''), true);
   assert.equal(isStandaloneAdminUrl('/', '?admin=true', ''), true);
-  assert.equal(isStandaloneAdminUrl('/', '?staff=true', ''), true);
-  assert.equal(isStaffLoginUrl('/staff', '', ''), true);
-  assert.equal(isStaffLoginUrl('/', '?staff=true', ''), true);
+  assert.equal(isStaffLoginUrl('/admin', '?admin=true&role=staff', ''), true);
   assert.equal(isStaffLoginUrl('/admin', '', ''), false);
 });
 

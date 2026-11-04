@@ -56,11 +56,28 @@ export interface IdRequestRecord {
   platform: string;
   preferredUsername: string;
   depositAmount: number;
+  utr?: string;
+  screenshotUrl?: string;
   status: 'Pending' | 'Created' | 'Rejected';
   assignedId?: string;
   assignedPassword?: string;
   createdAt: string;
 }
+
+export interface ExchangePlatformItem {
+  index: number;
+  name: string;
+  url: string;
+}
+
+export const OFFICIAL_EXCHANGE_PLATFORMS: ExchangePlatformItem[] = [
+  { index: 1, name: 'Dexch99.now', url: 'https://dexch99.now' },
+  { index: 2, name: 'lexch247.com', url: 'https://lexch247.com' },
+  { index: 3, name: 'bet11play.co', url: 'https://bet11play.co' },
+  { index: 4, name: 'kingreddy99.com', url: 'https://kingreddy99.com' },
+  { index: 5, name: 'loto365.co', url: 'https://loto365.co' },
+  { index: 6, name: 'wexch777.com', url: 'https://wexch777.com' },
+];
 
 export interface PaymentSettings {
   upiId: string;
@@ -406,8 +423,9 @@ export function computeTotalAdminUnreadChats(chats: ChatThread[]): number {
 }
 
 /**
- * Determines whether the current URL is the standalone Master Admin or Staff Panel link
- * (`/admin`, `/staff`, `/?admin=true`, `/?staff=true`, `/#admin`, `/#staff`).
+ * Determines whether the current URL is the standalone Master Admin link
+ * (`/admin`, `/?admin=true`, `/#admin`).
+ * Staff Login (`Mohit A1`) opens exclusively from this same Master Admin link.
  */
 export function isStandaloneAdminUrl(
   pathname: string,
@@ -418,50 +436,30 @@ export function isStandaloneAdminUrl(
   if (
     cleanPath === '/admin' ||
     cleanPath.endsWith('/admin') ||
-    cleanPath === '/staff' ||
-    cleanPath.endsWith('/staff') ||
     cleanPath === '/master-admin' ||
     cleanPath === '/owner'
   ) {
     return true;
   }
   const params = new URLSearchParams(search || '');
-  if (
-    params.get('admin') === 'true' ||
-    params.get('staff') === 'true' ||
-    params.get('panel') === 'admin' ||
-    params.get('panel') === 'staff'
-  ) {
+  if (params.get('admin') === 'true' || params.get('panel') === 'admin') {
     return true;
   }
   const cleanHash = (hash || '').toLowerCase();
-  if (
-    cleanHash === '#admin' ||
-    cleanHash === '#/admin' ||
-    cleanHash === '#staff' ||
-    cleanHash === '#/staff'
-  ) {
+  if (cleanHash === '#admin' || cleanHash === '#/admin') {
     return true;
   }
   return false;
 }
 
 /**
- * Detects if the URL specifically requested the Staff Login tab (`/staff`, `?staff=true`, `#staff`)
+ * Staff Login opens on the Master Admin link (`/admin` or `?admin=true`) via the Staff tab.
  */
 export function isStaffLoginUrl(
-  pathname: string,
+  _pathname: string,
   search: string,
-  hash = ''
+  _hash = ''
 ): boolean {
-  const cleanPath = (pathname || '').toLowerCase().replace(/\/+$/, '');
-  if (cleanPath === '/staff' || cleanPath.endsWith('/staff')) {
-    return true;
-  }
   const params = new URLSearchParams(search || '');
-  if (params.get('staff') === 'true' || params.get('panel') === 'staff') {
-    return true;
-  }
-  const cleanHash = (hash || '').toLowerCase();
-  return cleanHash === '#staff' || cleanHash === '#/staff';
+  return params.get('admin') === 'true' && params.get('role') === 'staff';
 }

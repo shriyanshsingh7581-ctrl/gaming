@@ -182,7 +182,7 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
             {banners.map((b, idx) => (
               <button
-                key={b.id}
+                key={`banner-dot-${b.id || idx}-${idx}`}
                 type="button"
                 onClick={() => setActiveSlide(idx)}
                 aria-label={`Go to slide ${idx + 1}`}

@@ -334,11 +334,13 @@ const INITIAL_SEED_DB: HybridDatabaseSchema = {
       userName: 'Aarav Singhania',
       userEmail: 'aarav.vip@sharkexch.in',
       userPhone: '+91 98201 44510',
-      platform: 'SHARK EXCH VIP PRO',
+      platform: 'Dexch99.now',
       preferredUsername: 'aarav_shark99',
       depositAmount: 2000,
+      utr: '430799881122',
+      screenshotUrl: DEFAULT_QR_SVG_DATA_URI,
       status: 'Created',
-      assignedId: 'SHK99_AARAV',
+      assignedId: 'DEX99_AARAV',
       assignedPassword: 'Vip#8821',
       createdAt: '2026-11-02T16:00:00.000Z',
     },
@@ -891,7 +893,7 @@ export async function submitDepositRequest(params: {
   screenshotUrl: string;
 }): Promise<DepositRecord> {
   const store = loadHybridStore();
-  let depositId = `dep_${Date.now()}`;
+  let depositId = `dep_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
   if (isLiveFirebaseConnected && firebaseDb) {
     try {
@@ -953,7 +955,7 @@ export async function submitWithdrawalRequest(params: {
     params.amount
   );
 
-  let withdrawalId = `wdr_${Date.now()}`;
+  let withdrawalId = `wdr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
   if (isLiveFirebaseConnected && firebaseDb) {
     try {
       const pushedRef = push(ref(firebaseDb, 'withdrawals'));
@@ -1007,9 +1009,11 @@ export async function submitCreateIdRequest(params: {
   platform: string;
   preferredUsername: string;
   depositAmount: number;
+  utr?: string;
+  screenshotUrl?: string;
 }): Promise<IdRequestRecord> {
   const store = loadHybridStore();
-  let requestId = `idreq_${Date.now()}`;
+  let requestId = `idreq_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
   if (isLiveFirebaseConnected && firebaseDb) {
     try {
@@ -1029,6 +1033,8 @@ export async function submitCreateIdRequest(params: {
     platform: params.platform,
     preferredUsername: params.preferredUsername.trim(),
     depositAmount: Math.round(params.depositAmount),
+    utr: params.utr?.trim() || '',
+    screenshotUrl: params.screenshotUrl || DEFAULT_QR_SVG_DATA_URI,
     status: 'Pending',
     createdAt: new Date().toISOString(),
   };
@@ -1470,7 +1476,7 @@ export async function panelCreateCustomerUserAndExchangeId(params: {
     createdAt: new Date().toISOString(),
   };
 
-  const requestId = `idreq_${Date.now()}`;
+  const requestId = `idreq_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
   const idRecord: IdRequestRecord = {
     id: requestId,
     uid,

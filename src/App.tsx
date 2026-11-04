@@ -15,6 +15,7 @@ import {
   ChatThread,
   isStandaloneAdminUrl,
   isStaffLoginUrl,
+  OFFICIAL_EXCHANGE_PLATFORMS,
 } from './utils/exchangeLogic';
 import {
   subscribeToRealtimeData,
@@ -48,6 +49,9 @@ import {
   Zap,
   Flame,
   Wallet,
+  Copy,
+  Check,
+  ExternalLink,
 } from 'lucide-react';
 
 export default function App() {
@@ -126,6 +130,10 @@ export default function App() {
   const [depositModalOpen, setDepositModalOpen] = useState<boolean>(false);
   const [withdrawModalOpen, setWithdrawModalOpen] = useState<boolean>(false);
   const [createIdModalOpen, setCreateIdModalOpen] = useState<boolean>(false);
+  const [selectedExchangeForModal, setSelectedExchangeForModal] = useState<string>(
+    OFFICIAL_EXCHANGE_PLATFORMS[0].name
+  );
+  const [copiedIdKey, setCopiedIdKey] = useState<string | null>(null);
   const [liveChatOpen, setLiveChatOpen] = useState<boolean>(false);
   const [activeGame, setActiveGame] = useState<GameCategoryType | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -133,19 +141,29 @@ export default function App() {
 
   useEffect(() => {
     const unsubDb = subscribeToRealtimeData((snapshot) => {
-      const userList = Object.values(snapshot.users || {}).sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      const depList = Object.values(snapshot.deposits || {}).sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      const wdrList = Object.values(snapshot.withdrawals || {}).sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      const idReqList = Object.values(snapshot.idRequests || {}).sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      const staffArr = Object.values(snapshot.staff || INITIAL_STAFF);
+      const userList = Object.entries(snapshot.users || {})
+        .filter(([, u]) => Boolean(u))
+        .map(([key, u]) => ({ ...u, uid: u.uid || key }))
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+      const depList = Object.entries(snapshot.deposits || {})
+        .filter(([, d]) => Boolean(d))
+        .map(([key, d]) => ({ ...d, id: d.id || key }))
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+      const wdrList = Object.entries(snapshot.withdrawals || {})
+        .filter(([, w]) => Boolean(w))
+        .map(([key, w]) => ({ ...w, id: w.id || key }))
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+      const idReqList = Object.entries(snapshot.idRequests || {})
+        .filter(([, r]) => Boolean(r))
+        .map(([key, r]) => ({ ...r, id: r.id || key }))
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+      const staffArr = Object.entries(snapshot.staff || INITIAL_STAFF)
+        .filter(([, s]) => Boolean(s))
+        .map(([key, s]) => ({ ...s, staffId: s.staffId || key }));
 
       setUsers(userList);
       setDeposits(depList);
@@ -177,6 +195,22 @@ export default function App() {
   const handleOpenAuth = (mode: 'login' | 'signup') => {
     setAuthInitialMode(mode);
     setAuthModalOpen(true);
+  };
+
+  const handleOpenCreateIdForExchange = (exchangeName?: string) => {
+    if (exchangeName) {
+      setSelectedExchangeForModal(exchangeName);
+    }
+    setCreateIdModalOpen(true);
+  };
+
+  const handleCopyCredential = (value: string, key: string, label: string) => {
+    navigator.clipboard?.writeText(value).catch(() => {});
+    setCopiedIdKey(key);
+    showToast(`Copied ${label}: ${value}`);
+    setTimeout(() => {
+      setCopiedIdKey((prev) => (prev === key ? null : prev));
+    }, 2000);
   };
 
   const handleBackToLobby = () => {
@@ -265,7 +299,7 @@ export default function App() {
             <div className="space-y-1.5">
               <button
                 type="button"
-                onClick={() => setCreateIdModalOpen(true)}
+                onClick={() => handleOpenCreateIdForExchange(OFFICIAL_EXCHANGE_PLATFORMS[0].name)}
                 className="w-full py-2.5 px-3 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-xs flex items-center gap-2.5 cursor-pointer transition-transform active:scale-98"
               >
                 <KeyRound className="w-4 h-4 shrink-0" />
@@ -366,86 +400,181 @@ export default function App() {
           </div>
         </aside>
 
-        {/* CENTER COLUMN: PROMOTIONAL BANNER CAROUSEL, CREATE IDs, GAME CARDS & IN-PLAY EXCHANGE */}
+        {/* CENTER COLUMN: PROMOTIONAL BANNER CAROUSEL, CREATE IDs, GAME CARDS & 6 EXCHANGE PLATFORMS */}
         <div className="space-y-5 min-w-0">
           <BannerAndGames
             banners={banners}
-            onOpenCreateId={() => setCreateIdModalOpen(true)}
+            onOpenCreateId={() => handleOpenCreateIdForExchange(OFFICIAL_EXCHANGE_PLATFORMS[0].name)}
             onSelectGame={(game) => setActiveGame(game)}
           />
 
-          {/* Live Sports & Casino Exchange Odds Table */}
+          {/* 6 Official Exchange Links Section (Replaced Old Live Exchange Markets) */}
           <section
-            aria-label="Live In-Play Exchange Markets"
-            className="rounded-2xl bg-[#090d16] border border-white/10 overflow-hidden"
+            aria-label="Official Gaming Exchanges"
+            data-testid="official-exchanges-section"
+            className="rounded-2xl bg-[#090d16] border border-[#facc15]/30 overflow-hidden shadow-xl"
           >
-            <div className="px-4 py-3 bg-[#0c1220] border-b border-white/10 flex items-center justify-between">
+            <div className="px-4 py-3.5 bg-gradient-to-r from-[#0c1220] via-[#131b2e] to-[#0c1220] border-b border-[#facc15]/25 flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-[#facc15]" />
-                <h2 className="font-shark italic font-bold text-base sm:text-lg text-white tracking-wide">
-                  LIVE EXCHANGE MARKETS (BACK / LAY)
+                <KeyRound className="w-4 h-4 text-[#facc15]" />
+                <h2 className="font-shark italic font-black text-base sm:text-lg text-[#facc15] tracking-wide uppercase">
+                  OFFICIAL EXCHANGE IDs &amp; INSTANT WITHDRAW
                 </h2>
               </div>
-              <span className="text-[11px] text-slate-400 font-mono-tabular">
-                0% Commission · Instant Settlement
+              <span className="text-[11px] text-slate-300 font-mono-tabular">
+                Instant ID Approval · 24/7 Direct Withdraw
               </span>
             </div>
 
-            <div className="divide-y divide-white/5">
-              {[
-                {
-                  match: 'India vs Australia · T20 International',
-                  status: 'IN-PLAY · Over 14.2',
-                  back: 1.92,
-                  lay: 1.94,
-                  category: 'cricket' as GameCategoryType,
-                },
-                {
-                  match: 'Mumbai Indians vs Chennai Super Kings',
-                  status: 'IN-PLAY · Powerplay',
-                  back: 1.86,
-                  lay: 1.88,
-                  category: 'cricket' as GameCategoryType,
-                },
-                {
-                  match: 'Aviatrix Turbo Crash Pool · Round #88412',
-                  status: 'LIVE MULTIPLIER',
-                  back: 2.5,
-                  lay: 5.0,
-                  category: 'aviatrix' as GameCategoryType,
-                },
-              ].map((item, idx) => (
-                <div
-                  key={idx}
-                  className="p-3.5 sm:px-4 flex flex-wrap items-center justify-between gap-3 hover:bg-white/[0.02]"
-                >
-                  <div>
-                    <p className="text-xs sm:text-sm font-bold text-white">
-                      {item.match}
-                    </p>
-                    <p className="text-[11px] text-emerald-400 font-medium mt-0.5">
-                      {item.status}
-                    </p>
-                  </div>
+            <div className="divide-y divide-white/10">
+              {OFFICIAL_EXCHANGE_PLATFORMS.map((exch, exchIdx) => {
+                // Find any ID requests by the logged-in customer for this exchange
+                const customerExchReqs = myIdRequests.filter(
+                  (r) => (r.platform || '').toLowerCase() === exch.name.toLowerCase()
+                );
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setActiveGame(item.category)}
-                      className="px-3.5 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sky-200 font-mono-tabular font-bold text-xs cursor-pointer"
-                    >
-                      BACK {item.back.toFixed(2)}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveGame(item.category)}
-                      className="px-3.5 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400/40 text-rose-200 font-mono-tabular font-bold text-xs cursor-pointer"
-                    >
-                      LAY {item.lay.toFixed(2)}
-                    </button>
+                return (
+                  <div
+                    key={`official-exch-${exch.id || exchIdx}-${exch.name}`}
+                    data-testid={`exchange-row-${exch.id}`}
+                    className="p-3.5 sm:px-4 hover:bg-white/[0.02] transition-colors space-y-2.5"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="w-7 h-7 rounded-lg bg-[#facc15]/15 border border-[#facc15]/40 text-[#facc15] font-mono-tabular font-black text-xs flex items-center justify-center shrink-0">
+                          {exch.id}.
+                        </span>
+                        <div className="min-w-0">
+                          <a
+                            href={exch.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm sm:text-base font-extrabold text-white hover:text-[#facc15] inline-flex items-center gap-1.5 transition-colors"
+                          >
+                            <span>{exch.name}</span>
+                            <ExternalLink className="w-3.5 h-3.5 text-[#facc15]/80 shrink-0" />
+                          </a>
+                          <p className="text-[11px] text-slate-400">
+                            Official Exchange · Instant Refill &amp; Withdrawal
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          data-testid={`exch-create-id-btn-${exch.id}`}
+                          onClick={() => handleOpenCreateIdForExchange(exch.name)}
+                          className="px-3.5 py-2 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-xs flex items-center gap-1.5 shadow cursor-pointer transition-transform active:scale-95"
+                        >
+                          <KeyRound className="w-3.5 h-3.5" />
+                          <span>Create ID</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          data-testid={`exch-withdraw-btn-${exch.id}`}
+                          onClick={() => setWithdrawModalOpen(true)}
+                          className="px-3.5 py-2 rounded-xl bg-[#131c2e] hover:bg-[#1b2740] border border-[#facc15]/40 text-[#facc15] font-extrabold text-xs flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95"
+                        >
+                          <ArrowDownCircle className="w-3.5 h-3.5" />
+                          <span>Withdraw</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Display Assigned User ID & Password or Pending Status directly under the respective exchange */}
+                    {customerExchReqs.length > 0 && (
+                      <div className="pl-10 space-y-2">
+                        {customerExchReqs.map((req, reqIdx) => (
+                          <div
+                            key={`exch-req-${exch.id}-${req.id || reqIdx}-${reqIdx}`}
+                            data-testid={`customer-exchange-status-${req.id}`}
+                            className={`p-3 rounded-xl border text-xs ${
+                              req.status === 'Created' && req.assignedId
+                                ? 'bg-emerald-950/30 border-emerald-500/40'
+                                : 'bg-[#0c1220] border-amber-400/30'
+                            }`}
+                          >
+                            {req.status === 'Created' && req.assignedId ? (
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="space-y-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-extrabold text-[10px] uppercase">
+                                      ✅ Active Exchange ID
+                                    </span>
+                                    <a
+                                      href={exch.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-[#facc15] underline font-bold inline-flex items-center gap-1"
+                                    >
+                                      <span>Login to {exch.name}</span>
+                                      <ExternalLink className="w-3 h-3" />
+                                    </a>
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-3 font-mono-tabular text-white pt-0.5">
+                                    <span>
+                                      User ID:{' '}
+                                      <strong className="text-[#facc15]">
+                                        {req.assignedId}
+                                      </strong>
+                                    </span>
+                                    <span>
+                                      Password:{' '}
+                                      <strong className="text-emerald-300">
+                                        {req.assignedPassword}
+                                      </strong>
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  data-testid={`copy-id-pass-btn-${req.id}`}
+                                  onClick={() =>
+                                    handleCopyCredential(
+                                      `Exchange: ${exch.name} | User ID: ${req.assignedId} | Password: ${req.assignedPassword}`,
+                                      `exch-${req.id}`,
+                                      `${exch.name} User ID & Password`
+                                    )
+                                  }
+                                  className="px-3 py-1.5 rounded-lg bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-[11px] inline-flex items-center gap-1.5 cursor-pointer shrink-0"
+                                >
+                                  {copiedIdKey === `exch-${req.id}` ? (
+                                    <>
+                                      <Check className="w-3.5 h-3.5" />
+                                      <span>Copied!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="w-3.5 h-3.5" />
+                                      <span>Copy ID &amp; Password</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex flex-wrap items-center justify-between gap-2 text-amber-300">
+                                <span>
+                                  ⏳ ID Request Pending Approval — Username:{' '}
+                                  <strong className="font-mono-tabular text-white">
+                                    {req.preferredUsername}
+                                  </strong>{' '}
+                                  (Refill: ₹{req.depositAmount.toLocaleString('en-IN')})
+                                </span>
+                                <span className="text-[11px] font-bold uppercase">
+                                  Verifying Payment
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         </div>
@@ -499,35 +628,114 @@ export default function App() {
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-                  {/* Active Issued Exchange IDs */}
-                  {myIdRequests.map((req) => (
-                    <div
-                      key={req.id}
-                      className="p-3 rounded-xl bg-[#0c1220] border border-[#facc15]/30 text-xs space-y-1"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-[#facc15]">
-                          {req.platform}
-                        </span>
-                        <span className="font-semibold text-emerald-400">
-                          {req.status}
-                        </span>
-                      </div>
-                      <div className="text-slate-300">
-                        Username: <span className="font-mono-tabular">{req.preferredUsername}</span>
-                      </div>
-                      {req.assignedId && (
-                        <div className="text-[11px] font-mono-tabular text-emerald-300">
-                          ID: {req.assignedId} · Pass: {req.assignedPassword}
+                  {/* Active Issued Exchange IDs (`My IDs`) */}
+                  {myIdRequests.map((req, reqIdx) => {
+                    const matchedExch = OFFICIAL_EXCHANGE_PLATFORMS.find(
+                      (e) => e.name.toLowerCase() === (req.platform || '').toLowerCase()
+                    );
+                    const exchUrl = matchedExch
+                      ? matchedExch.url
+                      : `https://${(req.platform || 'dexch99.now').toLowerCase().replace(/\s+/g, '')}`;
+
+                    return (
+                      <div
+                        key={`my-idreq-${req.id || reqIdx}-${reqIdx}`}
+                        data-testid={`my-wallet-id-card-${req.id}`}
+                        className="p-3.5 rounded-xl bg-[#0c1220] border border-[#facc15]/40 text-xs space-y-2"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <a
+                            href={exchUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-extrabold text-[#facc15] hover:underline inline-flex items-center gap-1"
+                          >
+                            <span>{req.platform}</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                          <span
+                            className={`px-2 py-0.5 rounded font-bold text-[10px] ${
+                              req.status === 'Created'
+                                ? 'bg-emerald-500/20 text-emerald-300'
+                                : 'bg-amber-500/20 text-amber-300'
+                            }`}
+                          >
+                            {req.status === 'Created' ? 'Active ID' : 'Pending Approval'}
+                          </span>
                         </div>
-                      )}
-                    </div>
-                  ))}
+
+                        <div className="text-slate-300 flex items-center justify-between">
+                          <span>
+                            Requested: <span className="font-mono-tabular text-white">{req.preferredUsername}</span>
+                          </span>
+                          <span className="font-mono-tabular text-emerald-400">
+                            ₹{req.depositAmount.toLocaleString('en-IN')}
+                          </span>
+                        </div>
+
+                        {req.assignedId ? (
+                          <div className="pt-2 border-t border-white/10 space-y-2">
+                            <div className="p-2 rounded-lg bg-[#090d16] border border-emerald-500/30 font-mono-tabular text-[11px] space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400">User ID:</span>
+                                <span className="font-bold text-[#facc15]">{req.assignedId}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400">Password:</span>
+                                <span className="font-bold text-emerald-300">
+                                  {req.assignedPassword}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleCopyCredential(
+                                    `Exchange: ${req.platform} | User ID: ${req.assignedId} | Password: ${req.assignedPassword}`,
+                                    `wallet-${req.id}`,
+                                    `${req.platform} ID & Password`
+                                  )
+                                }
+                                className="flex-1 py-1.5 px-2.5 rounded-lg bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-[11px] inline-flex items-center justify-center gap-1 cursor-pointer"
+                              >
+                                {copiedIdKey === `wallet-${req.id}` ? (
+                                  <>
+                                    <Check className="w-3 h-3" />
+                                    <span>Copied!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3 h-3" />
+                                    <span>Copy ID &amp; Pass</span>
+                                  </>
+                                )}
+                              </button>
+                              <a
+                                href={exchUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="py-1.5 px-2.5 rounded-lg bg-white/10 hover:bg-white/15 text-white font-bold text-[11px] inline-flex items-center gap-1"
+                              >
+                                <span>Open Link</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-[11px] text-amber-300">
+                            ⏳ Waiting for Admin/Staff to assign User ID &amp; Password...
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
 
                   {/* Customer Deposits */}
-                  {myDeposits.map((dep) => (
+                  {myDeposits.map((dep, depIdx) => (
                     <div
-                      key={dep.id}
+                      key={`my-dep-${dep.id || depIdx}-${depIdx}`}
                       className="p-3 rounded-xl bg-[#0c1220] border border-white/10 flex items-center justify-between text-xs"
                     >
                       <div>
@@ -553,9 +761,9 @@ export default function App() {
                   ))}
 
                   {/* Customer Withdrawals */}
-                  {myWithdrawals.map((wdr) => (
+                  {myWithdrawals.map((wdr, wdrIdx) => (
                     <div
-                      key={wdr.id}
+                      key={`my-wdr-${wdr.id || wdrIdx}-${wdrIdx}`}
                       className="p-3 rounded-xl bg-[#0c1220] border border-white/10 flex items-center justify-between text-xs"
                     >
                       <div>
@@ -593,15 +801,15 @@ export default function App() {
           ) : (
             /* Live Platform Settlements Feed */
             <div className="space-y-2.5 max-h-[420px] overflow-y-auto pr-1 text-xs">
-              {deposits.slice(0, 4).map((d) => (
+              {deposits.slice(0, 4).map((d, depIdx) => (
                 <div
-                  key={d.id}
+                  key={`feed-dep-${d.id || depIdx}-${depIdx}`}
                   className="p-2.5 rounded-xl bg-[#0c1220] border border-white/5 flex items-center justify-between"
                 >
                   <div>
                     <span className="font-bold text-white">{d.userName}</span>
                     <span className="block text-[10px] text-slate-400">
-                      UPI Deposit · UTR #{d.utr.slice(-4)}
+                      UPI Deposit · UTR #{(d.utr || '0000').slice(-4)}
                     </span>
                   </div>
                   <span className="font-mono-tabular font-bold text-emerald-400">
@@ -609,9 +817,9 @@ export default function App() {
                   </span>
                 </div>
               ))}
-              {withdrawals.slice(0, 4).map((w) => (
+              {withdrawals.slice(0, 4).map((w, wdrIdx) => (
                 <div
-                  key={w.id}
+                  key={`feed-wdr-${w.id || wdrIdx}-${wdrIdx}`}
                   className="p-2.5 rounded-xl bg-[#0c1220] border border-white/5 flex items-center justify-between"
                 >
                   <div>
@@ -646,7 +854,7 @@ export default function App() {
 
         <button
           type="button"
-          onClick={() => setCreateIdModalOpen(true)}
+          onClick={() => handleOpenCreateIdForExchange(OFFICIAL_EXCHANGE_PLATFORMS[0].name)}
           className="flex flex-col items-center justify-center py-1 text-slate-300 hover:text-[#facc15] cursor-pointer"
         >
           <KeyRound className="w-4 h-4" />
@@ -734,6 +942,8 @@ export default function App() {
       <CreateIdModal
         isOpen={createIdModalOpen}
         currentUser={currentUser}
+        paymentSettings={paymentSettings}
+        selectedExchange={selectedExchangeForModal}
         onClose={() => setCreateIdModalOpen(false)}
         onRequireAuth={() => {
           setCreateIdModalOpen(false);

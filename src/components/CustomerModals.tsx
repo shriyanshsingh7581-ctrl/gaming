@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   UserProfile,
   PaymentSettings,
+  OFFICIAL_EXCHANGE_PLATFORMS,
   validateDepositInput,
   validateWithdrawalInput,
 } from '../utils/exchangeLogic';
@@ -912,37 +913,67 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
 };
 
 /* ============================================================================
- * 4. CUSTOMER "CREATE IDs" MODAL (`/idRequests`)
+ * 4. CUSTOMER "CREATE ID" 2-FIELD FORM MODAL (`/idRequests`)
+ * Field 1: Preferred Exchange Username
+ * Field 2: Payment / Opening ID Refill Amount (₹) + UTR / Screenshot Upload
  * ============================================================================ */
 interface CreateIdModalProps {
   isOpen: boolean;
   currentUser: UserProfile | null;
+  selectedExchange?: string;
+  paymentSettings: PaymentSettings;
   onClose: () => void;
   onRequireAuth: () => void;
   onSuccess: (message: string) => void;
 }
 
-const EXCHANGE_PLATFORMS = [
-  { name: 'SHARK EXCH VIP PRO', minRefill: 500, bonus: '5% Instant Bonus' },
-  { name: 'DIAMOND EXCH 99', minRefill: 500, bonus: 'Zero Margin Odds' },
-  { name: 'LOTUS 365 EXCHANGE', minRefill: 1000, bonus: '10% Welcome Refill' },
-  { name: 'SKY EXCH INTERNATIONAL', minRefill: 1000, bonus: 'Fastest Cricket Book' },
-];
-
 export const CreateIdModal: React.FC<CreateIdModalProps> = ({
   isOpen,
   currentUser,
+  selectedExchange,
+  paymentSettings,
   onClose,
   onRequireAuth,
   onSuccess,
 }) => {
-  const [platform, setPlatform] = useState(EXCHANGE_PLATFORMS[0].name);
-  const [preferredUsername, setPreferredUsername] = useState('');
-  const [depositAmount, setDepositAmount] = useState('1000');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [platform, setPlatform] = useState<string>(
+    selectedExchange || OFFICIAL_EXCHANGE_PLATFORMS[0].name
+  );
+  const [preferredUsername, setPreferredUsername] = useState<string>('');
+  const [depositAmount, setDepositAmount] = useState<string>('500');
+  const [utr, setUtr] = useState<string>('');
+  const [screenshotUrl, setScreenshotUrl] = useState<string>('');
+  const [screenshotName, setScreenshotName] = useState<string>('');
+  const [copiedUpi, setCopiedUpi] = useState<boolean>(false);
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+
+  useEffect(() => {
+    if (selectedExchange) {
+      setPlatform(selectedExchange);
+    }
+  }, [selectedExchange, isOpen]);
 
   if (!isOpen) return null;
+
+  const handleScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setScreenshotName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setScreenshotUrl(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCopyUpi = () => {
+    navigator.clipboard?.writeText(paymentSettings.upiId).catch(() => {});
+    setCopiedUpi(true);
+    setTimeout(() => setCopiedUpi(false), 2000);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -952,7 +983,12 @@ export const CreateIdModal: React.FC<CreateIdModalProps> = ({
       return;
     }
     if (!preferredUsername.trim() || preferredUsername.trim().length < 3) {
-      setError('Please enter a preferred username (at least 3 characters).');
+      setError('Please enter a Preferred Exchange Username (at least 3 characters).');
+      return;
+    }
+    const numAmount = Number(depositAmount);
+    if (!Number.isFinite(numAmount) || numAmount < 100) {
+      setError('Minimum Opening ID Payment / Refill Amount is ₹100.');
       return;
     }
 
@@ -962,15 +998,20 @@ export const CreateIdModal: React.FC<CreateIdModalProps> = ({
         user: currentUser,
         platform,
         preferredUsername,
-        depositAmount: Number(depositAmount) || 500,
+        depositAmount: numAmount,
+        utr: utr.trim(),
+        screenshotUrl: screenshotUrl || DEFAULT_QR_SVG_DATA_URI,
       });
       setPreferredUsername('');
+      setUtr('');
+      setScreenshotUrl('');
+      setScreenshotName('');
       onSuccess(
-        `Your "${platform}" Master ID request has been sent to Admin for instant activation!`
+        `Your "${platform}" ID request (Username: ${preferredUsername.trim()}) has been sent to Admin/Staff for instant activation!`
       );
       onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to request ID.');
+      setError(err instanceof Error ? err.message : 'Failed to submit ID request.');
     } finally {
       setSubmitting(false);
     }
@@ -981,14 +1022,15 @@ export const CreateIdModal: React.FC<CreateIdModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="create-id-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 overflow-y-auto"
     >
-      <div className="w-full max-w-lg rounded-3xl bg-[#0c111d] border border-[#facc15]/40 shadow-2xl overflow-hidden">
-        <div className="bg-[#facc15] px-6 py-4 flex items-center justify-between text-[#090d16]">
+      <div className="w-full max-w-lg rounded-3xl bg-[#0c111d] border border-[#facc15]/40 shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col">
+        {/* Header */}
+        <div className="bg-[#facc15] px-5 sm:px-6 py-4 flex items-center justify-between text-[#090d16] shrink-0">
           <div className="flex items-center gap-2">
             <KeyRound className="w-5 h-5 stroke-[2.5]" />
             <h2 id="create-id-modal-title" className="font-shark italic font-black text-xl">
-              CREATE EXCHANGE IDs
+              CREATE ID — {platform.toUpperCase()}
             </h2>
           </div>
           <button
@@ -1001,74 +1043,167 @@ export const CreateIdModal: React.FC<CreateIdModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 overflow-y-auto space-y-4">
           {error && (
-            <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-xs">
+            <div
+              role="alert"
+              className="p-3 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-xs font-medium"
+            >
               {error}
             </div>
           )}
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2">
-              Choose Exchange Platform
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {EXCHANGE_PLATFORMS.map((p) => (
+          {/* Selected Exchange Banner / Switcher */}
+          <div className="rounded-2xl bg-[#090d16] border border-[#facc15]/30 p-3.5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                Selected Exchange Platform
+              </span>
+              <span className="text-xs font-mono-tabular font-extrabold text-[#facc15]">
+                {platform}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+              {OFFICIAL_EXCHANGE_PLATFORMS.map((item) => (
                 <button
-                  key={p.name}
+                  key={item.name}
                   type="button"
-                  onClick={() => setPlatform(p.name)}
-                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                    platform === p.name
-                      ? 'bg-[#facc15]/15 border-[#facc15] text-white'
-                      : 'bg-[#090d16] border-white/10 text-slate-300 hover:border-white/30'
+                  onClick={() => setPlatform(item.name)}
+                  className={`py-1.5 px-2.5 rounded-xl border text-left text-xs font-bold transition-all cursor-pointer truncate ${
+                    platform === item.name
+                      ? 'bg-[#facc15] text-black border-[#facc15] shadow'
+                      : 'bg-[#0c111d] border-white/10 text-slate-300 hover:border-[#facc15]/40'
                   }`}
                 >
-                  <div className="font-shark italic font-bold text-sm text-[#facc15]">
-                    {p.name}
-                  </div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">
-                    {p.bonus}
-                  </div>
+                  {item.index}. {item.name}
                 </button>
               ))}
             </div>
           </div>
 
+          {/* FIELD 1: Preferred Exchange Username */}
           <div>
             <label
               htmlFor="preferred-username"
-              className="block text-xs font-semibold text-slate-300 mb-1"
+              className="block text-xs font-bold text-[#facc15] uppercase tracking-wider mb-1.5"
             >
-              Preferred Exchange Username *
+              1. Preferred Exchange Username *
             </label>
             <input
               id="preferred-username"
               type="text"
               required
-              placeholder="e.g. shark_king99"
+              placeholder="Enter desired username (e.g. shark_king99)"
               value={preferredUsername}
               onChange={(e) => setPreferredUsername(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
             />
           </div>
 
-          <div>
-            <label
-              htmlFor="id-deposit-amount"
-              className="block text-xs font-semibold text-slate-300 mb-1"
-            >
-              Opening ID Refill Amount (₹)
-            </label>
-            <input
-              id="id-deposit-amount"
-              type="number"
-              min={500}
-              required
-              value={depositAmount}
-              onChange={(e) => setDepositAmount(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white font-mono-tabular font-bold text-sm focus:outline-none focus:border-[#facc15]"
-            />
+          {/* FIELD 2: Payment / Opening ID Refill Amount (₹) + QR/UPI & UTR/Screenshot */}
+          <div className="rounded-2xl bg-[#090d16] border border-white/10 p-4 space-y-3.5">
+            <div>
+              <label
+                htmlFor="id-deposit-amount"
+                className="block text-xs font-bold text-[#facc15] uppercase tracking-wider mb-1.5"
+              >
+                2. Payment / Opening ID Refill Amount (₹) *
+              </label>
+              <input
+                id="id-deposit-amount"
+                type="number"
+                min={100}
+                required
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#0c111d] border border-white/15 text-[#facc15] font-mono-tabular font-bold text-base focus:outline-none focus:border-[#facc15]"
+              />
+            </div>
+
+            {/* Compact Live QR & UPI Strip for Payment */}
+            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-[#0c111d] border border-white/10">
+              <div className="w-16 h-16 rounded-xl bg-white p-1 shrink-0 flex items-center justify-center overflow-hidden">
+                <img
+                  src={paymentSettings.qrCodeUrl || DEFAULT_QR_SVG_DATA_URI}
+                  alt="UPI QR"
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div className="min-w-0 flex-1 space-y-1">
+                <span className="block text-[10px] text-slate-400 uppercase font-semibold">
+                  Pay via Official UPI ID / QR
+                </span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono-tabular text-xs font-bold text-white truncate">
+                    {paymentSettings.upiId}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCopyUpi}
+                    className="px-2.5 py-1 rounded-lg bg-[#facc15] text-black font-bold text-[11px] flex items-center gap-1 shrink-0 cursor-pointer"
+                  >
+                    {copiedUpi ? (
+                      <>
+                        <Check className="w-3 h-3" />
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        <span>Copy UPI</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment UTR & Screenshot Upload */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label
+                  htmlFor="create-id-utr"
+                  className="block text-[11px] font-semibold text-slate-300 mb-1"
+                >
+                  Payment 12-Digit UTR No.
+                </label>
+                <input
+                  id="create-id-utr"
+                  type="text"
+                  maxLength={12}
+                  placeholder="12-digit UTR number"
+                  value={utr}
+                  onChange={(e) => setUtr(e.target.value.replace(/\D/g, ''))}
+                  className="w-full px-3 py-2 rounded-xl bg-[#0c111d] border border-white/15 text-white font-mono-tabular text-xs focus:outline-none focus:border-[#facc15]"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="create-id-screenshot"
+                  className="block text-[11px] font-semibold text-slate-300 mb-1"
+                >
+                  Payment Screenshot
+                </label>
+                <label
+                  htmlFor="create-id-screenshot"
+                  className="flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl bg-[#0c111d] border border-dashed border-white/25 hover:border-[#facc15] text-xs text-slate-300 cursor-pointer"
+                >
+                  <Upload className="w-3.5 h-3.5 text-[#facc15] shrink-0" />
+                  <span className="truncate">
+                    {screenshotName || 'Upload Receipt'}
+                  </span>
+                </label>
+                <input
+                  id="create-id-screenshot"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleScreenshotChange}
+                  className="hidden"
+                />
+              </div>
+            </div>
           </div>
 
           <button
@@ -1077,8 +1212,8 @@ export const CreateIdModal: React.FC<CreateIdModalProps> = ({
             className="w-full py-3.5 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-sm tracking-wide shadow-lg cursor-pointer"
           >
             {submitting
-              ? 'Generating Exchange ID Request...'
-              : 'Request Instant Exchange ID'}
+              ? 'Sending ID Request to Admin...'
+              : `Submit Create ID Request (${platform})`}
           </button>
         </form>
       </div>
