@@ -286,7 +286,10 @@ export default function App() {
           banners={banners}
           onOpenSignUpModal={() => handleOpenAuth('signup')}
           onOpenLoginModal={() => handleOpenAuth('login')}
-          onAuthSuccess={(_user, msg) => showToast(msg)}
+          onAuthSuccess={(user, msg) => {
+            setCurrentUser(user);
+            showToast(msg);
+          }}
         />
 
         {/* Built-in In-App Live Chat Messenger with Official WhatsApp Logo Trigger */}
@@ -301,7 +304,10 @@ export default function App() {
           isOpen={authModalOpen}
           initialMode={authInitialMode}
           onClose={() => setAuthModalOpen(false)}
-          onSuccess={(_user, msg) => showToast(msg)}
+          onSuccess={(user, msg) => {
+            setCurrentUser(user);
+            showToast(msg);
+          }}
         />
       </>
     );

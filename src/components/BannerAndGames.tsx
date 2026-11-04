@@ -117,7 +117,12 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
         if (password.length < 4) {
           throw new Error('Password must be at least 4 characters.');
         }
-        const profile = await registerCustomerWithEmail(name, phone, email, password);
+        const profile = await registerCustomerWithEmail({
+          name,
+          phone,
+          email,
+          password,
+        });
         onAuthSuccess(profile, `Welcome to SHARK EXCH, ${profile.name}!`);
       } else {
         const profile = await loginCustomerWithEmail(email, password);
@@ -460,14 +465,18 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Email ID
+                  {authTab === 'login' ? 'Email ID or Mobile Number' : 'Email ID'}
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
-                    type="email"
+                    type="text"
                     required
-                    placeholder="you@example.com"
+                    placeholder={
+                      authTab === 'login'
+                        ? 'you@example.com or 10-digit mobile'
+                        : 'you@example.com'
+                    }
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#131c2e] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"

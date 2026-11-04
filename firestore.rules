@@ -11,7 +11,7 @@ service cloud.firestore {
 
     function isValidExchangeState(data) {
       return data.keys().hasAll(['users', 'deposits', 'withdrawals', 'idRequests', 'paymentSettings', 'banners', 'staff', 'updatedAt']) &&
-             data.keys().hasOnly(['users', 'deposits', 'withdrawals', 'idRequests', 'paymentSettings', 'banners', 'staff', 'chats', 'updatedAt']) &&
+             data.keys().hasOnly(['users', 'deposits', 'withdrawals', 'idRequests', 'paymentSettings', 'banners', 'staff', 'chats', 'spinsByUser', 'spinHistory', 'prizeInventory', 'updatedAt']) &&
              data.users is map &&
              data.deposits is map &&
              data.withdrawals is map &&
@@ -20,6 +20,9 @@ service cloud.firestore {
              data.banners is list && data.banners.size() <= 20 &&
              data.staff is map &&
              (!('chats' in data) || data.chats is map) &&
+             (!('spinsByUser' in data) || data.spinsByUser is map) &&
+             (!('spinHistory' in data) || data.spinHistory is map) &&
+             (!('prizeInventory' in data) || data.prizeInventory is map) &&
              data.updatedAt is string && data.updatedAt.size() <= 64;
     }
 

@@ -261,16 +261,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               htmlFor="auth-email"
               className="block text-xs font-semibold text-slate-300 mb-1"
             >
-              Email ID
+              {mode === 'login' ? 'Email ID or Mobile Number' : 'Email ID'}
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 id="auth-email"
-                type="email"
+                type="text"
                 required
-                autoComplete="email"
-                placeholder="yourname@gmail.com"
+                autoComplete="username"
+                placeholder={
+                  mode === 'login'
+                    ? 'yourname@gmail.com or 10-digit mobile'
+                    : 'yourname@gmail.com'
+                }
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
@@ -292,7 +296,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 type={showPassword ? 'text' : 'password'}
                 required
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                placeholder="Minimum 6 characters"
+                placeholder="Minimum 4 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"

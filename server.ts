@@ -5,14 +5,15 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import {
-  SPIN_WHEEL_SEGMENTS,
   INITIAL_PRIZE_INVENTORY,
   PrizeInventory,
   SpinRecord,
   DAILY_SPIN_USED_MESSAGE,
   getCurrentIstDateKey,
   getNextIstMidnightMs,
+  getEligibleBonusSegments,
   selectWeightedSpinSegment,
+  sanitizeSpinRecordToEligibleBonus,
 } from './src/utils/exchangeLogic';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -30,13 +31,31 @@ function loadServerSpinDb(): ServerSpinDatabase {
     if (fs.existsSync(SERVER_SPIN_STORE_PATH)) {
       const raw = fs.readFileSync(SERVER_SPIN_STORE_PATH, 'utf-8');
       const parsed = JSON.parse(raw);
+      const spinsByUser: Record<string, Record<string, SpinRecord>> = {};
+      if (parsed.spinsByUser && typeof parsed.spinsByUser === 'object') {
+        for (const [uid, dateMap] of Object.entries(parsed.spinsByUser)) {
+          spinsByUser[uid] = {};
+          if (dateMap && typeof dateMap === 'object') {
+            for (const [dateKey, rec] of Object.entries(dateMap as Record<string, SpinRecord>)) {
+              if (rec) {
+                spinsByUser[uid][dateKey] = sanitizeSpinRecordToEligibleBonus(rec);
+              }
+            }
+          }
+        }
+      }
+      const spinHistory: Record<string, SpinRecord> = {};
+      if (parsed.spinHistory && typeof parsed.spinHistory === 'object') {
+        for (const [spinId, rec] of Object.entries(parsed.spinHistory as Record<string, SpinRecord>)) {
+          if (rec) {
+            spinHistory[spinId] = sanitizeSpinRecordToEligibleBonus(rec);
+          }
+        }
+      }
       return {
-        spinsByUser: parsed.spinsByUser || {},
-        spinHistory: parsed.spinHistory || {},
-        prizeInventory: {
-          ...INITIAL_PRIZE_INVENTORY,
-          ...(parsed.prizeInventory || {}),
-        },
+        spinsByUser,
+        spinHistory,
+        prizeInventory: { ...INITIAL_PRIZE_INVENTORY },
       };
     }
   } catch {
@@ -82,10 +101,12 @@ async function startServer() {
     }
 
     const userSpins = serverSpinDb.spinsByUser[uid] || {};
-    const todayRecord = userSpins[istDateKey] || null;
-    const userHistory = Object.values(userSpins).sort((a, b) =>
-      b.createdAt.localeCompare(a.createdAt)
-    );
+    const todayRecord = userSpins[istDateKey]
+      ? sanitizeSpinRecordToEligibleBonus(userSpins[istDateKey])
+      : null;
+    const userHistory = Object.values(userSpins)
+      .map((r) => sanitizeSpinRecordToEligibleBonus(r))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
     res.json({
       uid,
@@ -104,7 +125,9 @@ async function startServer() {
    * Strict Server-Side Enforcement:
    * - 1 Spin per authenticated user per calendar day (resetting at 12:00 AM IST).
    * - In-flight concurrency lock per user to block simultaneous/duplicate requests.
-   * - Cryptographic weighted random selection with prize inventory check.
+   * - Cryptographic random selection strictly restricted to the 4 eligible bonus segments:
+   *   5% Bonus, 10% Bonus, 20% Bonus, and 25% Bonus.
+   *   Physical items or electronic gifts can NEVER be selected.
    */
   app.post('/api/spin/execute', (req, res) => {
     const uid = String(req.body?.uid || '').trim();
@@ -136,68 +159,51 @@ async function startServer() {
 
       const existingToday = serverSpinDb.spinsByUser[uid][istDateKey];
       if (existingToday) {
+        const sanitizedExisting = sanitizeSpinRecordToEligibleBonus(existingToday);
         res.status(429).json({
           error: DAILY_SPIN_USED_MESSAGE,
           alreadyUsed: true,
           istDateKey,
-          record: existingToday,
+          record: sanitizedExisting,
           nextResetAtMs,
         });
         return;
       }
 
-      // Cryptographically secure random fraction [0, 1)
+      // Strictly select from the 4 eligible bonus segments (5%, 10%, 20%, 25% Bonus)
+      const eligibleBonuses = getEligibleBonusSegments();
       const randomFraction = crypto.randomInt(0, 1_000_000) / 1_000_000;
-      const winningSegment = selectWeightedSpinSegment(
-        serverSpinDb.prizeInventory,
-        randomFraction
-      );
-
-      // Decrement prize inventory on server
-      const currentStock = serverSpinDb.prizeInventory[winningSegment.id] ?? 0;
-      if (currentStock > 0) {
-        serverSpinDb.prizeInventory[winningSegment.id] = currentStock - 1;
-      }
+      const selectedBonus =
+        selectWeightedSpinSegment(serverSpinDb.prizeInventory, randomFraction) ||
+        eligibleBonuses[crypto.randomInt(0, eligibleBonuses.length)];
 
       const spinId = `spin_${istDateKey.replace(/-/g, '')}_${uid.slice(-6)}_${crypto
         .randomBytes(3)
         .toString('hex')}`;
-      const rewardCode =
-        winningSegment.category === 'try_again'
-          ? 'TRY-TOMORROW'
-          : `SHARK-${winningSegment.id.toUpperCase()}-${crypto
-              .randomBytes(2)
-              .toString('hex')
-              .toUpperCase()}`;
+      const rewardCode = `SHARK-${selectedBonus.id.toUpperCase()}-${crypto
+        .randomBytes(2)
+        .toString('hex')
+        .toUpperCase()}`;
 
-      let claimStatus: SpinRecord['claimStatus'] = 'No Prize';
-      if (winningSegment.category === 'cash_reward') {
-        claimStatus = 'Credited';
-      } else if (winningSegment.category === 'bonus') {
-        claimStatus = 'Active Bonus';
-      } else if (winningSegment.category === 'physical') {
-        claimStatus = 'Pending Admin Verification';
-      }
-
-      const record: SpinRecord = {
+      const record: SpinRecord = sanitizeSpinRecordToEligibleBonus({
         spinId,
         uid,
         userName,
         userEmail,
         userPhone,
         istDateKey,
-        segmentIndex: winningSegment.index,
-        prizeId: winningSegment.id,
-        prizeLabel: winningSegment.label,
-        category: winningSegment.category,
-        cashAmount: winningSegment.cashAmount,
-        bonusPercent: winningSegment.bonusPercent,
+        segmentIndex: selectedBonus.index,
+        prizeId: selectedBonus.id,
+        prizeLabel: selectedBonus.label,
+        category: 'bonus',
+        cashAmount: 0,
+        bonusPercent: selectedBonus.bonusPercent,
         rewardCode,
-        rewardCredited: winningSegment.category === 'cash_reward',
-        requiresAdminVerification: winningSegment.requiresAdminVerification,
-        claimStatus,
+        rewardCredited: false,
+        requiresAdminVerification: false,
+        claimStatus: 'Active Bonus',
         createdAt: new Date(nowMs).toISOString(),
-      };
+      });
 
       serverSpinDb.spinsByUser[uid][istDateKey] = record;
       serverSpinDb.spinHistory[spinId] = record;
@@ -207,7 +213,7 @@ async function startServer() {
         success: true,
         istDateKey,
         record,
-        segment: winningSegment,
+        segment: selectedBonus,
         prizeInventory: serverSpinDb.prizeInventory,
         nextResetAtMs,
       });

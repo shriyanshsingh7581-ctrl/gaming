@@ -148,17 +148,20 @@ export interface SpinWheelSegment {
 }
 
 /**
- * Exact 10 segments required on the SHARK EXCHANGE Spin the Wheel:
- * 1. iPhone
- * 2. Laptop
- * 3. Smart TV
- * 4. Refrigerator
- * 5. 5% Bonus
- * 6. 10% Bonus
- * 7. 15% Bonus
- * 8. 20% Bonus
- * 9. ₹500 Reward
- * 10. Try Again
+ * Strictly eligible winning bonus segment IDs:
+ * ONLY 5% Bonus, 10% Bonus, 20% Bonus, and 25% Bonus may ever be selected.
+ */
+export const ELIGIBLE_BONUS_SEGMENT_IDS = [
+  'bonus_5',
+  'bonus_10',
+  'bonus_25',
+  'bonus_20',
+] as const;
+
+/**
+ * 10 segments displayed on the SHARK EXCHANGE Spin the Wheel.
+ * Physical items and non-bonus segments have weight: 0 and can NEVER be selected.
+ * Only the 4 bonus segments (5% Bonus, 10% Bonus, 25% Bonus, 20% Bonus) are eligible winners.
  */
 export const SPIN_WHEEL_SEGMENTS: SpinWheelSegment[] = [
   {
@@ -170,7 +173,7 @@ export const SPIN_WHEEL_SEGMENTS: SpinWheelSegment[] = [
     cashAmount: 0,
     bonusPercent: 0,
     requiresAdminVerification: true,
-    weight: 10,
+    weight: 0,
     bgColor: '#facc15',
     textColor: '#090d16',
     badgeText: '📱 iPhone 16 Pro (Admin Verified)',
@@ -184,7 +187,7 @@ export const SPIN_WHEEL_SEGMENTS: SpinWheelSegment[] = [
     cashAmount: 0,
     bonusPercent: 0,
     requiresAdminVerification: true,
-    weight: 15,
+    weight: 0,
     bgColor: '#3b0764',
     textColor: '#ffffff',
     badgeText: '💻 Gaming Laptop (Admin Verified)',
@@ -198,7 +201,7 @@ export const SPIN_WHEEL_SEGMENTS: SpinWheelSegment[] = [
     cashAmount: 0,
     bonusPercent: 0,
     requiresAdminVerification: true,
-    weight: 25,
+    weight: 0,
     bgColor: '#f59e0b',
     textColor: '#090d16',
     badgeText: '📺 55" 4K Smart TV (Admin Verified)',
@@ -212,7 +215,7 @@ export const SPIN_WHEEL_SEGMENTS: SpinWheelSegment[] = [
     cashAmount: 0,
     bonusPercent: 0,
     requiresAdminVerification: true,
-    weight: 30,
+    weight: 0,
     bgColor: '#1e1b4b',
     textColor: '#ffffff',
     badgeText: '🧊 Double-Door Refrigerator (Admin Verified)',
@@ -226,7 +229,7 @@ export const SPIN_WHEEL_SEGMENTS: SpinWheelSegment[] = [
     cashAmount: 0,
     bonusPercent: 5,
     requiresAdminVerification: false,
-    weight: 2600,
+    weight: 2500,
     bgColor: '#eab308',
     textColor: '#090d16',
     badgeText: '🎁 +5% Instant Deposit Refill Bonus',
@@ -240,24 +243,24 @@ export const SPIN_WHEEL_SEGMENTS: SpinWheelSegment[] = [
     cashAmount: 0,
     bonusPercent: 10,
     requiresAdminVerification: false,
-    weight: 2000,
+    weight: 2500,
     bgColor: '#4c1d95',
     textColor: '#ffffff',
     badgeText: '🎁 +10% Instant Deposit Refill Bonus',
   },
   {
     index: 6,
-    id: 'bonus_15',
-    label: '15% Bonus',
-    shortLabel: '15% Bonus',
+    id: 'bonus_25',
+    label: '25% Bonus',
+    shortLabel: '25% Bonus',
     category: 'bonus',
     cashAmount: 0,
-    bonusPercent: 15,
+    bonusPercent: 25,
     requiresAdminVerification: false,
-    weight: 1200,
+    weight: 2500,
     bgColor: '#facc15',
     textColor: '#090d16',
-    badgeText: '🎁 +15% VIP Deposit Refill Bonus',
+    badgeText: '🎁 +25% VIP Deposit Refill Bonus',
   },
   {
     index: 7,
@@ -268,7 +271,7 @@ export const SPIN_WHEEL_SEGMENTS: SpinWheelSegment[] = [
     cashAmount: 0,
     bonusPercent: 20,
     requiresAdminVerification: false,
-    weight: 720,
+    weight: 2500,
     bgColor: '#2e1065',
     textColor: '#ffffff',
     badgeText: '🎁 +20% Mega Deposit Refill Bonus',
@@ -282,7 +285,7 @@ export const SPIN_WHEEL_SEGMENTS: SpinWheelSegment[] = [
     cashAmount: 500,
     bonusPercent: 0,
     requiresAdminVerification: false,
-    weight: 400,
+    weight: 0,
     bgColor: '#f59e0b',
     textColor: '#090d16',
     badgeText: '💰 ₹500 Instant Wallet Cash Reward',
@@ -296,7 +299,7 @@ export const SPIN_WHEEL_SEGMENTS: SpinWheelSegment[] = [
     cashAmount: 0,
     bonusPercent: 0,
     requiresAdminVerification: false,
-    weight: 3000,
+    weight: 0,
     bgColor: '#090d16',
     textColor: '#facc15',
     badgeText: '🔄 Better Luck Tomorrow at 12:00 AM IST!',
@@ -306,16 +309,16 @@ export const SPIN_WHEEL_SEGMENTS: SpinWheelSegment[] = [
 export type PrizeInventory = Record<string, number>;
 
 export const INITIAL_PRIZE_INVENTORY: PrizeInventory = {
-  iphone: 2,
-  laptop: 3,
-  smart_tv: 5,
-  refrigerator: 5,
-  bonus_5: 99999,
-  bonus_10: 99999,
-  bonus_15: 99999,
-  bonus_20: 99999,
-  reward_500: 500,
-  try_again: 999999,
+  iphone: 0,
+  laptop: 0,
+  smart_tv: 0,
+  refrigerator: 0,
+  bonus_5: 999999,
+  bonus_10: 999999,
+  bonus_25: 999999,
+  bonus_20: 999999,
+  reward_500: 0,
+  try_again: 0,
 };
 
 export interface SpinRecord {
@@ -800,33 +803,82 @@ export function canUserSpinToday(
 }
 
 /**
- * Server-grade weighted selection that respects current prize inventory.
- * If a prize's inventory is 0, its effective weight is 0.
+ * Returns only the 4 eligible bonus segments on the wheel:
+ * 5% Bonus, 10% Bonus, 20% Bonus, and 25% Bonus.
+ * Physical items (iPhone, Laptop, Smart TV, Refrigerator, etc.) are strictly excluded.
+ */
+export function getEligibleBonusSegments(): SpinWheelSegment[] {
+  return SPIN_WHEEL_SEGMENTS.filter(
+    (seg) =>
+      seg.category === 'bonus' &&
+      (ELIGIBLE_BONUS_SEGMENT_IDS as readonly string[]).includes(seg.id)
+  );
+}
+
+/**
+ * Server-grade random selection that strictly selects ONLY from the 4 eligible
+ * bonus segments (5% Bonus, 10% Bonus, 20% Bonus, 25% Bonus).
+ * Physical gifts or non-bonus segments can NEVER be selected.
  */
 export function selectWeightedSpinSegment(
-  inventory: PrizeInventory,
+  _inventory?: PrizeInventory,
   randomFraction: number = Math.random()
 ): SpinWheelSegment {
-  const availableSegments = SPIN_WHEEL_SEGMENTS.filter((seg) => {
-    const stock = inventory[seg.id] ?? 0;
-    return stock > 0 && seg.weight > 0;
-  });
+  const eligibleBonusSegments = getEligibleBonusSegments();
 
-  if (availableSegments.length === 0) {
-    return SPIN_WHEEL_SEGMENTS[9]; // Fallback to 'Try Again'
-  }
-
-  const totalWeight = availableSegments.reduce((sum, seg) => sum + seg.weight, 0);
+  const totalWeight = eligibleBonusSegments.reduce((sum, seg) => sum + seg.weight, 0);
   const clampedFraction = Math.max(0, Math.min(0.9999999, randomFraction));
   let threshold = clampedFraction * totalWeight;
 
-  for (const seg of availableSegments) {
+  for (const seg of eligibleBonusSegments) {
     if (threshold < seg.weight) {
       return seg;
     }
     threshold -= seg.weight;
   }
 
-  return availableSegments[availableSegments.length - 1];
+  return eligibleBonusSegments[eligibleBonusSegments.length - 1];
 }
+
+/**
+ * Computes the exact clockwise wheel rotation (in degrees) so that the fixed
+ * 12 o'clock pointer lands dead-center on `segmentIndex`.
+ */
+export function getWheelLandingAngleForSegment(
+  segmentIndex: number,
+  currentRotation: number = 0,
+  fullSpins: number = 6
+): number {
+  const segmentAngle = 360 / SPIN_WHEEL_SEGMENTS.length;
+  const targetCenterAngle = segmentIndex * segmentAngle + segmentAngle / 2;
+  const landingModAngle = ((360 - targetCenterAngle) % 360 + 360) % 360;
+  const normalizedCurrentMod = ((currentRotation % 360) + 360) % 360;
+  const currentBase = currentRotation - normalizedCurrentMod;
+  return currentBase + 360 * Math.max(0, fullSpins) + landingModAngle;
+}
+
+/**
+ * Ensures any spin record strictly references one of the 4 eligible bonus segments
+ * (5% Bonus, 10% Bonus, 20% Bonus, 25% Bonus) and that its segmentIndex matches its label.
+ */
+export function sanitizeSpinRecordToEligibleBonus(record: SpinRecord): SpinRecord {
+  const eligible = getEligibleBonusSegments();
+  const matched =
+    eligible.find((s) => s.id === record.prizeId || s.index === record.segmentIndex) ||
+    eligible[0];
+
+  return {
+    ...record,
+    segmentIndex: matched.index,
+    prizeId: matched.id,
+    prizeLabel: matched.label,
+    category: 'bonus',
+    cashAmount: 0,
+    bonusPercent: matched.bonusPercent,
+    requiresAdminVerification: false,
+    rewardCredited: false,
+    claimStatus: 'Active Bonus',
+  };
+}
+
 

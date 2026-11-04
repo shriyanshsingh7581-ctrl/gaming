@@ -7,6 +7,8 @@ import {
   OFFICIAL_POSTER_ASSETS,
   formatCountdownToNextIstMidnight,
   getCurrentIstDateKey,
+  getWheelLandingAngleForSegment,
+  sanitizeSpinRecordToEligibleBonus,
 } from '../utils/exchangeLogic';
 import {
   fetchUserDailySpinStatus,
@@ -55,7 +57,9 @@ export const SpinWheelModal: React.FC<SpinWheelModalProps> = ({
     formatCountdownToNextIstMidnight()
   );
   const [isSpinning, setIsSpinning] = useState<boolean>(false);
-  const [wheelRotation, setWheelRotation] = useState<number>(0);
+  const [wheelRotation, setWheelRotation] = useState<number>(() =>
+    getWheelLandingAngleForSegment(4, 0, 0)
+  );
   const [winningPopupRecord, setWinningPopupRecord] = useState<SpinRecord | null>(null);
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -75,8 +79,18 @@ export const SpinWheelModal: React.FC<SpinWheelModalProps> = ({
         if (cancelled) return;
         setIstDateKey(status.istDateKey);
         setEligibleToday(status.eligibleToday);
-        setTodayRecord(status.todayRecord);
-        setUserHistory(status.userHistory);
+        const sanitizedToday = status.todayRecord
+          ? sanitizeSpinRecordToEligibleBonus(status.todayRecord)
+          : null;
+        setTodayRecord(sanitizedToday);
+        setUserHistory(
+          (status.userHistory || []).map((r) => sanitizeSpinRecordToEligibleBonus(r))
+        );
+        if (sanitizedToday) {
+          setWheelRotation((prev) =>
+            getWheelLandingAngleForSegment(sanitizedToday.segmentIndex, prev, 0)
+          );
+        }
         if (!status.eligibleToday) {
           setErrorMessage(DAILY_SPIN_USED_MESSAGE);
         }
@@ -139,16 +153,15 @@ export const SpinWheelModal: React.FC<SpinWheelModalProps> = ({
 
     try {
       const result = await executeDailySpinForUser(currentUser);
-      const record = result.record;
+      const record = sanitizeSpinRecordToEligibleBonus(result.record);
 
-      // Each of the 10 segments spans 36 degrees (360 / 10 = 36).
-      // Segment `i` is centered at `i * 36 + 18` degrees clockwise from 12 o'clock.
-      // To bring segment `record.segmentIndex` center under the fixed 12 o'clock pointer:
-      const segmentAngle = 360 / SPIN_WHEEL_SEGMENTS.length;
-      const targetCenterAngle = record.segmentIndex * segmentAngle + segmentAngle / 2;
-      const landingModAngle = (360 - targetCenterAngle) % 360;
-      const currentBase = wheelRotation - (wheelRotation % 360);
-      const nextRotation = currentBase + 360 * 6 + landingModAngle;
+      // Compute exact clockwise rotation so the fixed 12 o'clock pointer lands dead-center
+      // on `record.segmentIndex` (one of the 4 eligible bonus segments: 5%, 10%, 20%, 25% Bonus).
+      const nextRotation = getWheelLandingAngleForSegment(
+        record.segmentIndex,
+        wheelRotation,
+        6
+      );
 
       setWheelRotation(nextRotation);
 
@@ -550,7 +563,7 @@ export const SpinWheelModal: React.FC<SpinWheelModalProps> = ({
                 <li>Strictly 1 Spin per registered user per calendar day.</li>
                 <li>Daily spin eligibility resets automatically at 12:00 AM IST.</li>
                 <li>₹500 Cash Reward is credited once per winning spin directly to wallet.</li>
-                <li>Percentage Bonuses (5%, 10%, 15%, 20%) apply to your next deposit/ID refill.</li>
+                <li>Percentage Bonuses (5%, 10%, 20%, 25%) apply to your next deposit/ID refill.</li>
                 <li>Physical prizes (iPhone, Laptop, Smart TV, Refrigerator) require Admin verification.</li>
               </ul>
             </div>

@@ -27,6 +27,9 @@ import {
   formatCountdownToNextIstMidnight,
   canUserSpinToday,
   selectWeightedSpinSegment,
+  getEligibleBonusSegments,
+  getWheelLandingAngleForSegment,
+  sanitizeSpinRecordToEligibleBonus,
 } from './exchangeLogic';
 
 test('OFFICIAL_EXCHANGE_PLATFORMS lists the 6 official exchange platforms in order', () => {
@@ -296,7 +299,7 @@ test('Spin the Wheel 10 segments, 10s public slider interval, and IST midnight r
       'Refrigerator',
       '5% Bonus',
       '10% Bonus',
-      '15% Bonus',
+      '25% Bonus',
       '20% Bonus',
       '₹500 Reward',
       'Try Again',
@@ -322,16 +325,16 @@ test('Spin the Wheel 10 segments, 10s public slider interval, and IST midnight r
     userEmail: 'a@b.c',
     userPhone: '9800000000',
     istDateKey: '2026-11-04',
-    segmentIndex: 8,
-    prizeId: 'reward_500',
-    prizeLabel: '₹500 Reward',
-    category: 'cash_reward' as const,
-    cashAmount: 500,
-    bonusPercent: 0,
-    rewardCode: 'SHARK-500',
-    rewardCredited: true,
+    segmentIndex: 4,
+    prizeId: 'bonus_5',
+    prizeLabel: '5% Bonus',
+    category: 'bonus' as const,
+    cashAmount: 0,
+    bonusPercent: 5,
+    rewardCode: 'SHARK-BONUS_5',
+    rewardCredited: false,
     requiresAdminVerification: false,
-    claimStatus: 'Credited' as const,
+    claimStatus: 'Active Bonus' as const,
     createdAt: '2026-11-04T12:00:00.000Z',
   };
 
@@ -347,12 +350,44 @@ test('Spin the Wheel 10 segments, 10s public slider interval, and IST midnight r
   );
   assert.equal(statusNextDayAfterMidnightIst.eligible, true);
 
-  // Verify weighted selection respects inventory
-  const seg0 = selectWeightedSpinSegment(INITIAL_PRIZE_INVENTORY, 0);
-  assert.equal(seg0.label, 'iPhone');
+  // Verify ONLY the 4 bonus segments (5% Bonus, 10% Bonus, 20% Bonus, 25% Bonus) can ever be selected
+  const eligible = getEligibleBonusSegments();
+  assert.deepEqual(
+    eligible.map((s) => s.label),
+    ['5% Bonus', '10% Bonus', '25% Bonus', '20% Bonus']
+  );
 
-  const noIphoneInv = { ...INITIAL_PRIZE_INVENTORY, iphone: 0 };
-  const segNext = selectWeightedSpinSegment(noIphoneInv, 0);
-  assert.equal(segNext.label, 'Laptop');
+  assert.equal(selectWeightedSpinSegment(INITIAL_PRIZE_INVENTORY, 0.1).label, '5% Bonus');
+  assert.equal(selectWeightedSpinSegment(INITIAL_PRIZE_INVENTORY, 0.35).label, '10% Bonus');
+  assert.equal(selectWeightedSpinSegment(INITIAL_PRIZE_INVENTORY, 0.6).label, '25% Bonus');
+  assert.equal(selectWeightedSpinSegment(INITIAL_PRIZE_INVENTORY, 0.85).label, '20% Bonus');
+
+  // Verify across 100 samples that physical gifts are NEVER selected
+  for (let i = 0; i < 100; i++) {
+    const picked = selectWeightedSpinSegment(INITIAL_PRIZE_INVENTORY, i / 100);
+    assert.ok(
+      ['5% Bonus', '10% Bonus', '20% Bonus', '25% Bonus'].includes(picked.label)
+    );
+    assert.equal(picked.category, 'bonus');
+  }
+
+  // Verify landing angle places the winning bonus segment dead-center under 12 o'clock (0 deg)
+  for (const bonusSeg of eligible) {
+    const rot = getWheelLandingAngleForSegment(bonusSeg.index, 0, 6);
+    const segmentCenter = bonusSeg.index * 36 + 18;
+    assert.equal((segmentCenter + rot) % 360, 0);
+  }
+
+  // Verify sanitizeSpinRecordToEligibleBonus converts any non-bonus record into an eligible bonus
+  const sanitized = sanitizeSpinRecordToEligibleBonus({
+    ...dummySpinRecord,
+    segmentIndex: 0,
+    prizeId: 'iphone',
+    prizeLabel: 'iPhone',
+    category: 'physical',
+  });
+  assert.ok(
+    ['5% Bonus', '10% Bonus', '20% Bonus', '25% Bonus'].includes(sanitized.prizeLabel)
+  );
 });
 
