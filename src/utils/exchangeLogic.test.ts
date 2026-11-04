@@ -17,6 +17,16 @@ import {
   verifyMasterAdminPin,
   verifyStaffCredentials,
   OFFICIAL_EXCHANGE_PLATFORMS,
+  OFFICIAL_POSTER_ASSETS,
+  PUBLIC_HOMEPAGE_SLIDER_INTERVAL_MS,
+  DAILY_SPIN_USED_MESSAGE,
+  SPIN_WHEEL_SEGMENTS,
+  INITIAL_PRIZE_INVENTORY,
+  getCurrentIstDateKey,
+  getNextIstMidnightMs,
+  formatCountdownToNextIstMidnight,
+  canUserSpinToday,
+  selectWeightedSpinSegment,
 } from './exchangeLogic';
 
 test('OFFICIAL_EXCHANGE_PLATFORMS lists the 6 official exchange platforms in order', () => {
@@ -266,3 +276,83 @@ test('verifyMasterAdminPin (4455), verifyStaffCredentials (Mohit A1 / 1122), and
     5
   );
 });
+
+test('Spin the Wheel 10 segments, 10s public slider interval, and IST midnight reset logic', () => {
+  assert.equal(PUBLIC_HOMEPAGE_SLIDER_INTERVAL_MS, 10000);
+  assert.equal(
+    DAILY_SPIN_USED_MESSAGE,
+    'You have already used your daily spin. Come back tomorrow!'
+  );
+  assert.ok(OFFICIAL_POSTER_ASSETS.megaOffer500Poster.length > 0);
+  assert.ok(OFFICIAL_POSTER_ASSETS.spinWheelPoster.length > 0);
+
+  assert.equal(SPIN_WHEEL_SEGMENTS.length, 10);
+  assert.deepEqual(
+    SPIN_WHEEL_SEGMENTS.map((s) => s.label),
+    [
+      'iPhone',
+      'Laptop',
+      'Smart TV',
+      'Refrigerator',
+      '5% Bonus',
+      '10% Bonus',
+      '15% Bonus',
+      '20% Bonus',
+      '₹500 Reward',
+      'Try Again',
+    ]
+  );
+
+  // Verify IST date boundary at 12:00 AM IST (18:30 UTC of previous day)
+  // 2026-11-04 18:29:59 UTC = 2026-11-04 23:59:59 IST
+  const beforeMidnightIst = Date.UTC(2026, 10, 4, 18, 29, 59);
+  // 2026-11-04 18:30:00 UTC = 2026-11-05 00:00:00 IST
+  const atMidnightIst = Date.UTC(2026, 10, 4, 18, 30, 0);
+
+  assert.equal(getCurrentIstDateKey(beforeMidnightIst), '2026-11-04');
+  assert.equal(getCurrentIstDateKey(atMidnightIst), '2026-11-05');
+  assert.equal(getNextIstMidnightMs(beforeMidnightIst), atMidnightIst);
+  assert.equal(formatCountdownToNextIstMidnight(beforeMidnightIst), '00h 00m 01s');
+
+  // Verify 1 spin per user per calendar day eligibility
+  const dummySpinRecord = {
+    spinId: 'spin_1',
+    uid: 'usr_1',
+    userName: 'Aarav',
+    userEmail: 'a@b.c',
+    userPhone: '9800000000',
+    istDateKey: '2026-11-04',
+    segmentIndex: 8,
+    prizeId: 'reward_500',
+    prizeLabel: '₹500 Reward',
+    category: 'cash_reward' as const,
+    cashAmount: 500,
+    bonusPercent: 0,
+    rewardCode: 'SHARK-500',
+    rewardCredited: true,
+    requiresAdminVerification: false,
+    claimStatus: 'Credited' as const,
+    createdAt: '2026-11-04T12:00:00.000Z',
+  };
+
+  const statusSameDay = canUserSpinToday(
+    { '2026-11-04': dummySpinRecord },
+    beforeMidnightIst
+  );
+  assert.equal(statusSameDay.eligible, false);
+
+  const statusNextDayAfterMidnightIst = canUserSpinToday(
+    { '2026-11-04': dummySpinRecord },
+    atMidnightIst
+  );
+  assert.equal(statusNextDayAfterMidnightIst.eligible, true);
+
+  // Verify weighted selection respects inventory
+  const seg0 = selectWeightedSpinSegment(INITIAL_PRIZE_INVENTORY, 0);
+  assert.equal(seg0.label, 'iPhone');
+
+  const noIphoneInv = { ...INITIAL_PRIZE_INVENTORY, iphone: 0 };
+  const segNext = selectWeightedSpinSegment(noIphoneInv, 0);
+  assert.equal(segNext.label, 'Laptop');
+});
+

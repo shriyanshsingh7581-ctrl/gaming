@@ -3,6 +3,7 @@ import {
   BannerSlide,
   UserProfile,
   OFFICIAL_POSTER_ASSETS,
+  PUBLIC_HOMEPAGE_SLIDER_INTERVAL_MS,
 } from '../utils/exchangeLogic';
 import {
   registerCustomerWithEmail,
@@ -74,6 +75,34 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
   const subOfferHeadline =
     frontMegaOfferBanner?.subtitle ||
     'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal';
+
+  const publicPromoSlides = [
+    {
+      id: 'public-slide-mega-offer',
+      imageUrl: megaOfferPosterUrl,
+      alt: 'SHARK EXCHANGE MEGA OFFER: ₹500 की ID पर ₹500 FREE!',
+      badgeText: 'MEGA OFFER · ₹500 की ID पर ₹500 FREE!',
+    },
+    {
+      id: 'public-slide-spin-wheel-poster',
+      imageUrl: OFFICIAL_POSTER_ASSETS.spinWheelPoster,
+      alt: 'SHARK EXCHANGE — SPIN THE WHEEL Promotional Poster',
+      badgeText: 'SPIN THE WHEEL · EXCITING REWARDS DAILY!',
+    },
+  ];
+
+  const [publicSlideIndex, setPublicSlideIndex] = useState(0);
+
+  // Automatically slide every EXACTLY 10 seconds (10,000 ms) on the public front page
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setPublicSlideIndex((prev) => (prev + 1) % publicPromoSlides.length);
+    }, PUBLIC_HOMEPAGE_SLIDER_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [publicPromoSlides.length]);
+
+  const activePublicSlide =
+    publicPromoSlides[publicSlideIndex] || publicPromoSlides[0];
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,19 +210,64 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
 
               <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-gradient-to-r from-[#facc15] via-yellow-300 to-[#eab308] text-black font-black text-[11px] sm:text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(250,204,21,0.75)] border border-white">
                 <Sparkles className="w-3.5 h-3.5 fill-current" />
-                <span>MEGA OFFER · ₹500 की ID पर ₹500 FREE!</span>
+                <span>{activePublicSlide.badgeText}</span>
               </span>
             </div>
 
-            {/* Full-HD Uncropped Responsive Poster Image */}
-            <div className="relative rounded-2xl overflow-hidden border-2 border-[#facc15]/80 bg-[#090514] shadow-[0_0_32px_rgba(236,72,153,0.4)] select-none">
-              <img
-                src={megaOfferPosterUrl}
-                alt="SHARK EXCHANGE MEGA OFFER: ₹500 की ID पर ₹500 FREE!"
-                data-testid="prelogin-mega-offer-poster-img"
-                referrerPolicy="no-referrer"
-                className="w-full h-auto object-contain block"
-              />
+            {/* Automatic 10-Second Promotional Banner Slider (Smooth Transitions + Navigation Dots, Non-Interactive Poster Display Only) */}
+            <div
+              data-testid="public-front-banner-slider"
+              className="relative rounded-2xl overflow-hidden border-2 border-[#facc15]/80 bg-[#090514] shadow-[0_0_32px_rgba(236,72,153,0.4)] select-none"
+            >
+              <div className="relative w-full overflow-hidden">
+                <div
+                  className="flex transition-transform duration-700 ease-in-out"
+                  style={{
+                    transform: `translateX(-${publicSlideIndex * 100}%)`,
+                  }}
+                >
+                  {publicPromoSlides.map((slide, idx) => (
+                    <div
+                      key={slide.id}
+                      data-testid={`public-promo-slide-${idx + 1}`}
+                      className="w-full shrink-0"
+                    >
+                      <img
+                        src={slide.imageUrl}
+                        alt={slide.alt}
+                        data-testid={
+                          idx === 0
+                            ? 'prelogin-mega-offer-poster-img'
+                            : 'prelogin-spin-wheel-poster-img'
+                        }
+                        referrerPolicy="no-referrer"
+                        className="w-full h-auto object-contain block pointer-events-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Navigation Dots for Public Front Page Automatic Banner Slider */}
+              <div
+                data-testid="public-front-slider-dots"
+                className="flex items-center justify-center gap-2.5 py-2.5 bg-black/75 border-t border-white/10"
+              >
+                {publicPromoSlides.map((slide, idx) => (
+                  <button
+                    key={`public-dot-${slide.id}`}
+                    type="button"
+                    data-testid={`public-slider-dot-${idx + 1}`}
+                    aria-label={`Promotional banner slide ${idx + 1}`}
+                    onClick={() => setPublicSlideIndex(idx)}
+                    className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                      publicSlideIndex === idx
+                        ? 'w-8 bg-[#facc15] shadow-[0_0_10px_rgba(250,204,21,0.8)]'
+                        : 'w-2.5 bg-white/35 hover:bg-white/60'
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
 
             {/* Highlighted Offer Callout Bar Directly Under Poster */}
@@ -432,6 +506,7 @@ interface BannerAndGamesProps {
   onOpenLogin?: () => void;
   onOpenProfile?: () => void;
   onOpenDeposit?: () => void;
+  onOpenSpinWheel?: () => void;
   onSelectGame?: (game: GameCategoryType) => void;
 }
 
@@ -442,11 +517,12 @@ interface BannerAndGamesProps {
  *  - Poster 2: "SHARK EXCHANGE — Ultimate Gaming Destination: PLAY • BET • WIN"
  *  - Poster 3: "SHARK EXCHANGE — Game. Win. Repeat. Experience Next-Level Online Gaming"
  *  - Poster 4: "SHARK EXCHANGE — DIVE INTO REAL GAMING ACTION"
- * Followed by the clickable yellow "Create IDs" button and non-clickable static dummy game cards.
+ * Followed by the clickable yellow "Create IDs" button, "Spin & Win" option, and non-clickable static dummy game cards.
  */
 export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
   banners,
   onOpenCreateId,
+  onOpenSpinWheel,
 }) => {
   const postLoginPosters = [
     {
@@ -607,8 +683,40 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
       </section>
 
       {/* 2. ACTION & GAME CARDS ROW:
-          ONLY "Create IDs" IS CLICKABLE; ALL GAME CARDS ("Aviatrix", "MINES", "Cricket Live", "Color Prediction", "Live Casino") ARE STATIC NON-CLICKABLE DUMMY CARDS */}
+          ONLY "Create IDs" (and logged-in "Spin & Win") ARE CLICKABLE; ALL GAME CARDS ("Aviatrix", "MINES", "Cricket Live", "Color Prediction", "Live Casino") ARE STATIC NON-CLICKABLE DUMMY CARDS */}
       <section aria-label="Create IDs and Featured Games" className="space-y-3">
+        {onOpenSpinWheel && (
+          <div className="rounded-2xl bg-gradient-to-r from-[#2c0743] via-[#170526] to-[#2c0743] border-2 border-[#facc15] p-3 sm:px-4 sm:py-3 flex items-center justify-between gap-3 shadow-[0_0_24px_rgba(250,204,21,0.3)]">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <img
+                src={OFFICIAL_POSTER_ASSETS.spinWheelPoster}
+                alt="SHARK EXCHANGE Spin the Wheel"
+                className="w-14 h-9 sm:w-16 sm:h-10 object-cover rounded-lg border border-[#facc15] shrink-0"
+              />
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[#facc15] shrink-0" />
+                  <span className="font-shark italic font-black text-xs sm:text-base text-white tracking-wide truncate">
+                    SPIN THE <span className="text-[#facc15]">WHEEL</span> · DAILY VIP REWARDS
+                  </span>
+                </div>
+                <p className="text-[10px] sm:text-xs text-purple-200 truncate">
+                  Win iPhone, Laptop, Smart TV, ₹500 Cash Reward &amp; Up to 20% Bonus (1 Spin/Day · Resets 12:00 AM IST)
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              data-testid="dashboard-spin-and-win-btn"
+              onClick={onOpenSpinWheel}
+              className="px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-[#facc15] via-yellow-300 to-[#eab308] hover:brightness-110 text-black font-extrabold text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_18px_rgba(250,204,21,0.6)] border border-white shrink-0 cursor-pointer transition-transform active:scale-95"
+            >
+              🎡 Spin &amp; Win
+            </button>
+          </div>
+        )}
+
         <div className="grid grid-cols-3 gap-2.5 sm:gap-4 items-stretch">
           {/* 1. Left Bright Yellow Pill/Card Button: "Create IDs" (ACTIVE & CLICKABLE) */}
           <button

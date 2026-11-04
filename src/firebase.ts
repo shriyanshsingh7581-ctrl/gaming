@@ -54,6 +54,14 @@ import {
   calculateAdminBalanceAdjustment,
   CELEBRITY_BANNER_ASSETS,
   OFFICIAL_POSTER_ASSETS,
+  SpinRecord,
+  PrizeInventory,
+  INITIAL_PRIZE_INVENTORY,
+  SPIN_WHEEL_SEGMENTS,
+  DAILY_SPIN_USED_MESSAGE,
+  getCurrentIstDateKey,
+  getNextIstMidnightMs,
+  selectWeightedSpinSegment,
 } from './utils/exchangeLogic';
 
 const STORAGE_CONFIG_KEY = 'shark_exch_firebase_config_v1';
@@ -232,6 +240,9 @@ export interface HybridDatabaseSchema {
   banners: BannerSlide[];
   staff: Record<string, StaffMember>;
   chats: Record<string, ChatThread>;
+  spinsByUser?: Record<string, Record<string, SpinRecord>>;
+  spinHistory?: Record<string, SpinRecord>;
+  prizeInventory?: PrizeInventory;
 }
 
 export const INITIAL_BANNERS: BannerSlide[] = [
@@ -405,6 +416,9 @@ const INITIAL_SEED_DB: HybridDatabaseSchema = {
   banners: INITIAL_BANNERS,
   staff: INITIAL_STAFF,
   chats: INITIAL_CHATS,
+  spinsByUser: {},
+  spinHistory: {},
+  prizeInventory: { ...INITIAL_PRIZE_INVENTORY },
 };
 
 function normalizeStaffStore(rawStaff?: Record<string, StaffMember>): Record<string, StaffMember> {
@@ -605,6 +619,12 @@ function loadHybridStore(): HybridDatabaseSchema {
           banners: normalizeBannersStore(parsed.banners),
           staff: normalizeStaffStore(parsed.staff),
           chats: parsed.chats || INITIAL_CHATS,
+          spinsByUser: parsed.spinsByUser || {},
+          spinHistory: parsed.spinHistory || {},
+          prizeInventory: {
+            ...INITIAL_PRIZE_INVENTORY,
+            ...(parsed.prizeInventory || {}),
+          },
         };
       }
     }
@@ -657,6 +677,9 @@ async function syncStateToCloudMirror(nextStore: HybridDatabaseSchema): Promise<
       banners: nextStore.banners,
       staff: nextStore.staff,
       chats: nextStore.chats,
+      spinsByUser: nextStore.spinsByUser || {},
+      spinHistory: nextStore.spinHistory || {},
+      prizeInventory: nextStore.prizeInventory || INITIAL_PRIZE_INVENTORY,
       updatedAt: new Date().toISOString(),
     });
   } catch (error) {
@@ -719,6 +742,9 @@ export function subscribeToRealtimeData(callback: ListenerCallback): () => void 
               banners: val.banners || current.banners,
               staff: normalizeStaffStore(val.staff || current.staff),
               chats: val.chats || current.chats,
+              spinsByUser: val.spinsByUser || current.spinsByUser || {},
+              spinHistory: val.spinHistory || current.spinHistory || {},
+              prizeInventory: val.prizeInventory || current.prizeInventory || INITIAL_PRIZE_INVENTORY,
             };
             localStorage.setItem(STORAGE_DB_KEY, JSON.stringify(merged));
             dbListeners.forEach((cb) => cb(merged));
@@ -762,6 +788,18 @@ export function subscribeToRealtimeData(callback: ListenerCallback): () => void 
                 (val.staff as Record<string, StaffMember>) || current.staff
               ),
               chats: (val.chats as Record<string, ChatThread>) || current.chats,
+              spinsByUser:
+                (val.spinsByUser as Record<string, Record<string, SpinRecord>>) ||
+                current.spinsByUser ||
+                {},
+              spinHistory:
+                (val.spinHistory as Record<string, SpinRecord>) ||
+                current.spinHistory ||
+                {},
+              prizeInventory:
+                (val.prizeInventory as PrizeInventory) ||
+                current.prizeInventory ||
+                INITIAL_PRIZE_INVENTORY,
             };
             localStorage.setItem(STORAGE_DB_KEY, JSON.stringify(merged));
             dbListeners.forEach((cb) => cb(merged));
@@ -1988,3 +2026,319 @@ export async function markChatThreadRead(params: {
     }
   }
 }
+
+/* ============================================================================
+ * SPIN THE WHEEL — STRICT 1 SPIN PER USER PER DAY (12:00 AM IST RESET)
+ * Server-validated + Database-enforced spin records & reward system
+ * ============================================================================ */
+
+const activeClientSpinLocks = new Set<string>();
+const creditedSpinIds = new Set<string>();
+
+export interface UserSpinStatusResponse {
+  uid: string;
+  istDateKey: string;
+  eligibleToday: boolean;
+  todayRecord: SpinRecord | null;
+  userHistory: SpinRecord[];
+  prizeInventory: PrizeInventory;
+  nextResetAtMs: number;
+}
+
+export async function fetchUserDailySpinStatus(
+  uid: string
+): Promise<UserSpinStatusResponse> {
+  const cleanUid = uid.trim();
+  const nowMs = Date.now();
+  const localIstDateKey = getCurrentIstDateKey(nowMs);
+  const localNextResetMs = getNextIstMidnightMs(nowMs);
+  const store = loadHybridStore();
+  const localUserSpins = store.spinsByUser?.[cleanUid] || {};
+
+  try {
+    const res = await fetch(`/api/spin/status?uid=${encodeURIComponent(cleanUid)}`);
+    if (res.ok) {
+      const data = await res.json();
+      const istDateKey: string = data.istDateKey || localIstDateKey;
+      const serverTodayRecord: SpinRecord | null = data.todayRecord || null;
+      const localTodayRecord: SpinRecord | null = localUserSpins[istDateKey] || null;
+      const mergedTodayRecord = serverTodayRecord || localTodayRecord;
+
+      if (mergedTodayRecord) {
+        if (!store.spinsByUser) store.spinsByUser = {};
+        if (!store.spinsByUser[cleanUid]) store.spinsByUser[cleanUid] = {};
+        if (!store.spinsByUser[cleanUid][istDateKey]) {
+          store.spinsByUser[cleanUid][istDateKey] = mergedTodayRecord;
+          if (!store.spinHistory) store.spinHistory = {};
+          store.spinHistory[mergedTodayRecord.spinId] = mergedTodayRecord;
+          saveHybridStore(store);
+        }
+      }
+
+      const combinedHistoryMap: Record<string, SpinRecord> = {};
+      Object.values(localUserSpins).forEach((r) => {
+        if (r) combinedHistoryMap[r.istDateKey] = r;
+      });
+      if (Array.isArray(data.userHistory)) {
+        data.userHistory.forEach((r: SpinRecord) => {
+          if (r) combinedHistoryMap[r.istDateKey] = r;
+        });
+      }
+
+      const sortedHistory = Object.values(combinedHistoryMap).sort((a, b) =>
+        b.createdAt.localeCompare(a.createdAt)
+      );
+
+      return {
+        uid: cleanUid,
+        istDateKey,
+        eligibleToday: !mergedTodayRecord,
+        todayRecord: mergedTodayRecord,
+        userHistory: sortedHistory,
+        prizeInventory: data.prizeInventory || store.prizeInventory || INITIAL_PRIZE_INVENTORY,
+        nextResetAtMs: data.nextResetAtMs || localNextResetMs,
+      };
+    }
+  } catch {
+    // Fallback to synced database store if offline
+  }
+
+  const todayRecord = localUserSpins[localIstDateKey] || null;
+  const userHistory = Object.values(localUserSpins).sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt)
+  );
+
+  return {
+    uid: cleanUid,
+    istDateKey: localIstDateKey,
+    eligibleToday: !todayRecord,
+    todayRecord,
+    userHistory,
+    prizeInventory: store.prizeInventory || INITIAL_PRIZE_INVENTORY,
+    nextResetAtMs: localNextResetMs,
+  };
+}
+
+/**
+ * Executes the authenticated user's daily spin:
+ * - Enforces in-flight lock to block multiple clicks or simultaneous requests.
+ * - Checks database record for `istDateKey` before AND after calling `/api/spin/execute`.
+ * - Credits ₹500 wallet reward strictly once per unique `spinId` (prevents duplicate reward credits).
+ * - Syncs result to Firebase Realtime Database (`/spinsByUser/{uid}/{istDateKey}` and `/spinHistory/{spinId}`).
+ */
+export async function executeDailySpinForUser(user: UserProfile): Promise<{
+  record: SpinRecord;
+  nextResetAtMs: number;
+  prizeInventory: PrizeInventory;
+}> {
+  if (!user || !user.uid) {
+    throw new Error('Please log in to access Spin the Wheel.');
+  }
+
+  const uid = user.uid;
+  if (activeClientSpinLocks.has(uid)) {
+    throw new Error('Spin request already in progress. Please wait.');
+  }
+
+  activeClientSpinLocks.add(uid);
+  try {
+    const nowMs = Date.now();
+    const istDateKey = getCurrentIstDateKey(nowMs);
+    const nextResetAtMs = getNextIstMidnightMs(nowMs);
+    const store = loadHybridStore();
+
+    if (!store.spinsByUser) store.spinsByUser = {};
+    if (!store.spinsByUser[uid]) store.spinsByUser[uid] = {};
+    if (!store.spinHistory) store.spinHistory = {};
+    if (!store.prizeInventory) {
+      store.prizeInventory = { ...INITIAL_PRIZE_INVENTORY };
+    }
+
+    // Check database first: if user already spun on this IST calendar day, reject immediately
+    const existingLocalRecord = store.spinsByUser[uid][istDateKey];
+    if (existingLocalRecord) {
+      throw new Error(DAILY_SPIN_USED_MESSAGE);
+    }
+
+    let validatedRecord: SpinRecord | null = null;
+    let updatedInventory: PrizeInventory = store.prizeInventory;
+
+    try {
+      const response = await fetch('/api/spin/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uid: user.uid,
+          userName: user.name,
+          userEmail: user.email,
+          userPhone: user.phone,
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        if (payload?.alreadyUsed && payload?.record) {
+          // Sync the server's existing record into local/Firebase store so UI stays locked
+          const srvRec = payload.record as SpinRecord;
+          store.spinsByUser[uid][srvRec.istDateKey] = srvRec;
+          store.spinHistory[srvRec.spinId] = srvRec;
+          saveHybridStore(store);
+        }
+        throw new Error(payload?.error || DAILY_SPIN_USED_MESSAGE);
+      }
+
+      validatedRecord = payload.record as SpinRecord;
+      if (payload.prizeInventory) {
+        updatedInventory = payload.prizeInventory as PrizeInventory;
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === DAILY_SPIN_USED_MESSAGE) {
+        throw err;
+      }
+      if (
+        err instanceof Error &&
+        err.message.includes('already used your daily spin')
+      ) {
+        throw new Error(DAILY_SPIN_USED_MESSAGE);
+      }
+
+      // If running in static environment without Express API, enforce atomically in database store
+      const freshStore = loadHybridStore();
+      if (freshStore.spinsByUser?.[uid]?.[istDateKey]) {
+        throw new Error(DAILY_SPIN_USED_MESSAGE);
+      }
+
+      const randArray = new Uint32Array(1);
+      if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+        crypto.getRandomValues(randArray);
+      } else {
+        randArray[0] = Math.floor(Math.random() * 1_000_000);
+      }
+      const fraction = (randArray[0] % 1_000_000) / 1_000_000;
+      const winningSegment = selectWeightedSpinSegment(updatedInventory, fraction);
+
+      const currentStock = updatedInventory[winningSegment.id] ?? 0;
+      if (currentStock > 0) {
+        updatedInventory = {
+          ...updatedInventory,
+          [winningSegment.id]: currentStock - 1,
+        };
+      }
+
+      const spinId = `spin_${istDateKey.replace(/-/g, '')}_${uid.slice(-6)}_${Math.random()
+        .toString(36)
+        .slice(2, 7)}`;
+      const rewardCode =
+        winningSegment.category === 'try_again'
+          ? 'TRY-TOMORROW'
+          : `SHARK-${winningSegment.id.toUpperCase()}-${Math.random()
+              .toString(36)
+              .slice(2, 6)
+              .toUpperCase()}`;
+
+      let claimStatus: SpinRecord['claimStatus'] = 'No Prize';
+      if (winningSegment.category === 'cash_reward') {
+        claimStatus = 'Credited';
+      } else if (winningSegment.category === 'bonus') {
+        claimStatus = 'Active Bonus';
+      } else if (winningSegment.category === 'physical') {
+        claimStatus = 'Pending Admin Verification';
+      }
+
+      validatedRecord = {
+        spinId,
+        uid: user.uid,
+        userName: user.name,
+        userEmail: user.email,
+        userPhone: user.phone,
+        istDateKey,
+        segmentIndex: winningSegment.index,
+        prizeId: winningSegment.id,
+        prizeLabel: winningSegment.label,
+        category: winningSegment.category,
+        cashAmount: winningSegment.cashAmount,
+        bonusPercent: winningSegment.bonusPercent,
+        rewardCode,
+        rewardCredited: winningSegment.category === 'cash_reward',
+        requiresAdminVerification: winningSegment.requiresAdminVerification,
+        claimStatus,
+        createdAt: new Date(nowMs).toISOString(),
+      };
+    }
+
+    if (!validatedRecord) {
+      throw new Error('Could not complete spin validation. Please try again.');
+    }
+
+    // Re-read store to prevent any race condition and persist record + one-time reward credit
+    const latestStore = loadHybridStore();
+    if (!latestStore.spinsByUser) latestStore.spinsByUser = {};
+    if (!latestStore.spinsByUser[uid]) latestStore.spinsByUser[uid] = {};
+    if (!latestStore.spinHistory) latestStore.spinHistory = {};
+
+    if (latestStore.spinsByUser[uid][validatedRecord.istDateKey]) {
+      throw new Error(DAILY_SPIN_USED_MESSAGE);
+    }
+
+    latestStore.spinsByUser[uid][validatedRecord.istDateKey] = validatedRecord;
+    latestStore.spinHistory[validatedRecord.spinId] = validatedRecord;
+    latestStore.prizeInventory = updatedInventory;
+
+    // Prevent duplicate reward credits: credit ₹500 Reward strictly once per spinId
+    if (
+      validatedRecord.category === 'cash_reward' &&
+      validatedRecord.cashAmount > 0 &&
+      !creditedSpinIds.has(validatedRecord.spinId) &&
+      latestStore.users[uid]
+    ) {
+      creditedSpinIds.add(validatedRecord.spinId);
+      const nextWalletBalance = Math.max(
+        0,
+        Math.round(latestStore.users[uid].walletBalance + validatedRecord.cashAmount)
+      );
+      latestStore.users[uid] = {
+        ...latestStore.users[uid],
+        walletBalance: nextWalletBalance,
+      };
+
+      if (isLiveFirebaseConnected && firebaseDb) {
+        try {
+          await update(ref(firebaseDb, `users/${uid}`), {
+            walletBalance: nextWalletBalance,
+          });
+        } catch {
+          // synced via cloud mirror
+        }
+      }
+    }
+
+    saveHybridStore(latestStore);
+
+    if (isLiveFirebaseConnected && firebaseDb) {
+      try {
+        await set(
+          ref(firebaseDb, `spinsByUser/${uid}/${validatedRecord.istDateKey}`),
+          validatedRecord
+        );
+        await set(
+          ref(firebaseDb, `spinHistory/${validatedRecord.spinId}`),
+          validatedRecord
+        );
+        await set(ref(firebaseDb, 'prizeInventory'), updatedInventory);
+      } catch {
+        // synced via cloud mirror
+      }
+    }
+
+    return {
+      record: validatedRecord,
+      nextResetAtMs,
+      prizeInventory: updatedInventory,
+    };
+  } finally {
+    activeClientSpinLocks.delete(uid);
+  }
+}
+
+export { SPIN_WHEEL_SEGMENTS };
+

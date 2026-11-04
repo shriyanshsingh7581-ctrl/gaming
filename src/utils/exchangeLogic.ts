@@ -105,9 +105,12 @@ export interface BannerSlide {
 }
 
 export const OFFICIAL_POSTER_ASSETS = {
-  /** Pre-Login Front Page Poster: "SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE!" */
+  /** Pre-Login Front Page Poster 1: "SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE!" */
   megaOffer500Poster:
     '/assets/aistudio/file_00000000032c821198d87fd2de4ca7de_303c7645.png',
+  /** Pre-Login Front Page Poster 2: "SHARK EXCHANGE — SPIN THE WHEEL: Spin & Win Exciting Rewards Instantly!" */
+  spinWheelPoster:
+    '/assets/aistudio/file_00000000d1648211a99db1a387660195_c953ab80.png',
   /** Post-Login Poster 1: "Sexy VIP LIVE LOUNGE — SHARKVIP #PLAYSAFE" */
   sexyVipLoungePoster:
     '/assets/aistudio/file_00000000adf0821190c8b112caeef003_9e263999.png',
@@ -121,6 +124,219 @@ export const OFFICIAL_POSTER_ASSETS = {
   diveIntoActionPoster:
     '/assets/aistudio/file_00000000ab348211b4927714b776e20e_d079797d.png',
 } as const;
+
+export const PUBLIC_HOMEPAGE_SLIDER_INTERVAL_MS = 10000;
+export const DAILY_SPIN_USED_MESSAGE =
+  'You have already used your daily spin. Come back tomorrow!';
+
+export type SpinPrizeCategory = 'physical' | 'bonus' | 'cash_reward' | 'try_again';
+
+export interface SpinWheelSegment {
+  index: number;
+  id: string;
+  label: string;
+  shortLabel: string;
+  category: SpinPrizeCategory;
+  cashAmount: number;
+  bonusPercent: number;
+  requiresAdminVerification: boolean;
+  /** Server-side probability weight (out of 10000 basis points) */
+  weight: number;
+  bgColor: string;
+  textColor: string;
+  badgeText: string;
+}
+
+/**
+ * Exact 10 segments required on the SHARK EXCHANGE Spin the Wheel:
+ * 1. iPhone
+ * 2. Laptop
+ * 3. Smart TV
+ * 4. Refrigerator
+ * 5. 5% Bonus
+ * 6. 10% Bonus
+ * 7. 15% Bonus
+ * 8. 20% Bonus
+ * 9. ₹500 Reward
+ * 10. Try Again
+ */
+export const SPIN_WHEEL_SEGMENTS: SpinWheelSegment[] = [
+  {
+    index: 0,
+    id: 'iphone',
+    label: 'iPhone',
+    shortLabel: 'iPhone',
+    category: 'physical',
+    cashAmount: 0,
+    bonusPercent: 0,
+    requiresAdminVerification: true,
+    weight: 10,
+    bgColor: '#facc15',
+    textColor: '#090d16',
+    badgeText: '📱 iPhone 16 Pro (Admin Verified)',
+  },
+  {
+    index: 1,
+    id: 'laptop',
+    label: 'Laptop',
+    shortLabel: 'Laptop',
+    category: 'physical',
+    cashAmount: 0,
+    bonusPercent: 0,
+    requiresAdminVerification: true,
+    weight: 15,
+    bgColor: '#3b0764',
+    textColor: '#ffffff',
+    badgeText: '💻 Gaming Laptop (Admin Verified)',
+  },
+  {
+    index: 2,
+    id: 'smart_tv',
+    label: 'Smart TV',
+    shortLabel: 'Smart TV',
+    category: 'physical',
+    cashAmount: 0,
+    bonusPercent: 0,
+    requiresAdminVerification: true,
+    weight: 25,
+    bgColor: '#f59e0b',
+    textColor: '#090d16',
+    badgeText: '📺 55" 4K Smart TV (Admin Verified)',
+  },
+  {
+    index: 3,
+    id: 'refrigerator',
+    label: 'Refrigerator',
+    shortLabel: 'Refrigerator',
+    category: 'physical',
+    cashAmount: 0,
+    bonusPercent: 0,
+    requiresAdminVerification: true,
+    weight: 30,
+    bgColor: '#1e1b4b',
+    textColor: '#ffffff',
+    badgeText: '🧊 Double-Door Refrigerator (Admin Verified)',
+  },
+  {
+    index: 4,
+    id: 'bonus_5',
+    label: '5% Bonus',
+    shortLabel: '5% Bonus',
+    category: 'bonus',
+    cashAmount: 0,
+    bonusPercent: 5,
+    requiresAdminVerification: false,
+    weight: 2600,
+    bgColor: '#eab308',
+    textColor: '#090d16',
+    badgeText: '🎁 +5% Instant Deposit Refill Bonus',
+  },
+  {
+    index: 5,
+    id: 'bonus_10',
+    label: '10% Bonus',
+    shortLabel: '10% Bonus',
+    category: 'bonus',
+    cashAmount: 0,
+    bonusPercent: 10,
+    requiresAdminVerification: false,
+    weight: 2000,
+    bgColor: '#4c1d95',
+    textColor: '#ffffff',
+    badgeText: '🎁 +10% Instant Deposit Refill Bonus',
+  },
+  {
+    index: 6,
+    id: 'bonus_15',
+    label: '15% Bonus',
+    shortLabel: '15% Bonus',
+    category: 'bonus',
+    cashAmount: 0,
+    bonusPercent: 15,
+    requiresAdminVerification: false,
+    weight: 1200,
+    bgColor: '#facc15',
+    textColor: '#090d16',
+    badgeText: '🎁 +15% VIP Deposit Refill Bonus',
+  },
+  {
+    index: 7,
+    id: 'bonus_20',
+    label: '20% Bonus',
+    shortLabel: '20% Bonus',
+    category: 'bonus',
+    cashAmount: 0,
+    bonusPercent: 20,
+    requiresAdminVerification: false,
+    weight: 720,
+    bgColor: '#2e1065',
+    textColor: '#ffffff',
+    badgeText: '🎁 +20% Mega Deposit Refill Bonus',
+  },
+  {
+    index: 8,
+    id: 'reward_500',
+    label: '₹500 Reward',
+    shortLabel: '₹500 Reward',
+    category: 'cash_reward',
+    cashAmount: 500,
+    bonusPercent: 0,
+    requiresAdminVerification: false,
+    weight: 400,
+    bgColor: '#f59e0b',
+    textColor: '#090d16',
+    badgeText: '💰 ₹500 Instant Wallet Cash Reward',
+  },
+  {
+    index: 9,
+    id: 'try_again',
+    label: 'Try Again',
+    shortLabel: 'Try Again',
+    category: 'try_again',
+    cashAmount: 0,
+    bonusPercent: 0,
+    requiresAdminVerification: false,
+    weight: 3000,
+    bgColor: '#090d16',
+    textColor: '#facc15',
+    badgeText: '🔄 Better Luck Tomorrow at 12:00 AM IST!',
+  },
+];
+
+export type PrizeInventory = Record<string, number>;
+
+export const INITIAL_PRIZE_INVENTORY: PrizeInventory = {
+  iphone: 2,
+  laptop: 3,
+  smart_tv: 5,
+  refrigerator: 5,
+  bonus_5: 99999,
+  bonus_10: 99999,
+  bonus_15: 99999,
+  bonus_20: 99999,
+  reward_500: 500,
+  try_again: 999999,
+};
+
+export interface SpinRecord {
+  spinId: string;
+  uid: string;
+  userName: string;
+  userEmail: string;
+  userPhone: string;
+  istDateKey: string; // YYYY-MM-DD in IST (UTC+05:30)
+  segmentIndex: number;
+  prizeId: string;
+  prizeLabel: string;
+  category: SpinPrizeCategory;
+  cashAmount: number;
+  bonusPercent: number;
+  rewardCode: string;
+  rewardCredited: boolean;
+  requiresAdminVerification: boolean;
+  claimStatus: 'Credited' | 'Active Bonus' | 'Pending Admin Verification' | 'Verified & Dispatched' | 'No Prize';
+  createdAt: string;
+}
 
 export const CELEBRITY_BANNER_ASSETS = {
   heroSalman: OFFICIAL_POSTER_ASSETS.megaOffer500Poster,
@@ -523,3 +739,94 @@ export function isStaffLoginUrl(
   }
   return false;
 }
+
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // UTC +05:30
+
+/**
+ * Returns the calendar date string `YYYY-MM-DD` in Indian Standard Time (IST, UTC+05:30).
+ * Resets strictly at 12:00 AM IST.
+ */
+export function getCurrentIstDateKey(nowMs: number = Date.now()): string {
+  const istTime = new Date(nowMs + IST_OFFSET_MS);
+  const year = istTime.getUTCFullYear();
+  const month = String(istTime.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(istTime.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Returns the exact UTC timestamp (in ms) of the next 12:00 AM IST (Indian Standard Time).
+ */
+export function getNextIstMidnightMs(nowMs: number = Date.now()): number {
+  const istTime = new Date(nowMs + IST_OFFSET_MS);
+  const nextMidnightIstUtcMs = Date.UTC(
+    istTime.getUTCFullYear(),
+    istTime.getUTCMonth(),
+    istTime.getUTCDate() + 1,
+    0,
+    0,
+    0,
+    0
+  );
+  return nextMidnightIstUtcMs - IST_OFFSET_MS;
+}
+
+/**
+ * Formats a human-readable live countdown (`HHh MMm SSs`) until 12:00 AM IST.
+ */
+export function formatCountdownToNextIstMidnight(nowMs: number = Date.now()): string {
+  const targetMs = getNextIstMidnightMs(nowMs);
+  const diffSec = Math.max(0, Math.floor((targetMs - nowMs) / 1000));
+  const hours = String(Math.floor(diffSec / 3600)).padStart(2, '0');
+  const minutes = String(Math.floor((diffSec % 3600) / 60)).padStart(2, '0');
+  const seconds = String(diffSec % 60).padStart(2, '0');
+  return `${hours}h ${minutes}m ${seconds}s`;
+}
+
+/**
+ * Checks whether a user is eligible to spin on the current IST calendar day.
+ */
+export function canUserSpinToday(
+  userSpinsByDate: Record<string, SpinRecord> | undefined,
+  nowMs: number = Date.now()
+): { eligible: boolean; istDateKey: string; existingRecord?: SpinRecord } {
+  const istDateKey = getCurrentIstDateKey(nowMs);
+  const existingRecord = userSpinsByDate ? userSpinsByDate[istDateKey] : undefined;
+  return {
+    eligible: !existingRecord,
+    istDateKey,
+    existingRecord,
+  };
+}
+
+/**
+ * Server-grade weighted selection that respects current prize inventory.
+ * If a prize's inventory is 0, its effective weight is 0.
+ */
+export function selectWeightedSpinSegment(
+  inventory: PrizeInventory,
+  randomFraction: number = Math.random()
+): SpinWheelSegment {
+  const availableSegments = SPIN_WHEEL_SEGMENTS.filter((seg) => {
+    const stock = inventory[seg.id] ?? 0;
+    return stock > 0 && seg.weight > 0;
+  });
+
+  if (availableSegments.length === 0) {
+    return SPIN_WHEEL_SEGMENTS[9]; // Fallback to 'Try Again'
+  }
+
+  const totalWeight = availableSegments.reduce((sum, seg) => sum + seg.weight, 0);
+  const clampedFraction = Math.max(0, Math.min(0.9999999, randomFraction));
+  let threshold = clampedFraction * totalWeight;
+
+  for (const seg of availableSegments) {
+    if (threshold < seg.weight) {
+      return seg;
+    }
+    threshold -= seg.weight;
+  }
+
+  return availableSegments[availableSegments.length - 1];
+}
+

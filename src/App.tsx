@@ -40,6 +40,7 @@ import {
   UserProfileModal,
 } from './components/CustomerModals';
 import { MiniGameModal } from './components/MiniGameModal';
+import { SpinWheelModal } from './components/SpinWheelModal';
 import { AdminPanel } from './components/AdminPanel';
 import { LiveChatWidget, OfficialWhatsAppLogoSvg } from './components/LiveChatWidget';
 import {
@@ -57,6 +58,7 @@ import {
   Copy,
   Check,
   ExternalLink,
+  Sparkles,
 } from 'lucide-react';
 
 export default function App() {
@@ -142,6 +144,7 @@ export default function App() {
   const [copiedIdKey, setCopiedIdKey] = useState<string | null>(null);
   const [liveChatOpen, setLiveChatOpen] = useState<boolean>(false);
   const [activeGame, setActiveGame] = useState<GameCategoryType | null>(null);
+  const [spinWheelModalOpen, setSpinWheelModalOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [rightPanelTab, setRightPanelTab] = useState<'my-wallet' | 'live-feed'>('my-wallet');
 
@@ -372,6 +375,15 @@ export default function App() {
               </button>
               <button
                 type="button"
+                data-testid="sidebar-spin-and-win-btn"
+                onClick={() => setSpinWheelModalOpen(true)}
+                className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-[#3b0764] to-[#6b21a8] hover:brightness-110 border border-[#facc15]/60 text-[#facc15] font-extrabold text-xs flex items-center gap-2.5 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 shrink-0 text-[#facc15]" />
+                <span>Spin &amp; Win (1/Day)</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setLiveChatOpen(true)}
                 className="w-full py-2 px-3 rounded-xl bg-[#25D366]/15 hover:bg-[#25D366]/25 border border-[#25D366]/40 text-[#25D366] font-extrabold text-xs flex items-center gap-2.5 cursor-pointer"
               >
@@ -440,6 +452,7 @@ export default function App() {
             onOpenLogin={() => handleOpenAuth('login')}
             onOpenProfile={() => setProfileModalOpen(true)}
             onOpenDeposit={() => setDepositModalOpen(true)}
+            onOpenSpinWheel={() => setSpinWheelModalOpen(true)}
           />
 
           {/* 6 Official Exchange Links Section (Replaced Old Live Exchange Markets) */}
@@ -1033,6 +1046,13 @@ export default function App() {
           showToast('You have been logged out.');
         }}
         onSuccess={(msg) => showToast(msg)}
+      />
+
+      <SpinWheelModal
+        isOpen={spinWheelModalOpen}
+        currentUser={currentUser}
+        onClose={() => setSpinWheelModalOpen(false)}
+        onNotify={(msg) => showToast(msg)}
       />
     </div>
   );
