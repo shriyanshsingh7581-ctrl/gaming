@@ -27,7 +27,11 @@ import {
   INITIAL_CHATS,
 } from './firebase';
 import { SharkHeader } from './components/SharkHeader';
-import { BannerAndGames, GameCategoryType } from './components/BannerAndGames';
+import {
+  BannerAndGames,
+  PreLoginLandingPage,
+  GameCategoryType,
+} from './components/BannerAndGames';
 import {
   AuthModal,
   DepositModal,
@@ -262,9 +266,51 @@ export default function App() {
     );
   }
 
-  /* ---------------- RENDER SHARK EXCH CUSTOMER WEBSITE (`/`) ---------------- */
+  /* ---------------- PAGE 1: PRE-LOGIN PROMOTIONAL LANDING & AUTH PAGE (WHEN USER IS LOGGED OUT) ---------------- */
+  if (!currentUser) {
+    return (
+      <>
+        {toastMessage && (
+          <div
+            role="status"
+            className="fixed top-14 right-4 z-[60] max-w-md px-4 py-3 rounded-2xl bg-[#facc15] text-black font-bold text-xs shadow-2xl border-2 border-black"
+          >
+            {toastMessage}
+          </div>
+        )}
+
+        <PreLoginLandingPage
+          banners={banners}
+          onOpenSignUpModal={() => handleOpenAuth('signup')}
+          onOpenLoginModal={() => handleOpenAuth('login')}
+          onAuthSuccess={(_user, msg) => showToast(msg)}
+        />
+
+        {/* Built-in In-App Live Chat Messenger with Official WhatsApp Logo Trigger */}
+        <LiveChatWidget
+          currentUser={currentUser}
+          chatsMap={chatsMap}
+          isOpen={liveChatOpen}
+          onOpenChange={setLiveChatOpen}
+        />
+
+        <AuthModal
+          isOpen={authModalOpen}
+          initialMode={authInitialMode}
+          onClose={() => setAuthModalOpen(false)}
+          onSuccess={(_user, msg) => showToast(msg)}
+        />
+      </>
+    );
+  }
+
+  /* ---------------- PAGE 2: RESTORED ORIGINAL MAIN CUSTOMER DASHBOARD (IMMEDIATELY AFTER SIGN-UP / LOGIN) ---------------- */
   return (
-    <div id="top" className="min-h-screen bg-[#070a10] text-white flex flex-col pb-20 md:pb-8">
+    <div
+      id="top"
+      data-testid="page-2-postlogin-dashboard"
+      className="min-h-screen bg-[#070a10] text-white flex flex-col pb-20 md:pb-8"
+    >
       {/* Toast Notification Banner */}
       {toastMessage && (
         <div
@@ -275,7 +321,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 1. EXACT "SHARK EXCH" TOP AUTH BAR & GOLDEN-YELLOW WALLET HEADER (No Admin Links) */}
+      {/* 1. EXACT "SHARK EXCH" TOP AUTH BAR & GOLDEN-YELLOW WALLET HEADER (Deposit ⏫ | SHARK EXCH WALLET BALANCE | Withdraw ⏬) */}
       <SharkHeader
         currentUser={currentUser}
         onOpenAuth={handleOpenAuth}
@@ -901,19 +947,11 @@ export default function App() {
 
         <button
           type="button"
-          onClick={() => {
-            if (currentUser) {
-              setProfileModalOpen(true);
-            } else {
-              handleOpenAuth('login');
-            }
-          }}
+          onClick={() => setProfileModalOpen(true)}
           className="flex flex-col items-center justify-center py-1 text-slate-300 hover:text-[#facc15] cursor-pointer"
         >
           <UserIcon className="w-4 h-4" />
-          <span className="text-[10px] font-medium mt-0.5">
-            {currentUser ? 'My Profile' : 'Login'}
-          </span>
+          <span className="text-[10px] font-medium mt-0.5">My Wallet</span>
         </button>
       </nav>
 

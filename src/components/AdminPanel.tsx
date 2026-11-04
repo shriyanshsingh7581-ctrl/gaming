@@ -16,6 +16,7 @@ import {
   verifyStaffCredentials,
   MASTER_ADMIN_PIN,
   OFFICIAL_EXCHANGE_PLATFORMS,
+  OFFICIAL_POSTER_ASSETS,
   CELEBRITY_BANNER_ASSETS,
 } from '../utils/exchangeLogic';
 import {
@@ -132,15 +133,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [accountNumber, setAccountNumber] = useState<string>(paymentSettings.accountNumber);
   const [ifsc, setIfsc] = useState<string>(paymentSettings.ifsc);
 
-  // Front-Page Hero Promotional Banner State (Master Admin Editable)
+  // 5 Promotional Posters State (Master Admin Editable: 1 Pre-Login Poster + 4 Post-Login Dashboard Posters)
   const [bannerHeroImageUrl, setBannerHeroImageUrl] = useState<string>(
-    banners[0]?.imageUrl || CELEBRITY_BANNER_ASSETS.heroSalman
+    banners[0]?.imageUrl || OFFICIAL_POSTER_ASSETS.megaOffer500Poster
   );
-  const [bannerHeroineImageUrl, setBannerHeroineImageUrl] = useState<string>(
-    banners[0]?.secondaryImageUrl || CELEBRITY_BANNER_ASSETS.heroinePriyanka
+  const [postLoginPoster1Url, setPostLoginPoster1Url] = useState<string>(
+    banners[1]?.imageUrl || OFFICIAL_POSTER_ASSETS.sexyVipLoungePoster
+  );
+  const [postLoginPoster2Url, setPostLoginPoster2Url] = useState<string>(
+    banners[2]?.imageUrl || OFFICIAL_POSTER_ASSETS.playBetWinPoster
+  );
+  const [postLoginPoster3Url, setPostLoginPoster3Url] = useState<string>(
+    banners[3]?.imageUrl || OFFICIAL_POSTER_ASSETS.gameWinRepeatPoster
+  );
+  const [postLoginPoster4Url, setPostLoginPoster4Url] = useState<string>(
+    banners[4]?.imageUrl || OFFICIAL_POSTER_ASSETS.diveIntoActionPoster
   );
   const [bannerHeadline, setBannerHeadline] = useState<string>(
-    banners[0]?.title || '🔥 SHARK EXCH MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥'
+    banners[0]?.title || '🔥 SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥'
   );
   const [bannerSubtitle, setBannerSubtitle] = useState<string>(
     banners[0]?.subtitle ||
@@ -148,16 +158,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   );
 
   useEffect(() => {
-    if (banners && banners[0]) {
-      setBannerHeroImageUrl(banners[0].imageUrl || CELEBRITY_BANNER_ASSETS.heroSalman);
-      setBannerHeroineImageUrl(
-        banners[0].secondaryImageUrl || CELEBRITY_BANNER_ASSETS.heroinePriyanka
+    if (banners && banners.length > 0) {
+      setBannerHeroImageUrl(
+        banners[0]?.imageUrl || OFFICIAL_POSTER_ASSETS.megaOffer500Poster
+      );
+      setPostLoginPoster1Url(
+        banners[1]?.imageUrl || OFFICIAL_POSTER_ASSETS.sexyVipLoungePoster
+      );
+      setPostLoginPoster2Url(
+        banners[2]?.imageUrl || OFFICIAL_POSTER_ASSETS.playBetWinPoster
+      );
+      setPostLoginPoster3Url(
+        banners[3]?.imageUrl || OFFICIAL_POSTER_ASSETS.gameWinRepeatPoster
+      );
+      setPostLoginPoster4Url(
+        banners[4]?.imageUrl || OFFICIAL_POSTER_ASSETS.diveIntoActionPoster
       );
       setBannerHeadline(
-        banners[0].title || '🔥 SHARK EXCH MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥'
+        banners[0]?.title || '🔥 SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥'
       );
       setBannerSubtitle(
-        banners[0].subtitle ||
+        banners[0]?.subtitle ||
           'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal'
       );
     }
@@ -520,14 +541,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     reader.readAsDataURL(file);
   };
 
-  const handleBannerHeroFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePosterUploadForSlot = (
+    slotIndex: 0 | 1 | 2 | 3 | 4,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     if (!isMasterAdmin) return;
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
-        setBannerHeroImageUrl(reader.result);
+        if (slotIndex === 0) setBannerHeroImageUrl(reader.result);
+        if (slotIndex === 1) setPostLoginPoster1Url(reader.result);
+        if (slotIndex === 2) setPostLoginPoster2Url(reader.result);
+        if (slotIndex === 3) setPostLoginPoster3Url(reader.result);
+        if (slotIndex === 4) setPostLoginPoster4Url(reader.result);
       }
     };
     reader.readAsDataURL(file);
@@ -536,24 +564,61 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const handleSaveFrontBanner = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isMasterAdmin) return;
-    const updatedSlide1: BannerSlide = {
-      id: 'banner-1',
-      tag: 'SHARK EXCH OFFICIAL MEGA OFFER',
-      title:
-        bannerHeadline.trim() ||
-        '🔥 SHARK EXCH MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥',
-      subtitle:
-        bannerSubtitle.trim() ||
-        'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal',
-      ctaText: 'Create ID',
-      accentColor: '#facc15',
-      imageUrl: bannerHeroImageUrl.trim() || CELEBRITY_BANNER_ASSETS.heroSalman,
-      secondaryImageUrl:
-        bannerHeroineImageUrl.trim() || CELEBRITY_BANNER_ASSETS.heroinePriyanka,
-    };
-    const nextBanners = [updatedSlide1, ...(banners.slice(1) || [])];
+    const nextBanners: BannerSlide[] = [
+      {
+        id: 'banner-prelogin-mega-offer',
+        tag: 'SHARK EXCHANGE — MEGA OFFER',
+        title:
+          bannerHeadline.trim() ||
+          '🔥 SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥',
+        subtitle:
+          bannerSubtitle.trim() ||
+          'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal',
+        ctaText: 'Sign Up / Login',
+        accentColor: '#facc15',
+        imageUrl: bannerHeroImageUrl.trim() || OFFICIAL_POSTER_ASSETS.megaOffer500Poster,
+        secondaryImageUrl:
+          postLoginPoster1Url.trim() || OFFICIAL_POSTER_ASSETS.sexyVipLoungePoster,
+      },
+      {
+        id: 'banner-postlogin-1',
+        tag: 'SHARKVIP #PLAYSAFE',
+        title: 'Sexy VIP LIVE LOUNGE — SHARKVIP #PLAYSAFE',
+        subtitle: 'Exclusive VIP Live Lounge · Instant Exchange IDs & 24/7 Direct Withdrawal',
+        ctaText: 'Create ID',
+        accentColor: '#ec4899',
+        imageUrl: postLoginPoster1Url.trim() || OFFICIAL_POSTER_ASSETS.sexyVipLoungePoster,
+      },
+      {
+        id: 'banner-postlogin-2',
+        tag: 'PLAY • BET • WIN',
+        title: 'SHARK EXCHANGE — Ultimate Gaming Destination: PLAY • BET • WIN',
+        subtitle: 'Sports Betting · Live Casino · Casino Games · Virtual Games',
+        ctaText: 'Play Now',
+        accentColor: '#facc15',
+        imageUrl: postLoginPoster2Url.trim() || OFFICIAL_POSTER_ASSETS.playBetWinPoster,
+      },
+      {
+        id: 'banner-postlogin-3',
+        tag: 'NEXT-LEVEL GAMING',
+        title: 'SHARK EXCHANGE — Game. Win. Repeat. Experience Next-Level Online Gaming',
+        subtitle: 'Fast Play · Safe & Secure · 24/7 Support',
+        ctaText: 'Start Playing Now',
+        accentColor: '#f43f5e',
+        imageUrl: postLoginPoster3Url.trim() || OFFICIAL_POSTER_ASSETS.gameWinRepeatPoster,
+      },
+      {
+        id: 'banner-postlogin-4',
+        tag: 'PREMIUM GAMING PLATFORM',
+        title: 'SHARK EXCHANGE — DIVE INTO REAL GAMING ACTION',
+        subtitle: 'Casino Games · Live Casino · Sports Betting · Virtual Games',
+        ctaText: 'Play Now',
+        accentColor: '#38bdf8',
+        imageUrl: postLoginPoster4Url.trim() || OFFICIAL_POSTER_ASSETS.diveIntoActionPoster,
+      },
+    ];
     await adminSaveBanners(nextBanners);
-    onNotify('Updated Front-Page Promotional Hero Banner & Offer in Firebase!');
+    onNotify('Updated all 5 Promotional Posters (Pre-Login & Post-Login) in Firebase!');
   };
 
   const handleSavePaymentSettings = async (e: React.FormEvent) => {
@@ -1536,7 +1601,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
             </form>
 
-            {/* Master Admin Front-Page Hero Promotional Banner Photo & Offer Editor */}
+            {/* Master Admin 5 Promotional Posters Editor (Pre-Login Mega Offer + 4 Post-Login Dashboard Posters) */}
             {isMasterAdmin && (
               <form
                 onSubmit={handleSaveFrontBanner}
@@ -1545,79 +1610,54 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h3 className="text-base font-bold text-[#facc15]">
-                      🎬 Front-Page Celebrity Promo Banner &amp; Mega Offer Editor (`/banners`)
+                      🎬 Promotional Posters &amp; Mega Offer Editor (`/banners` — 5 Posters)
                     </h3>
                     <p className="text-xs text-slate-400">
-                      Update or replace the front-page Hero/Heroine celebrity photos and Mega Offer text anytime.
+                      Upload or update the Pre-Login Front Page Mega Offer Poster and the 4 Post-Login Dashboard Posters anytime.
                     </p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="block text-xs font-semibold text-slate-300">
-                      Primary Hero Banner Photo (Upload or Select Preset)
+                  {/* Pre-Login Poster 0: Mega Offer ₹500 पर ₹500 FREE */}
+                  <div className="p-3.5 rounded-2xl bg-[#090d16] border border-[#facc15]/40 space-y-2.5">
+                    <label className="block text-xs font-bold text-[#facc15]">
+                      1. Front Page (Pre-Login) Poster: &quot;₹500 की ID पर ₹500 FREE!&quot;
                     </label>
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={bannerHeroImageUrl}
-                        alt="Hero Preview"
-                        className="w-20 h-20 rounded-xl object-cover object-top border border-[#facc15]"
+                    <img
+                      src={bannerHeroImageUrl}
+                      alt="Front Page Mega Offer Preview"
+                      className="w-full h-28 rounded-xl object-contain bg-black border border-white/15"
+                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label
+                        htmlFor="admin-banner-photo-upload"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white cursor-pointer"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-[#facc15]" />
+                        <span>Upload Front Poster</span>
+                      </label>
+                      <input
+                        id="admin-banner-photo-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handlePosterUploadForSlot(0, e)}
+                        className="hidden"
                       />
-                      <div className="flex-1 space-y-2">
-                        <label
-                          htmlFor="admin-banner-photo-upload"
-                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white cursor-pointer"
-                        >
-                          <Upload className="w-3.5 h-3.5 text-[#facc15]" />
-                          <span>Upload Custom Banner Photo</span>
-                        </label>
-                        <input
-                          id="admin-banner-photo-upload"
-                          type="file"
-                          accept="image/*"
-                          onChange={handleBannerHeroFileUpload}
-                          className="hidden"
-                        />
-                        <div className="flex flex-wrap gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => setBannerHeroImageUrl(CELEBRITY_BANNER_ASSETS.heroSalman)}
-                            className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/15 text-[11px] text-amber-300 cursor-pointer"
-                          >
-                            Hero Photo 1
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setBannerHeroImageUrl(CELEBRITY_BANNER_ASSETS.heroSrk)}
-                            className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/15 text-[11px] text-sky-300 cursor-pointer"
-                          >
-                            Hero Photo 2
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setBannerHeroineImageUrl(CELEBRITY_BANNER_ASSETS.heroinePriyanka)
-                            }
-                            className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/15 text-[11px] text-pink-300 cursor-pointer"
-                          >
-                            Heroine Photo 1
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setBannerHeroineImageUrl(CELEBRITY_BANNER_ASSETS.heroineSonam)
-                            }
-                            className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/15 text-[11px] text-emerald-300 cursor-pointer"
-                          >
-                            Heroine Photo 2
-                          </button>
-                        </div>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setBannerHeroImageUrl(OFFICIAL_POSTER_ASSETS.megaOffer500Poster)
+                        }
+                        className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/15 text-[11px] text-amber-300 cursor-pointer"
+                      >
+                        Reset Default ₹500 Offer Poster
+                      </button>
                     </div>
                   </div>
 
-                  <div className="space-y-2.5">
+                  {/* Offer Headline & Sub-headline */}
+                  <div className="p-3.5 rounded-2xl bg-[#090d16] border border-white/10 space-y-2.5">
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1">
                         Main Offer Headline
@@ -1626,7 +1666,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         type="text"
                         value={bannerHeadline}
                         onChange={(e) => setBannerHeadline(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-[#090d16] border border-white/15 text-xs text-[#facc15] font-bold"
+                        className="w-full px-3 py-2 rounded-xl bg-[#0c111d] border border-white/15 text-xs text-[#facc15] font-bold"
                       />
                     </div>
                     <div>
@@ -1637,17 +1677,89 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         type="text"
                         value={bannerSubtitle}
                         onChange={(e) => setBannerSubtitle(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-[#090d16] border border-white/15 text-xs text-white"
+                        className="w-full px-3 py-2 rounded-xl bg-[#0c111d] border border-white/15 text-xs text-white"
                       />
                     </div>
                   </div>
+                </div>
+
+                {/* 4 Post-Login Wallet Dashboard Posters */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {[
+                    {
+                      slot: 1 as const,
+                      label: 'Dashboard Poster 1: Sexy VIP LIVE LOUNGE',
+                      url: postLoginPoster1Url,
+                      resetUrl: OFFICIAL_POSTER_ASSETS.sexyVipLoungePoster,
+                    },
+                    {
+                      slot: 2 as const,
+                      label: 'Dashboard Poster 2: PLAY • BET • WIN',
+                      url: postLoginPoster2Url,
+                      resetUrl: OFFICIAL_POSTER_ASSETS.playBetWinPoster,
+                    },
+                    {
+                      slot: 3 as const,
+                      label: 'Dashboard Poster 3: Game. Win. Repeat.',
+                      url: postLoginPoster3Url,
+                      resetUrl: OFFICIAL_POSTER_ASSETS.gameWinRepeatPoster,
+                    },
+                    {
+                      slot: 4 as const,
+                      label: 'Dashboard Poster 4: DIVE INTO REAL ACTION',
+                      url: postLoginPoster4Url,
+                      resetUrl: OFFICIAL_POSTER_ASSETS.diveIntoActionPoster,
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.slot}
+                      className="p-3 rounded-2xl bg-[#090d16] border border-white/10 space-y-2"
+                    >
+                      <span className="block text-[11px] font-bold text-slate-200 truncate">
+                        {item.label}
+                      </span>
+                      <img
+                        src={item.url}
+                        alt={item.label}
+                        className="w-full h-24 rounded-lg object-contain bg-black border border-white/10"
+                      />
+                      <div className="flex items-center justify-between gap-1.5">
+                        <label
+                          htmlFor={`admin-postlogin-poster-${item.slot}`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-[11px] font-bold text-white cursor-pointer"
+                        >
+                          <Upload className="w-3 h-3 text-[#facc15]" />
+                          <span>Upload</span>
+                        </label>
+                        <input
+                          id={`admin-postlogin-poster-${item.slot}`}
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handlePosterUploadForSlot(item.slot, e)}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (item.slot === 1) setPostLoginPoster1Url(item.resetUrl);
+                            if (item.slot === 2) setPostLoginPoster2Url(item.resetUrl);
+                            if (item.slot === 3) setPostLoginPoster3Url(item.resetUrl);
+                            if (item.slot === 4) setPostLoginPoster4Url(item.resetUrl);
+                          }}
+                          className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] text-slate-300 cursor-pointer"
+                        >
+                          Reset
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 <button
                   type="submit"
                   className="px-5 py-2.5 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-xs cursor-pointer"
                 >
-                  💾 Save Front-Page Promo Banner (`/banners`)
+                  💾 Save All 5 Promotional Posters (`/banners`)
                 </button>
               </form>
             )}

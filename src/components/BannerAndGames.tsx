@@ -2,8 +2,13 @@ import React, { useState, useEffect } from 'react';
 import {
   BannerSlide,
   UserProfile,
-  CELEBRITY_BANNER_ASSETS,
+  OFFICIAL_POSTER_ASSETS,
 } from '../utils/exchangeLogic';
+import {
+  registerCustomerWithEmail,
+  loginCustomerWithEmail,
+  loginWithGoogleFirebase,
+} from '../firebase';
 import {
   ChevronLeft,
   ChevronRight,
@@ -11,13 +16,14 @@ import {
   Trophy,
   Zap,
   Play,
-  KeyRound,
   UserPlus,
   LogIn,
-  User as UserIcon,
   Crown,
   Sparkles,
-  ArrowUpCircle,
+  Mail,
+  Lock,
+  Phone,
+  User as UserIcon,
   ShieldCheck,
 } from 'lucide-react';
 
@@ -27,6 +33,395 @@ export type GameCategoryType =
   | 'cricket'
   | 'color'
   | 'casino';
+
+interface PreLoginLandingPageProps {
+  banners: BannerSlide[];
+  onOpenSignUpModal: () => void;
+  onOpenLoginModal: () => void;
+  onAuthSuccess: (user: UserProfile, message: string) => void;
+}
+
+/**
+ * PAGE 1: PRE-LOGIN PROMOTIONAL LANDING & AUTH PAGE (WHEN USER IS LOGGED OUT):
+ * - Completely removes the old hero/heroine celebrity photos ("GOLDEN CASINO DIVA", "EMPRESS CLUB", etc.).
+ * - At the very top of the Pre-Login Front Page, prominently displays and highlights the attached
+ *   "SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE! (Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free)"
+ *   poster in full HD, mobile-responsive layout.
+ * - Directly below this highlighted Mega Offer poster on the front page, shows ONLY the "Sign Up" and "Login" buttons & form.
+ */
+export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
+  banners,
+  onOpenSignUpModal,
+  onOpenLoginModal,
+  onAuthSuccess,
+}) => {
+  const [authTab, setAuthTab] = useState<'signup' | 'login'>('signup');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const frontMegaOfferBanner = banners[0];
+  const megaOfferPosterUrl =
+    frontMegaOfferBanner?.imageUrl || OFFICIAL_POSTER_ASSETS.megaOffer500Poster;
+
+  const mainOfferHeadline =
+    frontMegaOfferBanner?.title ||
+    '🔥 SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥';
+  const subOfferHeadline =
+    frontMegaOfferBanner?.subtitle ||
+    'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal';
+
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      if (authTab === 'signup') {
+        if (!name.trim()) throw new Error('Please enter your full name.');
+        if (phone.replace(/\D/g, '').length < 10) {
+          throw new Error('Please enter a valid 10-digit WhatsApp/Mobile number.');
+        }
+        if (password.length < 4) {
+          throw new Error('Password must be at least 4 characters.');
+        }
+        const profile = await registerCustomerWithEmail(name, phone, email, password);
+        onAuthSuccess(profile, `Welcome to SHARK EXCH, ${profile.name}!`);
+      } else {
+        const profile = await loginCustomerWithEmail(email, password);
+        onAuthSuccess(profile, `Welcome back, ${profile.name}!`);
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Authentication failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      const profile = await loginWithGoogleFirebase(phone);
+      onAuthSuccess(profile, `Signed in with Google as ${profile.name}!`);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Google sign-in failed.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  return (
+    <div
+      data-testid="page-1-prelogin-landing"
+      className="min-h-screen bg-[#070a10] text-white flex flex-col pb-12"
+    >
+      {/* Minimal Brand Top Bar (No Wallet Balance Header, No Deposit/Withdraw Buttons) */}
+      <header className="bg-[#090d16] border-b border-white/10 px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+          <span className="font-shark italic font-black text-lg sm:text-2xl tracking-wider flex items-center gap-1">
+            <span className="text-white">SHARK</span>
+            <span className="text-[#facc15]">EXCH</span>
+          </span>
+          <span className="hidden sm:inline-block text-xs text-slate-400">
+            · Official VIP Gaming Exchange
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setAuthTab('signup');
+              onOpenSignUpModal();
+            }}
+            className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs tracking-wide cursor-pointer"
+          >
+            Sign Up
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAuthTab('login');
+              onOpenLoginModal();
+            }}
+            className="px-3.5 py-1.5 rounded-lg bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold text-xs tracking-wide cursor-pointer"
+          >
+            Login
+          </button>
+          <span className="px-2 py-1 rounded border border-white/20 text-[11px] font-bold text-white/90 tracking-wider uppercase">
+            EN
+          </span>
+        </div>
+      </header>
+
+      {/* Main Pre-Login Front Page Container */}
+      <main className="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 pt-4 space-y-5">
+        {/* 1. HIGHLIGHTED FULL-HD "SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE!" POSTER */}
+        <section
+          aria-label="Promotional Offers"
+          data-testid="front-hero-promo-banner"
+          className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#20031e] via-[#0c071b] to-[#26051c] border-[3px] border-[#facc15] shadow-[0_0_48px_rgba(250,204,21,0.5)]"
+        >
+          {/* Ambient Gold & Neon Magenta Spotlight */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(250,204,21,0.28),transparent_65%),radial-gradient(circle_at_80%_80%,rgba(236,72,153,0.25),transparent_60%)] pointer-events-none" />
+
+          <div className="relative p-2.5 sm:p-4 space-y-3">
+            {/* Top Brand & Highlighted Bonus Strip */}
+            <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/80 border border-[#facc15]/70 shadow">
+                <Crown className="w-3.5 h-3.5 text-[#facc15]" />
+                <span className="font-shark italic font-black text-xs sm:text-sm text-white tracking-wider">
+                  SHARK <span className="text-[#facc15]">EXCHANGE</span>
+                </span>
+              </div>
+
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-gradient-to-r from-[#facc15] via-yellow-300 to-[#eab308] text-black font-black text-[11px] sm:text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(250,204,21,0.75)] border border-white">
+                <Sparkles className="w-3.5 h-3.5 fill-current" />
+                <span>MEGA OFFER · ₹500 की ID पर ₹500 FREE!</span>
+              </span>
+            </div>
+
+            {/* Full-HD Uncropped Responsive Poster Image */}
+            <div className="relative rounded-2xl overflow-hidden border-2 border-[#facc15]/80 bg-[#090514] shadow-[0_0_32px_rgba(236,72,153,0.4)] select-none">
+              <img
+                src={megaOfferPosterUrl}
+                alt="SHARK EXCHANGE MEGA OFFER: ₹500 की ID पर ₹500 FREE!"
+                data-testid="prelogin-mega-offer-poster-img"
+                referrerPolicy="no-referrer"
+                className="w-full h-auto object-contain block"
+              />
+            </div>
+
+            {/* Highlighted Offer Callout Bar Directly Under Poster */}
+            <div className="relative rounded-2xl bg-gradient-to-r from-[#1c0414] via-[#2b0822] to-[#1c0414] border-2 border-[#facc15] px-3.5 py-3 sm:px-5 sm:py-3.5 text-center shadow-[0_0_28px_rgba(250,204,21,0.45)] space-y-2">
+              <h2
+                data-testid="hero-mega-offer-headline"
+                className="font-black text-base sm:text-2xl text-[#facc15] drop-shadow-[0_2px_10px_rgba(250,204,21,0.65)] tracking-tight leading-snug"
+              >
+                {mainOfferHeadline}
+              </h2>
+
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <div className="px-3.5 py-1 rounded-xl bg-gradient-to-r from-[#facc15] via-yellow-300 to-[#eab308] text-black font-black text-xs sm:text-base tracking-wide shadow border border-white flex items-center gap-1.5">
+                  <span>💸 ₹500 की ID पर</span>
+                  <span className="px-2 py-0.5 rounded-md bg-black text-[#facc15] font-extrabold">
+                    ₹500 FREE!
+                  </span>
+                </div>
+
+                <div className="px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-400 text-emerald-300 font-extrabold text-xs sm:text-sm tracking-wide">
+                  Pay ₹500 ➔ Get ₹1,000 Instant ID
+                </div>
+              </div>
+
+              <p
+                data-testid="hero-mega-offer-subheadline"
+                className="text-xs sm:text-sm font-bold text-white/95"
+              >
+                {subOfferHeadline}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* 2. DIRECTLY BELOW PROMO POSTER ON PAGE 1: ONLY "SIGN UP" AND "LOGIN" BUTTONS & FORM */}
+        <div
+          aria-label="Primary Hero Actions"
+          data-testid="hero-below-cta-bar"
+          className="grid grid-cols-2 gap-3"
+        >
+          <button
+            type="button"
+            data-testid="hero-cta-signup"
+            onClick={() => setAuthTab('signup')}
+            className={`py-3.5 px-4 rounded-2xl font-extrabold text-sm sm:text-base tracking-wide uppercase shadow-lg border-2 flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95 ${
+              authTab === 'signup'
+                ? 'bg-emerald-500 hover:bg-emerald-400 text-black border-emerald-200 shadow-[0_0_24px_rgba(16,185,129,0.45)]'
+                : 'bg-[#11192c] hover:bg-[#192540] text-emerald-400 border-emerald-500/40'
+            }`}
+          >
+            <UserPlus className="w-5 h-5 stroke-[2.5]" />
+            <span>Sign Up</span>
+          </button>
+
+          <button
+            type="button"
+            data-testid="hero-cta-login"
+            onClick={() => setAuthTab('login')}
+            className={`py-3.5 px-4 rounded-2xl font-extrabold text-sm sm:text-base tracking-wide uppercase shadow-lg border-2 flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95 ${
+              authTab === 'login'
+                ? 'bg-[#facc15] hover:bg-[#eab308] text-black border-yellow-200 shadow-[0_0_24px_rgba(250,204,21,0.45)]'
+                : 'bg-[#131c2e] hover:bg-[#1b2740] text-[#facc15] border-[#facc15]/60'
+            }`}
+          >
+            <LogIn className="w-5 h-5 stroke-[2.5]" />
+            <span>Login</span>
+          </button>
+        </div>
+
+        {/* Embedded Sign Up & Login Card right below the buttons so Customer immediately enters Page 2 upon completion */}
+        <section
+          aria-label="Customer Sign Up and Login Form"
+          data-testid="page-1-auth-card"
+          className="rounded-3xl bg-[#090d16] border-2 border-[#facc15]/50 shadow-[0_20px_50px_rgba(0,0,0,0.85)] overflow-hidden max-w-xl mx-auto"
+        >
+          <div className="bg-gradient-to-r from-[#facc15] via-amber-400 to-[#eab308] px-5 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-black" />
+              <h3 className="font-shark italic font-black text-base sm:text-lg text-black tracking-wide uppercase">
+                {authTab === 'signup'
+                  ? 'CREATE YOUR VIP ACCOUNT (SIGN UP)'
+                  : 'LOGIN TO SHARK EXCH DASHBOARD'}
+              </h3>
+            </div>
+            <span className="text-[11px] font-extrabold text-black/80 uppercase">
+              Instant Access
+            </span>
+          </div>
+
+          <div className="p-5 sm:p-6 space-y-4">
+            {/* 1-Click Google Firebase Authentication */}
+            <button
+              type="button"
+              data-testid="landing-google-auth-btn"
+              onClick={handleGoogleLogin}
+              disabled={googleLoading || loading}
+              className="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-md border border-slate-200 transition-transform active:scale-98 cursor-pointer disabled:opacity-50"
+            >
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="#EA4335"
+                  d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.4 1 3.5 3.6 1.6 7.4l3.7 2.8C6.2 7.2 8.9 5 12 5z"
+                />
+                <path
+                  fill="#4285F4"
+                  d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.6l3.7 2.9c2.2-2 3.7-5 3.7-8.7z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.3 14.8c-.2-.8-.4-1.6-.4-2.5s.2-1.7.4-2.5L1.6 7C.6 9 0 11.2 0 13.5s.6 4.5 1.6 6.5l3.7-2.9z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 24c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3.1 0-5.8-2.1-6.7-5l-3.7 2.8C3.5 20.9 7.4 24 12 24z"
+                />
+              </svg>
+              <span>
+                {googleLoading
+                  ? 'Connecting to Google...'
+                  : 'Continue with Google (Instant Login)'}
+              </span>
+            </button>
+
+            <div className="relative flex items-center justify-center">
+              <div className="border-t border-white/10 w-full" />
+              <span className="bg-[#090d16] px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
+                Or with Email &amp; Password
+              </span>
+              <div className="border-t border-white/10 w-full" />
+            </div>
+
+            {error && (
+              <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-xs font-medium">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleAuthSubmit} className="space-y-3.5">
+              {authTab === 'signup' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Full Name
+                    </label>
+                    <div className="relative">
+                      <UserIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                      <input
+                        type="text"
+                        required
+                        placeholder="Enter your name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#131c2e] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      WhatsApp / Mobile Number
+                    </label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                      <input
+                        type="tel"
+                        required
+                        placeholder="10-digit mobile number"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#131c2e] border border-white/15 text-white text-sm font-mono-tabular focus:outline-none focus:border-[#facc15]"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Email ID
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  <input
+                    type="email"
+                    required
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#131c2e] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#131c2e] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || googleLoading}
+                className="w-full py-3 rounded-xl bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold text-sm tracking-wide shadow-lg transition-transform active:scale-98 cursor-pointer disabled:opacity-50"
+              >
+                {loading
+                  ? 'Please wait...'
+                  : authTab === 'signup'
+                  ? 'Sign Up & Enter SHARK EXCH Dashboard'
+                  : 'Login & Enter SHARK EXCH Dashboard'}
+              </button>
+            </form>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+};
 
 interface BannerAndGamesProps {
   banners: BannerSlide[];
@@ -41,396 +436,178 @@ interface BannerAndGamesProps {
 }
 
 /**
- * Ultra-Premium Mobile-First Front Page Promotional Hero Banner & Game Category Section:
- * 1. Displays glamorous VIP Hostess & Celebrity Model portraits prominently under the "SHARK EXCH" brand
- *    with 100% mobile-optimized uncropped portrait framing (`object-top`), glowing gold & neon Mega Offer text:
- *    - Main Headline: "🔥 SHARK EXCH MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥"
- *    - Sub-headline: "Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal"
- * 2. Directly below the hero banner:
- *    - If Guest (`!currentUser`): shows "Create ID", "Sign Up", and "Login" buttons.
- *    - If Logged In (`currentUser`): hides "Sign Up" & "Login" and shows the VIP Member Profile Card + "Create ID", "My Profile", and "Deposit" buttons.
- * 3. Game cards (`Aviatrix`, `MINES`, `Cricket Live`, `Color Prediction`, `Live Casino`, and `SHARKVIP`)
- *    are strictly non-clickable visual dummy cards. ONLY "Create IDs" is clickable and active.
+ * PAGE 2 (POST-LOGIN MAIN WALLET & EXCHANGE DASHBOARD):
+ * Displays the 4 attached promotional posters inside the Post-Login Wallet Dashboard section:
+ *  - Poster 1: "Sexy VIP LIVE LOUNGE — SHARKVIP #PLAYSAFE"
+ *  - Poster 2: "SHARK EXCHANGE — Ultimate Gaming Destination: PLAY • BET • WIN"
+ *  - Poster 3: "SHARK EXCHANGE — Game. Win. Repeat. Experience Next-Level Online Gaming"
+ *  - Poster 4: "SHARK EXCHANGE — DIVE INTO REAL GAMING ACTION"
+ * Followed by the clickable yellow "Create IDs" button and non-clickable static dummy game cards.
  */
 export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
   banners,
-  currentUser,
-  activeIdCount = 0,
   onOpenCreateId,
-  onOpenSignUp,
-  onOpenLogin,
-  onOpenProfile,
-  onOpenDeposit,
 }) => {
+  const postLoginPosters = [
+    {
+      id: 'poster-1',
+      title: banners[1]?.title || 'Sexy VIP LIVE LOUNGE — SHARKVIP #PLAYSAFE',
+      tag: banners[1]?.tag || 'SHARKVIP #PLAYSAFE',
+      imageUrl:
+        banners[1]?.imageUrl || OFFICIAL_POSTER_ASSETS.sexyVipLoungePoster,
+    },
+    {
+      id: 'poster-2',
+      title:
+        banners[2]?.title ||
+        'SHARK EXCHANGE — Ultimate Gaming Destination: PLAY • BET • WIN',
+      tag: banners[2]?.tag || 'PLAY • BET • WIN',
+      imageUrl: banners[2]?.imageUrl || OFFICIAL_POSTER_ASSETS.playBetWinPoster,
+    },
+    {
+      id: 'poster-3',
+      title:
+        banners[3]?.title ||
+        'SHARK EXCHANGE — Game. Win. Repeat. Experience Next-Level Online Gaming',
+      tag: banners[3]?.tag || 'GAME • WIN • REPEAT',
+      imageUrl:
+        banners[3]?.imageUrl || OFFICIAL_POSTER_ASSETS.gameWinRepeatPoster,
+    },
+    {
+      id: 'poster-4',
+      title:
+        banners[4]?.title || 'SHARK EXCHANGE — DIVE INTO REAL GAMING ACTION',
+      tag: banners[4]?.tag || 'REAL GAMING ACTION',
+      imageUrl:
+        banners[4]?.imageUrl || OFFICIAL_POSTER_ASSETS.diveIntoActionPoster,
+    },
+  ];
+
   const [activeSlide, setActiveSlide] = useState(0);
-  const [showcaseTheme, setShowcaseTheme] = useState<'glamour' | 'stars'>('glamour');
 
   useEffect(() => {
-    if (banners.length <= 1) return;
     const timer = setInterval(() => {
-      setActiveSlide((prev) => (prev + 1) % banners.length);
-    }, 5500);
+      setActiveSlide((prev) => (prev + 1) % postLoginPosters.length);
+    }, 4800);
     return () => clearInterval(timer);
-  }, [banners.length]);
+  }, [postLoginPosters.length]);
 
-  const currentBanner = banners[activeSlide] || banners[0];
-  const customAdminHero =
-    currentBanner?.imageUrl &&
-    currentBanner.imageUrl !== CELEBRITY_BANNER_ASSETS.heroSalman
-      ? currentBanner.imageUrl
-      : null;
-
-  const glamourModels = [
-    {
-      src: customAdminHero || CELEBRITY_BANNER_ASSETS.heroinePriyanka,
-      title: 'Royal Glamour Queen',
-      tag: 'VIP Hostess',
-      borderClass: 'border-[#facc15]/80 shadow-[0_0_20px_rgba(250,204,21,0.3)]',
-      badgeClass: 'text-[#facc15] border-[#facc15]/50',
-    },
-    {
-      src: CELEBRITY_BANNER_ASSETS.glamourModel2,
-      title: 'Monte Carlo VIP',
-      tag: '100% Bonus',
-      borderClass: 'border-pink-500/80 shadow-[0_0_20px_rgba(236,72,153,0.3)]',
-      badgeClass: 'text-pink-300 border-pink-400/50',
-    },
-    {
-      src: CELEBRITY_BANNER_ASSETS.glamourModel3,
-      title: 'Golden Casino Diva',
-      tag: 'Instant ID',
-      borderClass: 'border-amber-400/80 shadow-[0_0_20px_rgba(251,191,36,0.3)]',
-      badgeClass: 'text-amber-300 border-amber-400/50',
-    },
-    {
-      src: CELEBRITY_BANNER_ASSETS.heroineSonam,
-      title: 'Empress Club',
-      tag: '24/7 Payout',
-      borderClass: 'border-rose-500/80 shadow-[0_0_20px_rgba(244,63,94,0.3)]',
-      badgeClass: 'text-rose-300 border-rose-400/50',
-    },
-  ];
-
-  const starModels = [
-    {
-      src: currentBanner?.imageUrl || CELEBRITY_BANNER_ASSETS.heroSalman,
-      title: 'Mega Star Club',
-      tag: 'VIP Club',
-      borderClass: 'border-[#facc15]/80 shadow-[0_0_20px_rgba(250,204,21,0.3)]',
-      badgeClass: 'text-[#facc15] border-[#facc15]/50',
-    },
-    {
-      src: currentBanner?.secondaryImageUrl || CELEBRITY_BANNER_ASSETS.heroinePriyanka,
-      title: 'Diva Lounge',
-      tag: '100% Bonus',
-      borderClass: 'border-pink-500/80 shadow-[0_0_20px_rgba(236,72,153,0.3)]',
-      badgeClass: 'text-pink-300 border-pink-400/50',
-    },
-    {
-      src: CELEBRITY_BANNER_ASSETS.heroSrk,
-      title: 'King Exchange',
-      tag: 'Instant ID',
-      borderClass: 'border-sky-400/80 shadow-[0_0_20px_rgba(56,189,248,0.3)]',
-      badgeClass: 'text-sky-300 border-sky-400/50',
-    },
-    {
-      src: CELEBRITY_BANNER_ASSETS.glamourModel1,
-      title: 'Gold Jackpot',
-      tag: '24/7 Payout',
-      borderClass: 'border-amber-400/80 shadow-[0_0_20px_rgba(251,191,36,0.3)]',
-      badgeClass: 'text-amber-300 border-amber-400/50',
-    },
-  ];
-
-  const activePortraitCards = showcaseTheme === 'glamour' ? glamourModels : starModels;
-
-  const mainOfferHeadline =
-    currentBanner?.title ||
-    '🔥 SHARK EXCH MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥';
-  const subOfferHeadline =
-    currentBanner?.subtitle ||
-    'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal';
+  const currentPoster = postLoginPosters[activeSlide] || postLoginPosters[0];
 
   return (
     <div className="space-y-3.5">
-      {/* 1. ULTRA-PREMIUM FRONT PAGE HERO PROMOTIONAL BANNER WITH GLAMOROUS GIRLS & CELEBRITY SHOWCASE */}
+      {/* 1. POST-LOGIN INTERACTIVE AUTO-SLIDING 4-POSTER BANNER CAROUSEL & SHOWCASE */}
       <section
-        aria-label="Promotional Offers"
-        data-testid="front-hero-promo-banner"
-        className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#1d051a] via-[#0b0f1e] to-[#260616] border-2 border-[#facc15]/75 shadow-[0_0_38px_rgba(250,204,21,0.28)]"
+        aria-label="Sexy VIP Live Lounge and SHARK EXCHANGE Promotional Posters"
+        data-testid="postlogin-sexy-vip-banner"
+        className="relative rounded-3xl overflow-hidden border-2 border-[#facc15]/60 bg-[#090d16] shadow-[0_12px_34px_rgba(0,0,0,0.7)] select-none"
       >
-        {/* Ambient Luxury Gold & Rose-Magenta Glow */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_0%,rgba(236,72,153,0.28),transparent_55%),radial-gradient(circle_at_80%_10%,rgba(250,204,21,0.26),transparent_60%)] pointer-events-none" />
+        {/* Main Active Poster Display */}
+        <div className="relative">
+          <img
+            src={currentPoster.imageUrl}
+            alt={currentPoster.title}
+            data-testid={`postlogin-active-poster-${activeSlide + 1}`}
+            referrerPolicy="no-referrer"
+            onClick={onOpenCreateId}
+            className="w-full h-auto object-contain block cursor-pointer"
+          />
 
-        <div className="relative p-3 sm:p-5 flex flex-col gap-3.5">
-          {/* Top Luxury Strip: Brand Tag + Glamorous Girls / Stars Switcher + Static SHARKVIP Badge */}
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/70 border border-[#facc15]/60 shadow">
-              <Crown className="w-3.5 h-3.5 text-[#facc15]" />
-              <span className="font-shark italic font-black text-xs sm:text-sm text-white tracking-wider">
-                SHARK <span className="text-[#facc15]">EXCH</span>
-              </span>
-              <span className="text-[10px] sm:text-xs font-extrabold text-pink-300 uppercase tracking-widest">
-                · {currentBanner?.tag || 'LUXURY VIP CLUB'}
-              </span>
-            </div>
+          {/* Left Carousel Arrow */}
+          <button
+            type="button"
+            onClick={() =>
+              setActiveSlide(
+                (prev) =>
+                  (prev - 1 + postLoginPosters.length) % postLoginPosters.length
+              )
+            }
+            aria-label="Previous Banner Slide"
+            className="absolute left-2.5 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/70 hover:bg-black/90 text-white flex items-center justify-center border border-[#facc15]/50 shadow-lg cursor-pointer transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-[#facc15]" />
+          </button>
 
-            <div className="flex items-center gap-2">
-              {/* Interactive Showcase Style Toggle: Glamorous VIP Girls vs Royal Stars */}
-              <div className="inline-flex items-center p-0.5 rounded-full bg-black/70 border border-white/15">
+          {/* Right Carousel Arrow */}
+          <button
+            type="button"
+            onClick={() =>
+              setActiveSlide((prev) => (prev + 1) % postLoginPosters.length)
+            }
+            aria-label="Next Banner Slide"
+            className="absolute right-2.5 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/70 hover:bg-black/90 text-white flex items-center justify-center border border-[#facc15]/50 shadow-lg cursor-pointer transition-colors"
+          >
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#facc15]" />
+          </button>
+
+          {/* Static SHARKVIP #PLAYSAFE Badge Reference for Tests & Visual Identity */}
+          <div
+            data-testid="sharkvip-static-badge"
+            className="hidden sm:inline-flex items-center gap-1.5 absolute top-3 right-3 border border-white/70 rounded-full px-3 py-1 bg-black/75 shadow select-none cursor-default"
+          >
+            <span className="font-shark font-black text-xs text-white">
+              SHARK<span className="text-[#facc15]">VIP</span>
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-pink-600 to-rose-500 text-white font-extrabold text-[9px] uppercase">
+              {currentPoster.tag}
+            </span>
+          </div>
+        </div>
+
+        {/* Bottom 4-Poster Interactive Thumbnail Showcase & Slide Indicators */}
+        <div className="p-2.5 sm:p-3 bg-gradient-to-r from-[#090d16] via-[#121a2d] to-[#090d16] border-t border-white/10 space-y-2">
+          <div
+            data-testid="postlogin-4-posters-grid"
+            className="grid grid-cols-4 gap-2"
+          >
+            {postLoginPosters.map((poster, idx) => {
+              const isSelected = idx === activeSlide;
+              return (
                 <button
+                  key={poster.id}
                   type="button"
-                  onClick={() => setShowcaseTheme('glamour')}
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-colors cursor-pointer ${
-                    showcaseTheme === 'glamour'
-                      ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow'
-                      : 'text-slate-300 hover:text-white'
+                  data-testid={`postlogin-poster-thumb-${idx + 1}`}
+                  onClick={() => setActiveSlide(idx)}
+                  className={`group relative rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
+                    isSelected
+                      ? 'border-[#facc15] shadow-[0_0_15px_rgba(250,204,21,0.5)] scale-[1.02]'
+                      : 'border-white/15 opacity-75 hover:opacity-100 hover:border-white/40'
                   }`}
                 >
-                  🔥 VIP Girls
+                  <img
+                    src={poster.imageUrl}
+                    alt={poster.title}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-12 sm:h-16 object-cover object-center block"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 bg-black/80 px-1 py-0.5 text-[8px] sm:text-[9px] font-extrabold text-[#facc15] truncate text-center uppercase">
+                    {poster.tag}
+                  </div>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setShowcaseTheme('stars')}
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-colors cursor-pointer ${
-                    showcaseTheme === 'stars'
-                      ? 'bg-[#facc15] text-black shadow'
-                      : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  👑 Stars
-                </button>
-              </div>
-
-              {/* Static Non-Clickable SHARKVIP Visual Badge */}
-              <div
-                data-testid="sharkvip-static-badge"
-                className="inline-flex items-center gap-1.5 border-2 border-white/80 rounded-full px-3 py-0.5 bg-black/70 shadow-[0_0_15px_rgba(236,72,153,0.45)] select-none cursor-default"
-              >
-                <span className="font-shark font-black text-xs sm:text-sm tracking-tight text-white">
-                  SHARK<span className="text-[#facc15]">VIP</span>
-                </span>
-                <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-pink-600 to-rose-500 text-white font-extrabold text-[10px] tracking-wider uppercase">
-                  #PLAYSAFE
-                </span>
-              </div>
-            </div>
+              );
+            })}
           </div>
 
-          {/* Glamorous Uncropped Portrait Grid (Mobile 2x2, Desktop 4 Columns) */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5 items-stretch">
-            {activePortraitCards.map((card, idx) => (
-              <div
-                key={`hero-portrait-${showcaseTheme}-${idx}`}
-                className={`group relative h-48 sm:h-60 rounded-2xl overflow-hidden border-2 ${card.borderClass} bg-[#090d16] select-none transition-transform duration-300 hover:scale-[1.01]`}
-              >
-                <img
-                  src={card.src}
-                  alt={card.title}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
-                />
-                {/* Top Shimmer Tag */}
-                <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-xs border border-white/20 flex items-center gap-1">
-                  <Sparkles className="w-2.5 h-2.5 text-[#facc15]" />
-                  <span className="text-[9px] font-extrabold text-white uppercase tracking-wider">
-                    {card.title}
-                  </span>
-                </div>
-                {/* Bottom Gradient & Luxury Badge */}
-                <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black via-black/75 to-transparent pointer-events-none" />
-                <span
-                  className={`absolute bottom-2 left-2.5 px-2.5 py-0.5 rounded-md bg-black/85 border ${card.badgeClass} text-[10px] font-extrabold uppercase tracking-wider`}
-                >
-                  {card.tag}
-                </span>
-              </div>
+          <div className="flex items-center justify-center gap-2">
+            {postLoginPosters.map((poster, idx) => (
+              <button
+                key={`vip-slider-dot-${poster.id}`}
+                type="button"
+                onClick={() => setActiveSlide(idx)}
+                aria-label={`Banner slide ${idx + 1}`}
+                className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                  activeSlide === idx
+                    ? 'w-8 bg-[#facc15]'
+                    : 'w-4 bg-white/30 hover:bg-white/50'
+                }`}
+              />
             ))}
           </div>
-
-          {/* Glowing Gold & Neon Promotional Headline Overlay Banner */}
-          <div className="relative rounded-2xl bg-gradient-to-r from-black/95 via-[#240724]/95 to-black/95 border-2 border-[#facc15] px-3.5 py-3 sm:px-5 sm:py-3.5 text-center shadow-[0_0_28px_rgba(250,204,21,0.35)] space-y-1">
-            <h2
-              data-testid="hero-mega-offer-headline"
-              className="font-extrabold text-base sm:text-2xl md:text-3xl text-[#facc15] drop-shadow-[0_2px_12px_rgba(250,204,21,0.75)] tracking-tight leading-snug"
-            >
-              {mainOfferHeadline}
-            </h2>
-            <p
-              data-testid="hero-mega-offer-subheadline"
-              className="text-xs sm:text-sm font-bold text-white/95 drop-shadow"
-            >
-              {subOfferHeadline}
-            </p>
-          </div>
-
-          {/* Slide Navigation Arrows & Dots (if multiple banner slides) */}
-          {banners.length > 1 && (
-            <div className="flex items-center justify-between pt-0.5">
-              <button
-                type="button"
-                onClick={() =>
-                  setActiveSlide((prev) => (prev - 1 + banners.length) % banners.length)
-                }
-                aria-label="Previous Slide"
-                className="w-7 h-7 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center border border-white/20 cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-
-              <div className="flex items-center gap-2">
-                {banners.map((b, idx) => (
-                  <button
-                    key={`banner-dot-${b.id || idx}-${idx}`}
-                    type="button"
-                    onClick={() => setActiveSlide(idx)}
-                    aria-label={`Go to slide ${idx + 1}`}
-                    className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                      idx === activeSlide
-                        ? 'w-8 bg-[#facc15]'
-                        : 'w-5 bg-white/30'
-                    }`}
-                  />
-                ))}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setActiveSlide((prev) => (prev + 1) % banners.length)}
-                aria-label="Next Slide"
-                className="w-7 h-7 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center border border-white/20 cursor-pointer"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
         </div>
       </section>
 
-      {/* 2. DYNAMIC ACTION BAR BELOW HERO BANNER:
-          - If Logged In (`currentUser`): Hides Sign Up / Login and displays the Customer's VIP Profile Strip + Create ID + My Profile + Deposit
-          - If Guest (`!currentUser`): Displays Create ID, Sign Up, and Login buttons */}
-      {currentUser ? (
-        <div
-          aria-label="Logged In VIP Member Bar"
-          data-testid="hero-logged-in-profile-bar"
-          className="rounded-2xl bg-gradient-to-r from-[#0e1526] via-[#151e34] to-[#0e1526] border-2 border-[#facc15]/60 p-3 sm:p-4 shadow-[0_0_24px_rgba(250,204,21,0.18)] space-y-3"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {/* Customer Identity & Live Details */}
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#facc15] to-amber-500 text-black font-black text-lg flex items-center justify-center shadow shrink-0">
-                {(currentUser.name || 'V').charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-extrabold text-sm sm:text-base text-white truncate">
-                    {currentUser.name}
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-300 bg-emerald-500/15 border border-emerald-500/40 px-2 py-0.5 rounded-md">
-                    <ShieldCheck className="w-3 h-3" />
-                    VIP Verified
-                  </span>
-                </div>
-                <p className="text-xs text-slate-300 truncate">
-                  {currentUser.email} · <span className="font-mono-tabular text-[#facc15]">{currentUser.phone}</span>
-                </p>
-              </div>
-            </div>
-
-            {/* Quick Stats */}
-            <div className="flex items-center gap-3">
-              <div className="px-3 py-1.5 rounded-xl bg-black/50 border border-white/10 text-right">
-                <span className="block text-[10px] text-slate-400 uppercase font-bold">
-                  Wallet Balance
-                </span>
-                <span className="font-mono-tabular font-black text-sm sm:text-base text-[#facc15]">
-                  ₹{currentUser.walletBalance.toLocaleString('en-IN')}
-                </span>
-              </div>
-              <div className="px-3 py-1.5 rounded-xl bg-black/50 border border-white/10 text-right">
-                <span className="block text-[10px] text-slate-400 uppercase font-bold">
-                  My Exchange IDs
-                </span>
-                <span className="font-mono-tabular font-black text-sm sm:text-base text-emerald-400">
-                  {activeIdCount}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Logged-in Action Buttons (No Sign Up / Login shown!) */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-1">
-            <button
-              type="button"
-              data-testid="hero-cta-create-id"
-              onClick={onOpenCreateId}
-              className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#facc15] via-yellow-300 to-[#eab308] hover:from-yellow-300 hover:to-[#facc15] text-black font-black text-xs sm:text-sm tracking-wide uppercase shadow-lg border border-yellow-200 flex items-center justify-center gap-1.5 cursor-pointer transition-transform active:scale-95"
-            >
-              <KeyRound className="w-4 h-4 stroke-[2.5] shrink-0" />
-              <span>Create ID</span>
-            </button>
-
-            <button
-              type="button"
-              data-testid="hero-cta-my-profile"
-              onClick={onOpenProfile}
-              className="py-2.5 px-3 rounded-xl bg-[#1a253d] hover:bg-[#233252] text-[#facc15] font-extrabold text-xs sm:text-sm tracking-wide uppercase border border-[#facc15]/50 flex items-center justify-center gap-1.5 cursor-pointer transition-transform active:scale-95"
-            >
-              <UserIcon className="w-4 h-4 shrink-0" />
-              <span>My Profile</span>
-            </button>
-
-            <button
-              type="button"
-              data-testid="hero-cta-deposit"
-              onClick={onOpenDeposit}
-              className="py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs sm:text-sm tracking-wide uppercase shadow-lg border border-emerald-300 flex items-center justify-center gap-1.5 cursor-pointer transition-transform active:scale-95"
-            >
-              <ArrowUpCircle className="w-4 h-4 stroke-[2.5] shrink-0" />
-              <span>Deposit</span>
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div
-          aria-label="Primary Hero Actions"
-          data-testid="hero-below-cta-bar"
-          className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3"
-        >
-          <button
-            type="button"
-            data-testid="hero-cta-create-id"
-            onClick={onOpenCreateId}
-            className="col-span-2 sm:col-span-1 py-3 px-4 rounded-2xl bg-gradient-to-r from-[#facc15] via-yellow-300 to-[#eab308] hover:from-yellow-300 hover:to-[#facc15] text-black font-black text-sm sm:text-base tracking-wide uppercase shadow-[0_0_22px_rgba(250,204,21,0.5)] border-2 border-yellow-200 flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95"
-          >
-            <KeyRound className="w-4 h-4 stroke-[2.5]" />
-            <span>Create ID</span>
-          </button>
-
-          <button
-            type="button"
-            data-testid="hero-cta-signup"
-            onClick={onOpenSignUp}
-            className="py-3 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs sm:text-sm tracking-wide uppercase shadow-lg border border-emerald-300 flex items-center justify-center gap-1.5 cursor-pointer transition-transform active:scale-95"
-          >
-            <UserPlus className="w-4 h-4 stroke-[2.5]" />
-            <span>Sign Up</span>
-          </button>
-
-          <button
-            type="button"
-            data-testid="hero-cta-login"
-            onClick={onOpenLogin}
-            className="py-3 px-4 rounded-2xl bg-[#131c2e] hover:bg-[#1b2740] text-[#facc15] font-extrabold text-xs sm:text-sm tracking-wide uppercase shadow-lg border-2 border-[#facc15]/60 flex items-center justify-center gap-1.5 cursor-pointer transition-transform active:scale-95"
-          >
-            <LogIn className="w-4 h-4 stroke-[2.5]" />
-            <span>Login</span>
-          </button>
-        </div>
-      )}
-
-      {/* 3. ACTION & GAME CATEGORY BAR: ONLY "Create IDs" IS CLICKABLE; ALL GAME CARDS ARE NON-CLICKABLE DUMMY IMAGES */}
+      {/* 2. ACTION & GAME CARDS ROW:
+          ONLY "Create IDs" IS CLICKABLE; ALL GAME CARDS ("Aviatrix", "MINES", "Cricket Live", "Color Prediction", "Live Casino") ARE STATIC NON-CLICKABLE DUMMY CARDS */}
       <section aria-label="Create IDs and Featured Games" className="space-y-3">
         <div className="grid grid-cols-3 gap-2.5 sm:gap-4 items-stretch">
           {/* 1. Left Bright Yellow Pill/Card Button: "Create IDs" (ACTIVE & CLICKABLE) */}

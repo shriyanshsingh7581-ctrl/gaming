@@ -53,6 +53,7 @@ import {
   calculateWalletAfterWithdrawalRejection,
   calculateAdminBalanceAdjustment,
   CELEBRITY_BANNER_ASSETS,
+  OFFICIAL_POSTER_ASSETS,
 } from './utils/exchangeLogic';
 
 const STORAGE_CONFIG_KEY = 'shark_exch_firebase_config_v1';
@@ -235,26 +236,51 @@ export interface HybridDatabaseSchema {
 
 export const INITIAL_BANNERS: BannerSlide[] = [
   {
-    id: 'banner-1',
-    tag: 'SHARK EXCH OFFICIAL MEGA OFFER',
-    title: '🔥 SHARK EXCH MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥',
+    id: 'banner-prelogin-mega-offer',
+    tag: 'SHARK EXCHANGE — MEGA OFFER',
+    title: '🔥 SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥',
     subtitle:
       'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal',
-    ctaText: 'Create ID',
+    ctaText: 'Sign Up / Login',
     accentColor: '#facc15',
-    imageUrl: CELEBRITY_BANNER_ASSETS.heroSalman,
-    secondaryImageUrl: CELEBRITY_BANNER_ASSETS.heroinePriyanka,
+    imageUrl: OFFICIAL_POSTER_ASSETS.megaOffer500Poster,
+    secondaryImageUrl: OFFICIAL_POSTER_ASSETS.sexyVipLoungePoster,
   },
   {
-    id: 'banner-2',
-    tag: 'VIP CELEBRITY GAMING EXCHANGE',
-    title: '🔥 SHARK EXCH MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥',
-    subtitle:
-      'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal',
+    id: 'banner-postlogin-1',
+    tag: 'SHARKVIP #PLAYSAFE',
+    title: 'Sexy VIP LIVE LOUNGE — SHARKVIP #PLAYSAFE',
+    subtitle: 'Exclusive VIP Live Lounge · Instant Exchange IDs & 24/7 Direct Withdrawal',
     ctaText: 'Create ID',
     accentColor: '#ec4899',
-    imageUrl: CELEBRITY_BANNER_ASSETS.heroSrk,
-    secondaryImageUrl: CELEBRITY_BANNER_ASSETS.heroineSonam,
+    imageUrl: OFFICIAL_POSTER_ASSETS.sexyVipLoungePoster,
+  },
+  {
+    id: 'banner-postlogin-2',
+    tag: 'PLAY • BET • WIN',
+    title: 'SHARK EXCHANGE — Ultimate Gaming Destination: PLAY • BET • WIN',
+    subtitle: 'Sports Betting · Live Casino · Casino Games · Virtual Games',
+    ctaText: 'Play Now',
+    accentColor: '#facc15',
+    imageUrl: OFFICIAL_POSTER_ASSETS.playBetWinPoster,
+  },
+  {
+    id: 'banner-postlogin-3',
+    tag: 'NEXT-LEVEL GAMING',
+    title: 'SHARK EXCHANGE — Game. Win. Repeat. Experience Next-Level Online Gaming',
+    subtitle: 'Fast Play · Safe & Secure · 24/7 Support',
+    ctaText: 'Start Playing Now',
+    accentColor: '#f43f5e',
+    imageUrl: OFFICIAL_POSTER_ASSETS.gameWinRepeatPoster,
+  },
+  {
+    id: 'banner-postlogin-4',
+    tag: 'PREMIUM GAMING PLATFORM',
+    title: 'SHARK EXCHANGE — DIVE INTO REAL GAMING ACTION',
+    subtitle: 'Casino Games · Live Casino · Sports Betting · Virtual Games',
+    ctaText: 'Play Now',
+    accentColor: '#38bdf8',
+    imageUrl: OFFICIAL_POSTER_ASSETS.diveIntoActionPoster,
   },
 ];
 
@@ -402,16 +428,16 @@ function normalizeStaffStore(rawStaff?: Record<string, StaffMember>): Record<str
 }
 
 function normalizeBannersStore(rawBanners?: BannerSlide[]): BannerSlide[] {
-  if (!Array.isArray(rawBanners) || rawBanners.length === 0) {
+  if (!Array.isArray(rawBanners) || rawBanners.length < 5) {
     return INITIAL_BANNERS;
   }
-  // Upgrade old legacy default banners if they still have the old #PLAYSAFE default title
   const first = rawBanners[0];
   if (
     first &&
     (first.tag === '#PLAYSAFE' ||
       first.title === 'SEXY LIVE CASINO & VIP TABLES' ||
-      first.imageUrl === '/assets/aistudio/IMG-20261103-WA0184_268471ee.jpg')
+      first.imageUrl === '/assets/aistudio/IMG-20261103-WA0184_268471ee.jpg' ||
+      first.imageUrl === '/assets/aistudio/images__3__432421dc.jpeg')
   ) {
     return INITIAL_BANNERS;
   }

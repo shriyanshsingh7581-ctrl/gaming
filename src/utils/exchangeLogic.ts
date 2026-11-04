@@ -104,15 +104,33 @@ export interface BannerSlide {
   secondaryImageUrl?: string;
 }
 
+export const OFFICIAL_POSTER_ASSETS = {
+  /** Pre-Login Front Page Poster: "SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE!" */
+  megaOffer500Poster:
+    '/assets/aistudio/file_00000000032c821198d87fd2de4ca7de_303c7645.png',
+  /** Post-Login Poster 1: "Sexy VIP LIVE LOUNGE — SHARKVIP #PLAYSAFE" */
+  sexyVipLoungePoster:
+    '/assets/aistudio/file_00000000adf0821190c8b112caeef003_9e263999.png',
+  /** Post-Login Poster 2: "SHARK EXCHANGE — Ultimate Gaming Destination: PLAY • BET • WIN" */
+  playBetWinPoster:
+    '/assets/aistudio/file_00000000c7fc8211822ea0f4978f40de_8e80d27b.png',
+  /** Post-Login Poster 3: "SHARK EXCHANGE — Game. Win. Repeat. Experience Next-Level Online Gaming" */
+  gameWinRepeatPoster:
+    '/assets/aistudio/file_00000000bb848211b28da570b7cdeaa6_ad9b8667.png',
+  /** Post-Login Poster 4: "SHARK EXCHANGE — DIVE INTO REAL GAMING ACTION" */
+  diveIntoActionPoster:
+    '/assets/aistudio/file_00000000ab348211b4927714b776e20e_d079797d.png',
+} as const;
+
 export const CELEBRITY_BANNER_ASSETS = {
-  heroSalman: '/assets/aistudio/images__3__432421dc.jpeg',
-  heroinePriyanka: '/assets/aistudio/images__5__3b40ba5b.jpeg',
-  heroSrk: '/assets/aistudio/Shah_Rukh_Khan_graces_the_launch_of_the_new_Santro_db1554ea.jpg',
-  heroineSonam: '/assets/aistudio/images__4__830ffbdc.jpeg',
-  glamourModel1: '/assets/aistudio/vip_glamour_model_1.jpg',
-  glamourModel2: '/assets/aistudio/vip_glamour_model_2.jpg',
-  glamourModel3: '/assets/aistudio/vip_glamour_model_3.jpg',
-  glamourModel4: '/assets/aistudio/vip_glamour_model_4.jpg',
+  heroSalman: OFFICIAL_POSTER_ASSETS.megaOffer500Poster,
+  heroinePriyanka: OFFICIAL_POSTER_ASSETS.sexyVipLoungePoster,
+  heroSrk: OFFICIAL_POSTER_ASSETS.playBetWinPoster,
+  heroineSonam: OFFICIAL_POSTER_ASSETS.gameWinRepeatPoster,
+  glamourModel1: OFFICIAL_POSTER_ASSETS.diveIntoActionPoster,
+  glamourModel2: OFFICIAL_POSTER_ASSETS.sexyVipLoungePoster,
+  glamourModel3: OFFICIAL_POSTER_ASSETS.playBetWinPoster,
+  glamourModel4: OFFICIAL_POSTER_ASSETS.gameWinRepeatPoster,
 } as const;
 
 export interface FirebaseConfigInput {

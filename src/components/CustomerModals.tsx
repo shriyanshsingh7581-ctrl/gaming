@@ -6,6 +6,7 @@ import {
   IdRequestRecord,
   PaymentSettings,
   OFFICIAL_EXCHANGE_PLATFORMS,
+  OFFICIAL_POSTER_ASSETS,
   validateDepositInput,
   validateWithdrawalInput,
 } from '../utils/exchangeLogic';
@@ -515,6 +516,27 @@ export const DepositModal: React.FC<DepositModalProps> = ({
 
         {/* Scrollable Body */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-5">
+          {/* Highlighted "₹500 की ID पर ₹500 FREE!" Offer Banner at top of Deposit Modal */}
+          <div
+            data-testid="deposit-modal-mega-offer-banner"
+            className="rounded-2xl overflow-hidden border-2 border-[#facc15] bg-gradient-to-r from-[#20031e] via-[#2b0822] to-[#1c0414] shadow-[0_0_25px_rgba(250,204,21,0.35)] p-2.5 space-y-2"
+          >
+            <img
+              src={OFFICIAL_POSTER_ASSETS.megaOffer500Poster}
+              alt="SHARK EXCHANGE MEGA OFFER: ₹500 की ID पर ₹500 FREE!"
+              referrerPolicy="no-referrer"
+              className="w-full h-auto max-h-44 object-contain rounded-xl mx-auto block"
+            />
+            <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-1 rounded-xl bg-black/75 border border-[#facc15]/50">
+              <span className="font-extrabold text-xs sm:text-sm text-[#facc15]">
+                🔥 MEGA OFFER: ₹500 की ID पर ₹500 FREE!
+              </span>
+              <span className="px-2.5 py-0.5 rounded-lg bg-emerald-500 text-black font-black text-[11px] uppercase">
+                100% Instant Bonus
+              </span>
+            </div>
+          </div>
+
           {/* Live Firebase Payment Settings: QR Code + UPI ID + Bank Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Left: Live UPI QR Code & UPI ID */}
@@ -1157,6 +1179,27 @@ export const CreateIdModal: React.FC<CreateIdModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 sm:p-6 overflow-y-auto space-y-4">
+          {/* Highlighted "₹500 की ID पर ₹500 FREE!" Offer Banner at top of Create ID Modal */}
+          <div
+            data-testid="create-id-modal-mega-offer-banner"
+            className="rounded-2xl overflow-hidden border-2 border-[#facc15] bg-gradient-to-r from-[#20031e] via-[#2b0822] to-[#1c0414] shadow-[0_0_25px_rgba(250,204,21,0.35)] p-2 space-y-1.5"
+          >
+            <img
+              src={OFFICIAL_POSTER_ASSETS.megaOffer500Poster}
+              alt="SHARK EXCHANGE MEGA OFFER: ₹500 की ID पर ₹500 FREE!"
+              referrerPolicy="no-referrer"
+              className="w-full h-auto max-h-36 object-contain rounded-xl mx-auto block"
+            />
+            <div className="flex flex-wrap items-center justify-between gap-2 px-2.5 py-1 rounded-xl bg-black/75 border border-[#facc15]/50">
+              <span className="font-extrabold text-xs text-[#facc15]">
+                🔥 ₹500 की ID पर ₹500 FREE! (Pay ₹500 ➔ Get ₹1,000 ID)
+              </span>
+              <span className="px-2 py-0.5 rounded bg-emerald-500 text-black font-black text-[10px] uppercase">
+                100% Bonus
+              </span>
+            </div>
+          </div>
+
           {error && (
             <div
               role="alert"
