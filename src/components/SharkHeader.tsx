@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserProfile } from '../utils/exchangeLogic';
-import { ShieldCheck, LogOut, User as UserIcon, PlusCircle } from 'lucide-react';
+import { LogOut, User as UserIcon, PlusCircle } from 'lucide-react';
 
 interface SharkHeaderProps {
   currentUser: UserProfile | null;
@@ -8,12 +8,11 @@ interface SharkHeaderProps {
   onLogout: () => void;
   onOpenDeposit: () => void;
   onOpenWithdraw: () => void;
-  onSwitchToAdmin: () => void;
 }
 
 /**
  * Exact replication of the "SHARK EXCH" Top Header Section:
- * - Top Auth Bar: Logged-in user's Email/Name, Login/Sign Up button, EN badge, and Admin Panel switcher.
+ * - Top Auth Bar: Logged-in user's Email/Name, Login/Sign Up button, and EN badge (No Admin button on customer website).
  * - Golden-Yellow (#facc15) Header Banner with 3 signature rounded Black (#090d16) cards:
  *   1. Left Vertical Black Card: "Deposit" + bold double upward white chevrons (⏫)
  *   2. Center Large Black Card: Bold italic "SHARK" (white) + "EXCH" (yellow), "WALLET BALANCE" + stacked coins + live balance
@@ -25,7 +24,6 @@ export const SharkHeader: React.FC<SharkHeaderProps> = ({
   onLogout,
   onOpenDeposit,
   onOpenWithdraw,
-  onSwitchToAdmin,
 }) => {
   return (
     <div className="w-full select-none">
@@ -48,12 +46,12 @@ export const SharkHeader: React.FC<SharkHeaderProps> = ({
           </span>
         </div>
 
-        {/* Zone 2: User Auth Status & Admin Switcher */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+        {/* Zone 2: Customer Auth Status & Language Badge */}
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           {currentUser ? (
-            <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-lg px-2 py-1">
+            <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1">
               <UserIcon className="w-3.5 h-3.5 text-[#facc15] shrink-0" />
-              <div className="text-left max-w-[95px] sm:max-w-[200px]">
+              <div className="text-left max-w-[130px] sm:max-w-[220px]">
                 <p className="text-[11px] sm:text-xs font-semibold text-white truncate leading-tight">
                   {currentUser.name}
                 </p>
@@ -75,26 +73,16 @@ export const SharkHeader: React.FC<SharkHeaderProps> = ({
             <button
               type="button"
               onClick={() => onOpenAuth('login')}
-              className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#facc15] hover:bg-[#eab308] text-black font-bold text-[11px] sm:text-xs tracking-wide transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
+              className="px-3 sm:px-4 py-1.5 rounded-lg bg-[#facc15] hover:bg-[#eab308] text-black font-bold text-xs tracking-wide transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
             >
               Login / Sign Up
             </button>
           )}
 
           {/* Language Badge (EN) matching reference top-right */}
-          <span className="px-1.5 sm:px-2 py-1 rounded border border-white/20 text-[10px] sm:text-[11px] font-bold text-white/90 tracking-wider uppercase whitespace-nowrap">
+          <span className="px-2 py-1 rounded border border-white/20 text-[11px] font-bold text-white/90 tracking-wider uppercase whitespace-nowrap">
             EN
           </span>
-
-          {/* Admin Panel Switcher */}
-          <button
-            type="button"
-            onClick={onSwitchToAdmin}
-            className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-[#facc15]/40 text-[#facc15] text-[11px] sm:text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-            <span>Admin Panel</span>
-          </button>
         </div>
       </header>
 

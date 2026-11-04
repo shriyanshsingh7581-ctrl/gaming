@@ -11,6 +11,7 @@ import {
   IdRequestRecord,
   PaymentSettings,
   BannerSlide,
+  isStandaloneAdminUrl,
 } from './utils/exchangeLogic';
 import {
   subscribeToRealtimeData,
@@ -40,22 +41,39 @@ import {
   Trophy,
   Zap,
   Flame,
-  ShieldCheck,
-  Clock,
-  CheckCircle2,
-  XCircle,
   Wallet,
 } from 'lucide-react';
 
 export default function App() {
-  // Check URL query parameter `?admin=true`
-  const [isAdminView, setIsAdminView] = useState<boolean>(() => {
+  // Standalone Admin Route Detection (`/admin`, `/?admin=true`, or `/#admin`)
+  const [isAdminRoute, setIsAdminRoute] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('admin') === 'true';
+      return isStandaloneAdminUrl(
+        window.location.pathname,
+        window.location.search,
+        window.location.hash
+      );
     }
     return false;
   });
+
+  useEffect(() => {
+    const syncRoute = () => {
+      setIsAdminRoute(
+        isStandaloneAdminUrl(
+          window.location.pathname,
+          window.location.search,
+          window.location.hash
+        )
+      );
+    };
+    window.addEventListener('popstate', syncRoute);
+    window.addEventListener('hashchange', syncRoute);
+    return () => {
+      window.removeEventListener('popstate', syncRoute);
+      window.removeEventListener('hashchange', syncRoute);
+    };
+  }, []);
 
   // Real-time Firebase state
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -123,21 +141,10 @@ export default function App() {
     setAuthModalOpen(true);
   };
 
-  const handleSwitchToAdmin = () => {
-    setIsAdminView(true);
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href);
-      url.searchParams.set('admin', 'true');
-      window.history.pushState({}, '', url.toString());
-    }
-  };
-
   const handleBackToLobby = () => {
-    setIsAdminView(false);
+    setIsAdminRoute(false);
     if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href);
-      url.searchParams.delete('admin');
-      window.history.pushState({}, '', url.toString());
+      window.history.pushState({}, '', '/');
     }
   };
 
@@ -152,8 +159,8 @@ export default function App() {
     ? idRequests.filter((r) => r.uid === currentUser.uid)
     : [];
 
-  /* ---------------- RENDER MASTER OWNER ADMIN PANEL ---------------- */
-  if (isAdminView) {
+  /* ---------------- RENDER STANDALONE MASTER OWNER ADMIN PANEL (`/admin`) ---------------- */
+  if (isAdminRoute) {
     return (
       <>
         {toastMessage && (
@@ -178,7 +185,7 @@ export default function App() {
     );
   }
 
-  /* ---------------- RENDER SHARK EXCH CUSTOMER APPLICATION ---------------- */
+  /* ---------------- RENDER SHARK EXCH CUSTOMER WEBSITE (`/`) ---------------- */
   return (
     <div id="top" className="min-h-screen bg-[#070a10] text-white flex flex-col pb-20 md:pb-8">
       {/* Toast Notification Banner */}
@@ -191,7 +198,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 1. EXACT "SHARK EXCH" TOP AUTH BAR & GOLDEN-YELLOW WALLET HEADER */}
+      {/* 1. EXACT "SHARK EXCH" TOP AUTH BAR & GOLDEN-YELLOW WALLET HEADER (No Admin Links) */}
       <SharkHeader
         currentUser={currentUser}
         onOpenAuth={handleOpenAuth}
@@ -201,7 +208,6 @@ export default function App() {
         }}
         onOpenDeposit={() => setDepositModalOpen(true)}
         onOpenWithdraw={() => setWithdrawModalOpen(true)}
-        onSwitchToAdmin={handleSwitchToAdmin}
       />
 
       {/* 2. ADAPTIVE DESKTOP 3-COLUMN / MOBILE FULL-WIDTH EXCHANGE LOBBY */}
@@ -309,17 +315,6 @@ export default function App() {
               </button>
             </div>
           </div>
-
-          <div className="border-t border-white/10 pt-3">
-            <button
-              type="button"
-              onClick={handleSwitchToAdmin}
-              className="w-full py-2.5 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-[#facc15]/30 text-[#facc15] font-bold text-xs flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              <span>Owner Admin (PIN: 7777)</span>
-            </button>
-          </div>
         </aside>
 
         {/* CENTER COLUMN: PROMOTIONAL BANNER CAROUSEL, CREATE IDs, GAME CARDS & IN-PLAY EXCHANGE */}
@@ -408,6 +403,7 @@ export default function App() {
 
         {/* RIGHT PANEL: USER WALLET HISTORY & LIVE TRANSACTIONS */}
         <aside
+          id="wallet-history-section"
           aria-label="Wallet Activity and Live Transactions"
           className="rounded-2xl bg-[#090d16] border border-white/10 p-4 space-y-4 sticky top-4"
         >
@@ -585,7 +581,7 @@ export default function App() {
         </aside>
       </main>
 
-      {/* 3. MOBILE STICKY BOTTOM NAVIGATION BAR (`< 768px`) */}
+      {/* 3. MOBILE STICKY BOTTOM NAVIGATION BAR (`< 768px`) — Customer-Only */}
       <nav
         aria-label="Mobile Bottom Navigation"
         className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-14 bg-[#090d16]/95 border-t border-white/15 grid grid-cols-5 items-center px-1"
@@ -628,14 +624,21 @@ export default function App() {
 
         <button
           type="button"
-          onClick={() =>
-            currentUser ? handleSwitchToAdmin() : handleOpenAuth('login')
-          }
+          onClick={() => {
+            if (currentUser) {
+              setRightPanelTab('my-wallet');
+              document
+                .getElementById('wallet-history-section')
+                ?.scrollIntoView({ behavior: 'smooth' });
+            } else {
+              handleOpenAuth('login');
+            }
+          }}
           className="flex flex-col items-center justify-center py-1 text-slate-300 hover:text-[#facc15] cursor-pointer"
         >
           <UserIcon className="w-4 h-4" />
           <span className="text-[10px] font-medium mt-0.5">
-            {currentUser ? 'Profile' : 'Login'}
+            {currentUser ? 'My Wallet' : 'Login'}
           </span>
         </button>
       </nav>

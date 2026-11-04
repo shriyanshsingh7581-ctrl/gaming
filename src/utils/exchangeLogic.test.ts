@@ -11,6 +11,7 @@ import {
   computeAdminSummaryStats,
   parseFirebaseConfigSnippet,
   calculateMinesMultiplier,
+  isStandaloneAdminUrl,
 } from './exchangeLogic';
 
 test('validateUtr accepts exact 12-digit numeric strings and rejects invalid ones', () => {
@@ -174,3 +175,13 @@ test('calculateMinesMultiplier increases with safe picks and more bombs', () => 
   assert.equal(m2 > m1, true);
   assert.equal(mHighBomb > m2, true);
 });
+
+test('isStandaloneAdminUrl detects dedicated admin links (/admin, ?admin=true, #admin) and keeps / for customers', () => {
+  assert.equal(isStandaloneAdminUrl('/', '', ''), false);
+  assert.equal(isStandaloneAdminUrl('/index.html', '', '#top'), false);
+  assert.equal(isStandaloneAdminUrl('/admin', '', ''), true);
+  assert.equal(isStandaloneAdminUrl('/admin/', '', ''), true);
+  assert.equal(isStandaloneAdminUrl('/', '?admin=true', ''), true);
+  assert.equal(isStandaloneAdminUrl('/', '', '#admin'), true);
+});
+

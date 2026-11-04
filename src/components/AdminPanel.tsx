@@ -250,15 +250,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
           <div>
             <h1 className="font-shark italic font-black text-xl sm:text-2xl tracking-wide text-white">
-              SHARK <span className="text-[#facc15]">EXCH</span> · MASTER ADMIN PANEL
+              SHARK <span className="text-[#facc15]">EXCH</span> · STANDALONE MASTER ADMIN
             </h1>
             <p className="text-xs text-slate-400">
-              🟢 Connected to Firebase Realtime DB ({fbStatus.projectId}) · Demo Admin PIN: 7777
+              🟢 Connected to Firebase Realtime DB ({fbStatus.projectId}) · Separate Admin Link: <span className="font-mono-tabular text-[#facc15]">/admin</span>
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => {
+              const adminUrl = `${window.location.origin}/admin`;
+              navigator.clipboard?.writeText(adminUrl).catch(() => {});
+              onNotify(`Copied Separate Admin Link: ${adminUrl}`);
+            }}
+            className="px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/40 text-xs font-bold text-emerald-300 cursor-pointer"
+          >
+            🔗 Copy Admin Link (/admin)
+          </button>
+
           <button
             type="button"
             onClick={() => setIsFirebaseModalOpen(true)}
@@ -274,7 +286,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             className="px-4 py-2 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-xs flex items-center gap-1.5 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Customer Lobby</span>
+            <span>Open Customer Website</span>
           </button>
         </div>
       </header>

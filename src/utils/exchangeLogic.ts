@@ -322,3 +322,33 @@ export function calculateMinesMultiplier(bombs: number, safePicks: number): numb
   const rawMultiplier = houseEdge / probability;
   return Math.max(1.01, Number(rawMultiplier.toFixed(2)));
 }
+
+/**
+ * Determines whether the current URL is the standalone Master Admin Panel link
+ * (`/admin`, `/master-admin`, `/?admin=true`, or `/#admin`).
+ */
+export function isStandaloneAdminUrl(
+  pathname: string,
+  search: string,
+  hash = ''
+): boolean {
+  const cleanPath = (pathname || '').toLowerCase().replace(/\/+$/, '');
+  if (
+    cleanPath === '/admin' ||
+    cleanPath.endsWith('/admin') ||
+    cleanPath === '/master-admin' ||
+    cleanPath === '/owner'
+  ) {
+    return true;
+  }
+  const params = new URLSearchParams(search || '');
+  if (params.get('admin') === 'true' || params.get('panel') === 'admin') {
+    return true;
+  }
+  const cleanHash = (hash || '').toLowerCase();
+  if (cleanHash === '#admin' || cleanHash === '#/admin') {
+    return true;
+  }
+  return false;
+}
+
