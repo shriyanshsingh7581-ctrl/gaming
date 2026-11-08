@@ -546,6 +546,7 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
   banners,
   onOpenCreateId,
   onOpenSpinWheel,
+  onSelectGame,
 }) => {
   const postLoginPosters = [
     {
@@ -705,8 +706,7 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
         </div>
       </section>
 
-      {/* 2. ACTION & GAME CARDS ROW:
-          ONLY "Create IDs" (and logged-in "Spin & Win") ARE CLICKABLE; ALL GAME CARDS ("Aviatrix", "MINES", "Cricket Live", "Color Prediction", "Live Casino") ARE STATIC NON-CLICKABLE DUMMY CARDS */}
+      {/* 2. ACTION & FEATURED LIVE GAMES ROW */}
       <section aria-label="Create IDs and Featured Games" className="space-y-3">
         {onOpenSpinWheel && (
           <div className="rounded-2xl bg-gradient-to-r from-[#2c0743] via-[#170526] to-[#2c0743] border-2 border-[#facc15] p-3 sm:px-4 sm:py-3 flex items-center justify-between gap-3 shadow-[0_0_24px_rgba(250,204,21,0.3)]">
@@ -724,7 +724,7 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
                   </span>
                 </div>
                 <p className="text-[10px] sm:text-xs text-purple-200 truncate">
-                  Win iPhone, Laptop, Smart TV, ₹500 Cash Reward &amp; Up to 20% Bonus (1 Spin/Day · Resets 12:00 AM IST)
+                  Win 5%, 10%, 20% &amp; 25% Instant Bonus Rewards (1 Spin/Day · Resets 12:00 AM IST)
                 </p>
               </div>
             </div>
@@ -751,11 +751,16 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
             Create IDs
           </button>
 
-          {/* 2. Middle Feature Game Card: "Aviatrix" (STATIC NON-CLICKABLE DUMMY IMAGE) */}
+          {/* 2. Middle Feature Game Card: "Aviatrix" (PLAYABLE REAL-TIME CRASH GAME) */}
           <div
             data-testid="dummy-card-aviatrix"
-            aria-disabled="true"
-            className="relative h-[74px] sm:h-[96px] rounded-2xl overflow-hidden border-2 border-indigo-500/40 shadow-lg bg-gradient-to-r from-[#12073b] via-[#1d1160] to-[#0a2463] flex items-center justify-between px-3 sm:px-5 select-none cursor-default"
+            role="button"
+            tabIndex={0}
+            onClick={() => onSelectGame?.('aviatrix')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') onSelectGame?.('aviatrix');
+            }}
+            className="relative h-[74px] sm:h-[96px] rounded-2xl overflow-hidden border-2 border-indigo-500/40 hover:border-[#facc15] shadow-lg bg-gradient-to-r from-[#12073b] via-[#1d1160] to-[#0a2463] flex items-center justify-between px-3 sm:px-5 select-none cursor-pointer transition-transform active:scale-98"
           >
             <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_80%_30%,#38bdf8_0%,transparent_55%)] pointer-events-none" />
             <span className="relative z-10 font-shark italic font-black text-base sm:text-2xl md:text-3xl text-white tracking-wide drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
@@ -779,11 +784,16 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
             </svg>
           </div>
 
-          {/* 3. Right Feature Game Card: "MINES" (STATIC NON-CLICKABLE DUMMY IMAGE) */}
+          {/* 3. Right Feature Game Card: "MINES" (PLAYABLE REAL-TIME 5x5 MINES GAME) */}
           <div
             data-testid="dummy-card-mines"
-            aria-disabled="true"
-            className="relative h-[74px] sm:h-[96px] rounded-2xl overflow-hidden border-2 border-red-500/40 shadow-lg bg-gradient-to-r from-[#7f1d1d] via-[#dc2626] to-[#991b1b] flex items-center justify-between px-3 sm:px-5 select-none cursor-default"
+            role="button"
+            tabIndex={0}
+            onClick={() => onSelectGame?.('mines')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') onSelectGame?.('mines');
+            }}
+            className="relative h-[74px] sm:h-[96px] rounded-2xl overflow-hidden border-2 border-red-500/40 hover:border-[#facc15] shadow-lg bg-gradient-to-r from-[#7f1d1d] via-[#dc2626] to-[#991b1b] flex items-center justify-between px-3 sm:px-5 select-none cursor-pointer transition-transform active:scale-98"
           >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,#facc15_0%,transparent_60%)] opacity-35 pointer-events-none" />
             <span className="relative z-10 font-shark font-black text-base sm:text-2xl md:text-3xl text-[#111827] bg-gradient-to-b from-yellow-200 to-amber-400 bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-wider">
@@ -811,13 +821,18 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
           </div>
         </div>
 
-        {/* Secondary Game Category Row: Cricket Live, Color Prediction, Live Casino (ALL STATIC NON-CLICKABLE DUMMY CARDS) */}
+        {/* Secondary Game Category Row: Cricket Live, Color Prediction, Live Casino (PLAYABLE REAL-TIME GAMES) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4">
-          {/* Cricket Live Static Dummy Card */}
+          {/* Cricket Live Card */}
           <div
             data-testid="dummy-card-cricket"
-            aria-disabled="true"
-            className="relative h-[76px] sm:h-[88px] rounded-2xl overflow-hidden border border-emerald-500/30 bg-gradient-to-r from-[#062e22] via-[#064e3b] to-[#090d16] p-3.5 sm:p-4 flex items-center justify-between text-left select-none cursor-default"
+            role="button"
+            tabIndex={0}
+            onClick={() => onSelectGame?.('cricket')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') onSelectGame?.('cricket');
+            }}
+            className="relative h-[76px] sm:h-[88px] rounded-2xl overflow-hidden border border-emerald-500/30 hover:border-[#facc15] bg-gradient-to-r from-[#062e22] via-[#064e3b] to-[#090d16] p-3.5 sm:p-4 flex items-center justify-between text-left select-none cursor-pointer transition-transform active:scale-98"
           >
             <div>
               <div className="flex items-center gap-1.5">
@@ -835,11 +850,16 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
             </span>
           </div>
 
-          {/* Color Prediction Static Dummy Card */}
+          {/* Color Prediction Card */}
           <div
             data-testid="dummy-card-color"
-            aria-disabled="true"
-            className="relative h-[76px] sm:h-[88px] rounded-2xl overflow-hidden border border-purple-500/30 bg-gradient-to-r from-[#2e1065] via-[#4c1d95] to-[#090d16] p-3.5 sm:p-4 flex items-center justify-between text-left select-none cursor-default"
+            role="button"
+            tabIndex={0}
+            onClick={() => onSelectGame?.('color')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') onSelectGame?.('color');
+            }}
+            className="relative h-[76px] sm:h-[88px] rounded-2xl overflow-hidden border border-purple-500/30 hover:border-[#facc15] bg-gradient-to-r from-[#2e1065] via-[#4c1d95] to-[#090d16] p-3.5 sm:p-4 flex items-center justify-between text-left select-none cursor-pointer transition-transform active:scale-98"
           >
             <div>
               <div className="flex items-center gap-1.5">
@@ -859,11 +879,16 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
             </div>
           </div>
 
-          {/* Live Casino Static Dummy Card */}
+          {/* Live Casino Card */}
           <div
             data-testid="dummy-card-casino"
-            aria-disabled="true"
-            className="relative h-[76px] sm:h-[88px] rounded-2xl overflow-hidden border border-pink-500/30 bg-gradient-to-r from-[#3b0724] via-[#701a46] to-[#090d16] p-3.5 sm:p-4 flex items-center justify-between text-left select-none cursor-default"
+            role="button"
+            tabIndex={0}
+            onClick={() => onSelectGame?.('casino')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') onSelectGame?.('casino');
+            }}
+            className="relative h-[76px] sm:h-[88px] rounded-2xl overflow-hidden border border-pink-500/30 hover:border-[#facc15] bg-gradient-to-r from-[#3b0724] via-[#701a46] to-[#090d16] p-3.5 sm:p-4 flex items-center justify-between text-left select-none cursor-pointer transition-transform active:scale-98"
           >
             <div>
               <div className="flex items-center gap-1.5">

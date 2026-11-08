@@ -31,6 +31,13 @@ import {
   getWheelLandingAngleForSegment,
   sanitizeSpinRecordToEligibleBonus,
 } from './exchangeLogic';
+import {
+  ALL_200_EXCHANGE_GAMES,
+  INITIAL_LIVE_SPORTS_MATCHES,
+  INITIAL_RECENT_BIG_WINS,
+  calculateExchangeBetMath,
+  tickLiveSportsMatches,
+} from './teaExchCatalog';
 
 test('OFFICIAL_EXCHANGE_PLATFORMS lists the 6 official exchange platforms in order', () => {
   assert.equal(OFFICIAL_EXCHANGE_PLATFORMS.length, 6);
@@ -390,4 +397,54 @@ test('Spin the Wheel 10 segments, 10s public slider interval, and IST midnight r
     ['5% Bonus', '10% Bonus', '20% Bonus', '25% Bonus'].includes(sanitized.prizeLabel)
   );
 });
+
+test('ALL_200_EXCHANGE_GAMES contains exactly 200 playable games with valid engines and categories', () => {
+  assert.equal(ALL_200_EXCHANGE_GAMES.length, 200);
+  const uniqueIds = new Set(ALL_200_EXCHANGE_GAMES.map((g) => g.id));
+  assert.equal(uniqueIds.size, 200);
+
+  for (const game of ALL_200_EXCHANGE_GAMES) {
+    assert.ok(game.name.length > 0);
+    assert.ok(
+      ['crash', 'mines', 'cards', 'roulette_wheel', 'slots', 'color_plinko_dice'].includes(
+        game.engine
+      )
+    );
+    assert.ok(game.minBet >= 10);
+    assert.ok(game.maxBet > game.minBet);
+  }
+});
+
+test('calculateExchangeBetMath computes accurate BACK, LAY, YES, and NO exchange liability and returns', () => {
+  // BACK bet at 1.90 odds with ₹1000 stake -> ₹1900 return, ₹900 profit, ₹1000 liability
+  const backMath = calculateExchangeBetMath({ betType: 'BACK', stake: 1000, odds: 1.9 });
+  assert.equal(backMath.liability, 1000);
+  assert.equal(backMath.potentialProfit, 900);
+  assert.equal(backMath.totalReturn, 1900);
+
+  // LAY bet at 1.92 odds with ₹1000 backer stake -> ₹920 liability, ₹1000 profit
+  const layMath = calculateExchangeBetMath({ betType: 'LAY', stake: 1000, odds: 1.92 });
+  assert.equal(layMath.liability, 920);
+  assert.equal(layMath.potentialProfit, 1000);
+  assert.equal(layMath.totalReturn, 1920);
+
+  // Fancy YES/NO at 100 rate with ₹500 stake -> ₹500 profit, ₹1000 return
+  const yesMath = calculateExchangeBetMath({ betType: 'YES', stake: 500, odds: 100 });
+  assert.equal(yesMath.liability, 500);
+  assert.equal(yesMath.potentialProfit, 500);
+  assert.equal(yesMath.totalReturn, 1000);
+});
+
+test('tickLiveSportsMatches updates live sports odds while keeping Lay > Back', () => {
+  assert.ok(INITIAL_LIVE_SPORTS_MATCHES.length >= 10);
+  assert.ok(INITIAL_RECENT_BIG_WINS.length >= 10);
+
+  const ticked = tickLiveSportsMatches(INITIAL_LIVE_SPORTS_MATCHES);
+  assert.equal(ticked.length, INITIAL_LIVE_SPORTS_MATCHES.length);
+  for (const m of ticked) {
+    assert.ok(m.runners.home.lay > m.runners.home.back);
+    assert.ok(m.runners.away.lay > m.runners.away.back);
+  }
+});
+
 

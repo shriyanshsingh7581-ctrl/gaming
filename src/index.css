@@ -6,11 +6,17 @@
     --font-display: 'Kanit', sans-serif;
     --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
+    --ion-color-primary: #ffd739;
+    --ion-background: #241e06;
+    --ion-background-secondary: #42370b;
+    --table-bg: #42370b;
+    --team-info-background: #846f1e;
+    --account-details-card-bg: #5a4a12;
   }
 
   body {
     font-family: var(--font-sans);
-    background-color: #070a10;
+    background-color: #241e06;
     color: #ffffff;
     overflow-x: hidden;
   }
@@ -31,7 +37,7 @@
 
 /* Subtle geometric background pattern for the Golden Yellow Shark Exch Header */
 .shark-gold-header {
-  background-color: #facc15;
+  background-color: #ffd739;
   background-image: 
     radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.28) 0%, transparent 26%),
     radial-gradient(circle at 88% 82%, rgba(234, 179, 8, 0.45) 0%, transparent 32%),
@@ -39,19 +45,20 @@
   background-size: 100% 100%, 100% 100%, 64px 64px;
 }
 
-/* Custom sleek dark scrollbar */
+/* Custom sleek golden-sunbet scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #090d16;
+  background: #241e06;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #5a4a12;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #facc15;
+  background: #ffd739;
 }
+
 

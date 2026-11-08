@@ -43,6 +43,13 @@ import { MiniGameModal } from './components/MiniGameModal';
 import { SpinWheelModal } from './components/SpinWheelModal';
 import { AdminPanel } from './components/AdminPanel';
 import { LiveChatWidget, OfficialWhatsAppLogoSvg } from './components/LiveChatWidget';
+import { TeaExchHomeHub } from './components/TeaExchHomeHub';
+import { UniversalGameArenaModal } from './components/UniversalGameArenaModal';
+import {
+  ALL_200_EXCHANGE_GAMES,
+  PlayableExchangeGame,
+  ExchangeBetTicket,
+} from './utils/teaExchCatalog';
 import {
   Home,
   KeyRound,
@@ -144,6 +151,8 @@ export default function App() {
   const [copiedIdKey, setCopiedIdKey] = useState<string | null>(null);
   const [liveChatOpen, setLiveChatOpen] = useState<boolean>(false);
   const [activeGame, setActiveGame] = useState<GameCategoryType | null>(null);
+  const [activePlayableGame, setActivePlayableGame] = useState<PlayableExchangeGame | null>(null);
+  const [latestTicketTrigger, setLatestTicketTrigger] = useState<ExchangeBetTicket | null>(null);
   const [spinWheelModalOpen, setSpinWheelModalOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [rightPanelTab, setRightPanelTab] = useState<'my-wallet' | 'live-feed'>('my-wallet');
@@ -227,6 +236,17 @@ export default function App() {
     if (typeof window !== 'undefined') {
       window.history.pushState({}, '', '/');
     }
+  };
+
+  const handleSelectFeaturedGameCategory = (cat: GameCategoryType) => {
+    const gameMap: Record<GameCategoryType, PlayableExchangeGame> = {
+      aviatrix: ALL_200_EXCHANGE_GAMES[1] || ALL_200_EXCHANGE_GAMES[0],
+      mines: ALL_200_EXCHANGE_GAMES[2] || ALL_200_EXCHANGE_GAMES[0],
+      cricket: ALL_200_EXCHANGE_GAMES[28] || ALL_200_EXCHANGE_GAMES[0],
+      color: ALL_200_EXCHANGE_GAMES[10] || ALL_200_EXCHANGE_GAMES[0],
+      casino: ALL_200_EXCHANGE_GAMES[3] || ALL_200_EXCHANGE_GAMES[0],
+    };
+    setActivePlayableGame(gameMap[cat] || ALL_200_EXCHANGE_GAMES[0]);
   };
 
   // Filter current user's personal history
@@ -318,13 +338,13 @@ export default function App() {
     <div
       id="top"
       data-testid="page-2-postlogin-dashboard"
-      className="min-h-screen bg-[#070a10] text-white flex flex-col pb-20 md:pb-8"
+      className="min-h-screen bg-[#241e06] text-white flex flex-col pb-20 md:pb-8"
     >
       {/* Toast Notification Banner */}
       {toastMessage && (
         <div
           role="status"
-          className="fixed top-14 right-4 z-[60] max-w-md px-4 py-3 rounded-2xl bg-[#facc15] text-black font-bold text-xs shadow-2xl border-2 border-black"
+          className="fixed top-14 right-4 z-[60] max-w-md px-4 py-3 rounded-2xl bg-[#ffd739] text-black font-bold text-xs shadow-2xl border-2 border-black"
         >
           {toastMessage}
         </div>
@@ -348,7 +368,7 @@ export default function App() {
         {/* LEFT NAVIGATION SIDEBAR (Desktop >= 1024px) */}
         <aside
           aria-label="Exchange Categories Sidebar"
-          className="hidden lg:flex flex-col gap-4 rounded-2xl bg-[#090d16] border border-white/10 p-4 sticky top-4"
+          className="hidden lg:flex flex-col gap-4 rounded-2xl bg-[#42370b] border border-[#ffd739]/35 p-4 sticky top-4 shadow-xl"
         >
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
@@ -404,50 +424,70 @@ export default function App() {
               Featured Exchange Games
             </p>
             <div className="space-y-1 select-none">
-              <div className="w-full py-2 px-3 rounded-xl text-slate-200 font-semibold text-xs flex items-center justify-between cursor-default">
+              <button
+                type="button"
+                onClick={() => handleSelectFeaturedGameCategory('aviatrix')}
+                className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 font-semibold text-xs flex items-center justify-between cursor-pointer"
+              >
                 <span className="flex items-center gap-2">
                   <Rocket className="w-4 h-4 text-sky-400" />
                   <span>Aviatrix Crash</span>
                 </span>
                 <span className="font-mono-tabular text-[10px] text-sky-400">10,000x</span>
-              </div>
+              </button>
 
-              <div className="w-full py-2 px-3 rounded-xl text-slate-200 font-semibold text-xs flex items-center justify-between cursor-default">
+              <button
+                type="button"
+                onClick={() => handleSelectFeaturedGameCategory('mines')}
+                className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 font-semibold text-xs flex items-center justify-between cursor-pointer"
+              >
                 <span className="flex items-center gap-2">
                   <Bomb className="w-4 h-4 text-red-400" />
                   <span>MINES Turbo</span>
                 </span>
                 <span className="font-mono-tabular text-[10px] text-red-400">97% RTP</span>
-              </div>
+              </button>
 
-              <div className="w-full py-2 px-3 rounded-xl text-slate-200 font-semibold text-xs flex items-center justify-between cursor-default">
+              <button
+                type="button"
+                onClick={() => handleSelectFeaturedGameCategory('cricket')}
+                className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 font-semibold text-xs flex items-center justify-between cursor-pointer"
+              >
                 <span className="flex items-center gap-2">
                   <Trophy className="w-4 h-4 text-emerald-400" />
                   <span>Cricket Live</span>
                 </span>
                 <span className="font-mono-tabular text-[10px] text-emerald-400">In-Play</span>
-              </div>
+              </button>
 
-              <div className="w-full py-2 px-3 rounded-xl text-slate-200 font-semibold text-xs flex items-center justify-between cursor-default">
+              <button
+                type="button"
+                onClick={() => handleSelectFeaturedGameCategory('color')}
+                className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 font-semibold text-xs flex items-center justify-between cursor-pointer"
+              >
                 <span className="flex items-center gap-2">
                   <Zap className="w-4 h-4 text-purple-400" />
                   <span>Color Prediction</span>
                 </span>
                 <span className="font-mono-tabular text-[10px] text-purple-400">WinGo</span>
-              </div>
+              </button>
 
-              <div className="w-full py-2 px-3 rounded-xl text-slate-200 font-semibold text-xs flex items-center justify-between cursor-default">
+              <button
+                type="button"
+                onClick={() => handleSelectFeaturedGameCategory('casino')}
+                className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 font-semibold text-xs flex items-center justify-between cursor-pointer"
+              >
                 <span className="flex items-center gap-2">
                   <Flame className="w-4 h-4 text-pink-400" />
                   <span>Sexy Live Casino</span>
                 </span>
                 <span className="font-mono-tabular text-[10px] text-pink-400">VIP</span>
-              </div>
+              </button>
             </div>
           </div>
         </aside>
 
-        {/* CENTER COLUMN: PROMOTIONAL BANNER CAROUSEL, CREATE IDs, GAME CARDS & 6 EXCHANGE PLATFORMS */}
+        {/* CENTER COLUMN: PROMOTIONAL BANNER CAROUSEL, CREATE IDs, GAME CARDS, LIVE SPORTS EXCHANGE, 200 GAMES & 6 EXCHANGE PLATFORMS */}
         <div className="space-y-5 min-w-0">
           <BannerAndGames
             banners={banners}
@@ -459,22 +499,32 @@ export default function App() {
             onOpenProfile={() => setProfileModalOpen(true)}
             onOpenDeposit={() => setDepositModalOpen(true)}
             onOpenSpinWheel={() => setSpinWheelModalOpen(true)}
+            onSelectGame={handleSelectFeaturedGameCategory}
+          />
+
+          {/* A-to-Z Live Sports Exchange, Recent Big Wins Ticker, Real-Time Bet Tickets & All 200 Playable Games */}
+          <TeaExchHomeHub
+            currentUser={currentUser}
+            onOpenGame={(game) => setActivePlayableGame(game)}
+            onRequireAuth={() => handleOpenAuth('login')}
+            onNotify={showToast}
+            externalTicketTrigger={latestTicketTrigger}
           />
 
           {/* 6 Official Exchange Links Section (Replaced Old Live Exchange Markets) */}
           <section
             aria-label="Official Gaming Exchanges"
             data-testid="official-exchanges-section"
-            className="rounded-2xl bg-[#090d16] border border-[#facc15]/30 overflow-hidden shadow-xl"
+            className="rounded-2xl bg-[#241e06] border border-[#ffd739]/40 overflow-hidden shadow-xl"
           >
-            <div className="px-4 py-3.5 bg-gradient-to-r from-[#0c1220] via-[#131b2e] to-[#0c1220] border-b border-[#facc15]/25 flex flex-wrap items-center justify-between gap-2">
+            <div className="px-4 py-3.5 bg-gradient-to-r from-[#42370b] via-[#5a4a12] to-[#42370b] border-b border-[#ffd739]/35 flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <KeyRound className="w-4 h-4 text-[#facc15]" />
-                <h2 className="font-shark italic font-black text-base sm:text-lg text-[#facc15] tracking-wide uppercase">
+                <KeyRound className="w-4 h-4 text-[#ffd739]" />
+                <h2 className="font-shark italic font-black text-base sm:text-lg text-[#ffd739] tracking-wide uppercase">
                   OFFICIAL EXCHANGE IDs &amp; INSTANT WITHDRAW
                 </h2>
               </div>
-              <span className="text-[11px] text-slate-300 font-mono-tabular">
+              <span className="text-[11px] text-amber-100 font-mono-tabular">
                 Instant ID Approval · 24/7 Direct Withdraw
               </span>
             </div>
@@ -636,16 +686,16 @@ export default function App() {
         <aside
           id="wallet-history-section"
           aria-label="Wallet Activity and Live Transactions"
-          className="rounded-2xl bg-[#090d16] border border-white/10 p-4 space-y-4 sticky top-4"
+          className="rounded-2xl bg-[#42370b] border border-[#ffd739]/35 p-4 space-y-4 sticky top-4 shadow-xl"
         >
-          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-[#0c1220] border border-white/10">
+          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-[#241e06] border border-[#ffd739]/25">
             <button
               type="button"
               onClick={() => setRightPanelTab('my-wallet')}
               className={`py-2 rounded-lg font-bold text-xs cursor-pointer transition-colors ${
                 rightPanelTab === 'my-wallet'
-                  ? 'bg-[#facc15] text-black'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#ffd739] text-black'
+                  : 'text-amber-100/80 hover:text-white'
               }`}
             >
               My Wallet History
@@ -655,8 +705,8 @@ export default function App() {
               onClick={() => setRightPanelTab('live-feed')}
               className={`py-2 rounded-lg font-bold text-xs cursor-pointer transition-colors ${
                 rightPanelTab === 'live-feed'
-                  ? 'bg-[#facc15] text-black'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#ffd739] text-black'
+                  : 'text-amber-100/80 hover:text-white'
               }`}
             >
               Platform Feed
@@ -1059,6 +1109,19 @@ export default function App() {
         currentUser={currentUser}
         onClose={() => setSpinWheelModalOpen(false)}
         onNotify={(msg) => showToast(msg)}
+      />
+
+      <UniversalGameArenaModal
+        game={activePlayableGame}
+        currentUser={currentUser}
+        onClose={() => setActivePlayableGame(null)}
+        onSelectGame={(game) => setActivePlayableGame(game)}
+        onRequireAuth={() => {
+          setActivePlayableGame(null);
+          handleOpenAuth('login');
+        }}
+        onNotify={(msg) => showToast(msg)}
+        onTicketUpdated={(tkt) => setLatestTicketTrigger(tkt)}
       />
     </div>
   );

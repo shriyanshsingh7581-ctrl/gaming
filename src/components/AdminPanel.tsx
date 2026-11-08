@@ -20,6 +20,13 @@ import {
   CELEBRITY_BANNER_ASSETS,
 } from '../utils/exchangeLogic';
 import {
+  ALL_200_EXCHANGE_GAMES,
+  INITIAL_LIVE_SPORTS_MATCHES,
+  LiveSportsMatch,
+  ExchangeBetTicket,
+  formatTeaExchCdnImage,
+} from '../utils/teaExchCatalog';
+import {
   adminAdjustUserBalance,
   adminToggleUserStatus,
   adminResolveDeposit,
@@ -83,7 +90,8 @@ type AdminTab =
   | 'payment'
   | 'firebase'
   | 'chat'
-  | 'staff';
+  | 'staff'
+  | 'bets';
 
 const ADMIN_QUICK_REPLIES = [
   'Hello! Mohit A1 Support here, how can we help you today?',
@@ -119,6 +127,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [authError, setAuthError] = useState<string>('');
 
   const [activeTab, setActiveTab] = useState<AdminTab>('customers');
+  const [liveTickets, setLiveTickets] = useState<ExchangeBetTicket[]>([]);
+  const [liveMatches, setLiveMatches] = useState<LiveSportsMatch[]>(
+    INITIAL_LIVE_SPORTS_MATCHES
+  );
+  const [adminGameSearch, setAdminGameSearch] = useState<string>('');
+
+  const fetchAdminRealtimeExchangeData = async () => {
+    try {
+      const res = await fetch('/api/exchange/realtime-feed');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data.allTickets)) {
+        setLiveTickets(data.allTickets);
+      }
+      if (Array.isArray(data.matches) && data.matches.length > 0) {
+        setLiveMatches(data.matches);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    void fetchAdminRealtimeExchangeData();
+    const timer = window.setInterval(() => {
+      void fetchAdminRealtimeExchangeData();
+    }, 3500);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     setLoginTab(initialLoginMode);
@@ -1004,6 +1041,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <span>6. Manage Staff ({staffList.length})</span>
             </button>
           )}
+
+          <button
+            type="button"
+            data-testid="tab-live-bets-and-games"
+            onClick={() => setActiveTab('bets')}
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition-colors ${
+              activeTab === 'bets'
+                ? 'bg-[#facc15] text-black'
+                : 'text-amber-300 hover:text-white bg-amber-500/10 border border-amber-500/30'
+            }`}
+          >
+            <Database className="w-4 h-4" />
+            <span>
+              7. Live Bet Tickets &amp; 200 Games ({liveTickets.length})
+            </span>
+          </button>
         </nav>
 
         {/* ====================================================================
@@ -1812,7 +1865,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             </span>
                           </div>
                           <div className="text-slate-300">
-                            Customer: <span className="font-bold text-white">{req.userName}</span> ({req.userEmail}) · {req.phone}
+                            Customer: <span className="font-bold text-white">{req.userName}</span> ({req.userEmail})
                           </div>
                           <div className="flex flex-wrap items-center gap-3 text-slate-400">
                             <span>
@@ -2476,6 +2529,336 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       >
                         🚫 {st.status === 'Active' ? 'Block Staff' : 'Unblock Staff'}
                       </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* ====================================================================
+         * TAB 7: LIVE SPORTS ODDS, REAL-TIME BET TICKETS & 200 GAMES CONTROL
+         * ==================================================================== */}
+        {activeTab === 'bets' && (
+          <div className="space-y-6">
+            {/* KPI Summary Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div className="rounded-2xl bg-[#0c111d] border border-white/10 p-4">
+                <span className="text-xs text-slate-400 uppercase">Total Playable Games</span>
+                <p className="font-mono-tabular font-black text-2xl text-emerald-400 mt-1">
+                  {ALL_200_EXCHANGE_GAMES.length} / 200 Live
+                </p>
+              </div>
+              <div className="rounded-2xl bg-[#0c111d] border border-white/10 p-4">
+                <span className="text-xs text-slate-400 uppercase">Total Real-Time Tickets</span>
+                <p className="font-mono-tabular font-black text-2xl text-white mt-1">
+                  {liveTickets.length}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-[#0c111d] border border-white/10 p-4">
+                <span className="text-xs text-slate-400 uppercase">Open Active Tickets</span>
+                <p className="font-mono-tabular font-black text-2xl text-amber-400 mt-1">
+                  {liveTickets.filter((t) => t.status === 'OPEN').length}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-[#0c111d] border border-white/10 p-4">
+                <span className="text-xs text-slate-400 uppercase">Total Bet Stake Volume</span>
+                <p className="font-mono-tabular font-black text-2xl text-[#facc15] mt-1">
+                  ₹
+                  {liveTickets
+                    .reduce((acc, t) => acc + (t.liability || 0), 0)
+                    .toLocaleString('en-IN')}
+                </p>
+              </div>
+            </div>
+
+            {/* Section 1: Real-Time Customer Bet Tickets Queue */}
+            <section className="rounded-2xl bg-[#0c111d] border border-white/10 p-5 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-lg font-bold text-white">
+                    Real-Time Customer Bet Tickets (Sports Back/Lay &amp; 200 Casino Games)
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Settle open tickets as WON (auto-credits customer wallet), LOST, or VOID (auto-refunds stake).
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void fetchAdminRealtimeExchangeData()}
+                  className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-[#facc15] cursor-pointer"
+                >
+                  Refresh Live Feed
+                </button>
+              </div>
+
+              {liveTickets.length === 0 ? (
+                <div className="p-8 rounded-xl bg-[#090d16] border border-white/5 text-center text-xs text-slate-400">
+                  No bet tickets placed yet in this session. As soon as any customer places a Sports Back/Lay bet or plays any of the 200 games, their real-time ticket appears here immediately.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-white/10 text-slate-400 uppercase">
+                        <th className="py-2.5 px-3">Ticket ID</th>
+                        <th className="py-2.5 px-3">Customer</th>
+                        <th className="py-2.5 px-3">Event / Game (#1-#200)</th>
+                        <th className="py-2.5 px-3">Selection &amp; Odds</th>
+                        <th className="py-2.5 px-3">Stake / Return</th>
+                        <th className="py-2.5 px-3">Status</th>
+                        <th className="py-2.5 px-3 text-right">Admin Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/10">
+                      {liveTickets.map((tkt) => (
+                        <tr key={tkt.ticketId} className="hover:bg-white/[0.02]">
+                          <td className="py-2.5 px-3 font-mono-tabular font-bold text-[#facc15]">
+                            {tkt.ticketId}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <div className="font-bold text-white">{tkt.userName}</div>
+                            <div className="text-[10px] text-slate-400">{tkt.userEmail}</div>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <div className="font-semibold text-white">
+                              {tkt.eventOrGameName}
+                            </div>
+                            <div className="text-[10px] text-slate-400">{tkt.marketName}</div>
+                          </td>
+                          <td className="py-2.5 px-3 font-mono-tabular">
+                            <span className="px-1.5 py-0.5 rounded bg-white/10 text-white font-bold mr-1.5">
+                              {tkt.betType}
+                            </span>
+                            <span className="text-sky-300 font-bold">
+                              {tkt.selection} @{tkt.odds.toFixed(2)}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 font-mono-tabular">
+                            <div className="text-white">
+                              Stake: ₹{tkt.liability.toLocaleString('en-IN')}
+                            </div>
+                            <div className="text-emerald-400 text-[10px]">
+                              Return: ₹{tkt.potentialReturn.toLocaleString('en-IN')}
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span
+                              className={`px-2 py-0.5 rounded font-black text-[10px] uppercase ${
+                                tkt.status === 'WON' || tkt.status === 'CASHED_OUT'
+                                  ? 'bg-emerald-500/20 text-emerald-300'
+                                  : tkt.status === 'LOST'
+                                  ? 'bg-rose-500/20 text-rose-300'
+                                  : tkt.status === 'VOID'
+                                  ? 'bg-slate-500/20 text-slate-300'
+                                  : 'bg-amber-500/20 text-amber-300'
+                              }`}
+                            >
+                              {tkt.status}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-right">
+                            {tkt.status === 'OPEN' ? (
+                              <div className="inline-flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    await fetch('/api/exchange/tickets/settle', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        ticketId: tkt.ticketId,
+                                        status: 'WON',
+                                        payoutAmount: tkt.potentialReturn,
+                                        resultNote: 'Approved as WON by Admin',
+                                      }),
+                                    });
+                                    await adminAdjustUserBalance(
+                                      tkt.uid,
+                                      tkt.potentialReturn
+                                    );
+                                    await fetchAdminRealtimeExchangeData();
+                                    onNotify(
+                                      `Ticket ${tkt.ticketId} settled as WON! Credited ₹${tkt.potentialReturn.toLocaleString('en-IN')} to ${tkt.userName}.`
+                                    );
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-[10px] cursor-pointer"
+                                >
+                                  Settle WON
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    await fetch('/api/exchange/tickets/settle', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        ticketId: tkt.ticketId,
+                                        status: 'LOST',
+                                        payoutAmount: 0,
+                                        resultNote: 'Settled as LOST by Admin',
+                                      }),
+                                    });
+                                    await fetchAdminRealtimeExchangeData();
+                                    onNotify(`Ticket ${tkt.ticketId} settled as LOST.`);
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg bg-rose-500/25 hover:bg-rose-500/40 text-rose-300 font-bold text-[10px] cursor-pointer"
+                                >
+                                  Settle LOST
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    await fetch('/api/exchange/tickets/settle', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        ticketId: tkt.ticketId,
+                                        status: 'VOID',
+                                        payoutAmount: tkt.liability,
+                                        resultNote: 'Voided & Refunded by Admin',
+                                      }),
+                                    });
+                                    await adminAdjustUserBalance(tkt.uid, tkt.liability);
+                                    await fetchAdminRealtimeExchangeData();
+                                    onNotify(
+                                      `Ticket ${tkt.ticketId} VOIDED & ₹${tkt.liability.toLocaleString('en-IN')} refunded to ${tkt.userName}.`
+                                    );
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 font-bold text-[10px] cursor-pointer"
+                                >
+                                  Void &amp; Refund
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="font-mono-tabular text-[11px] text-slate-400">
+                                {tkt.payoutAmount > 0
+                                  ? `Paid ₹${tkt.payoutAmount.toLocaleString('en-IN')}`
+                                  : 'Settled'}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+            {/* Section 2: Live Sports Exchange Market Control */}
+            <section className="rounded-2xl bg-[#0c111d] border border-white/10 p-5 space-y-4">
+              <div>
+                <h2 className="text-lg font-bold text-white">
+                  Live Sports Exchange Markets Control (Back &amp; Lay Odds)
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Suspend or resume real-time betting on any live match across Cricket, Football, Tennis, Horse Racing, Greyhound, Kabaddi, Politics &amp; Binary.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {liveMatches.map((m) => (
+                  <div
+                    key={m.id}
+                    className="rounded-xl bg-[#090d16] border border-white/10 p-3.5 flex items-center justify-between gap-3"
+                  >
+                    <div>
+                      <span className="text-[10px] font-extrabold uppercase text-[#facc15]">
+                        {m.sport} · {m.competitionName}
+                      </span>
+                      <h4 className="font-bold text-sm text-white mt-0.5">
+                        {m.eventName}
+                      </h4>
+                      <p className="font-mono-tabular text-xs text-slate-400 mt-0.5">
+                        {m.runners.home.label}: {m.runners.home.back}/{m.runners.home.lay} vs{' '}
+                        {m.runners.away.label}: {m.runners.away.back}/{m.runners.away.lay}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await fetch('/api/exchange/sports/toggle-suspend', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ matchId: m.id }),
+                        });
+                        await fetchAdminRealtimeExchangeData();
+                        onNotify(
+                          `${m.eventName} is now ${
+                            m.suspended ? 'ACTIVE (OPEN)' : 'SUSPENDED'
+                          }.`
+                        );
+                      }}
+                      className={`px-3 py-2 rounded-xl font-extrabold text-xs cursor-pointer shrink-0 ${
+                        m.suspended
+                          ? 'bg-emerald-500 text-black'
+                          : 'bg-red-500/20 border border-red-500/40 text-red-300'
+                      }`}
+                    >
+                      {m.suspended ? 'Resume Market' : 'Suspend Market'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Section 3: All 200 Playable Games Directory with Real CDN Thumbnails */}
+            <section className="rounded-2xl bg-[#0c111d] border border-[#ffd739]/30 p-5 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-bold text-[#ffd739]">
+                    All 200 Playable Casino, Crash, Slot &amp; Virtual Games Directory (Official Thumbnails &amp; Coin Sync)
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    All 200 games are active with real thumbnails and synced with Customer Wallet Coins &amp; Real-Time Bet Tickets.
+                  </p>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search 200 games (#1 - #200, name, provider)..."
+                  value={adminGameSearch}
+                  onChange={(e) => setAdminGameSearch(e.target.value)}
+                  className="w-64 px-3 py-2 rounded-xl bg-[#090d16] border border-[#ffd739]/30 text-xs text-white focus:outline-none focus:border-[#ffd739]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2.5 max-h-[440px] overflow-y-auto pr-1">
+                {ALL_200_EXCHANGE_GAMES.filter((g) =>
+                  !adminGameSearch.trim()
+                    ? true
+                    : g.name.toLowerCase().includes(adminGameSearch.toLowerCase()) ||
+                      g.provider.toLowerCase().includes(adminGameSearch.toLowerCase()) ||
+                      (g.rawProvider || '').toLowerCase().includes(adminGameSearch.toLowerCase()) ||
+                      String(g.gameNumber) === adminGameSearch.trim()
+                ).map((g) => (
+                  <div
+                    key={g.id}
+                    className="rounded-xl bg-[#241e06] border border-[#ffd739]/30 overflow-hidden text-xs flex flex-col justify-between"
+                  >
+                    <div className="relative w-full aspect-[336/440] bg-[#1a1504] overflow-hidden">
+                      <img
+                        src={formatTeaExchCdnImage(g.imgUrl, 240, 75)}
+                        alt={g.name}
+                        loading="lazy"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-x-0 top-0 p-1.5 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent text-[10px] font-mono-tabular">
+                        <span className="px-1.5 py-0.5 rounded bg-black/80 text-[#ffd739] font-black">
+                          #{g.gameNumber}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-500 text-black font-black text-[9px]">
+                          LIVE
+                        </span>
+                      </div>
+                    </div>
+                    <div className="p-2 bg-[#42370b]">
+                      <div className="font-bold text-white truncate">{g.name}</div>
+                      <div className="text-[10px] text-amber-200/80 truncate">
+                        {g.rawProvider || g.provider} · RTP {g.rtp}
+                      </div>
                     </div>
                   </div>
                 ))}
