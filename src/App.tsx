@@ -30,6 +30,7 @@ import { SharkHeader } from './components/SharkHeader';
 import {
   BannerAndGames,
   PreLoginLandingPage,
+  SharkPromoAdOverlayModal,
   GameCategoryType,
 } from './components/BannerAndGames';
 import {
@@ -43,7 +44,7 @@ import { MiniGameModal } from './components/MiniGameModal';
 import { SpinWheelModal } from './components/SpinWheelModal';
 import { AdminPanel } from './components/AdminPanel';
 import { LiveChatWidget, OfficialWhatsAppLogoSvg } from './components/LiveChatWidget';
-import { TeaExchHomeHub } from './components/TeaExchHomeHub';
+import { TeaExchHomeHub, TeaExchBottomHubTab } from './components/TeaExchHomeHub';
 import { UniversalGameArenaModal } from './components/UniversalGameArenaModal';
 import {
   ALL_200_EXCHANGE_GAMES,
@@ -55,7 +56,6 @@ import {
   KeyRound,
   ArrowUpCircle,
   ArrowDownCircle,
-  User as UserIcon,
   Rocket,
   Bomb,
   Trophy,
@@ -66,6 +66,7 @@ import {
   Check,
   ExternalLink,
   Sparkles,
+  Menu,
 } from 'lucide-react';
 
 export default function App() {
@@ -154,6 +155,8 @@ export default function App() {
   const [activePlayableGame, setActivePlayableGame] = useState<PlayableExchangeGame | null>(null);
   const [latestTicketTrigger, setLatestTicketTrigger] = useState<ExchangeBetTicket | null>(null);
   const [spinWheelModalOpen, setSpinWheelModalOpen] = useState<boolean>(false);
+  const [promoAdOpen, setPromoAdOpen] = useState<boolean>(true);
+  const [activeBottomHubTab, setActiveBottomHubTab] = useState<TeaExchBottomHubTab>('home');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [rightPanelTab, setRightPanelTab] = useState<'my-wallet' | 'live-feed'>('my-wallet');
 
@@ -306,9 +309,22 @@ export default function App() {
           banners={banners}
           onOpenSignUpModal={() => handleOpenAuth('signup')}
           onOpenLoginModal={() => handleOpenAuth('login')}
+          onOpenPromoAd={() => setPromoAdOpen(true)}
           onAuthSuccess={(user, msg) => {
             setCurrentUser(user);
+            setPromoAdOpen(true);
             showToast(msg);
+          }}
+        />
+
+        {/* Official Hindi ₹500 Welcome Bonus Advertisement Popup Overlay (`00:18 - 00:19` of video) */}
+        <SharkPromoAdOverlayModal
+          isOpen={promoAdOpen}
+          isLoggedIn={false}
+          onClose={() => setPromoAdOpen(false)}
+          onActionClick={() => {
+            setPromoAdOpen(false);
+            handleOpenAuth('signup');
           }}
         />
 
@@ -320,12 +336,81 @@ export default function App() {
           onOpenChange={setLiveChatOpen}
         />
 
+        {/* Floating Bottom-Left Spinning Casino Chip (`00:00 - 00:07` of video) */}
+        <button
+          type="button"
+          data-testid="prelogin-floating-spin-chip"
+          onClick={() => handleOpenAuth('signup')}
+          aria-label="Sign up to Spin & Win"
+          className="fixed bottom-16 left-3 z-40 w-12 h-12 rounded-full bg-gradient-to-br from-[#ffd739] via-amber-500 to-red-600 p-1 shadow-[0_0_25px_rgba(255,215,57,0.65)] border-2 border-white flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
+        >
+          <div className="w-full h-full rounded-full border-2 border-dashed border-black/80 bg-[#241e06] flex flex-col items-center justify-center animate-spin [animation-duration:9s]">
+            <Sparkles className="w-4 h-4 text-[#ffd739]" />
+          </div>
+          <span className="absolute -bottom-1 px-1.5 py-0.2 rounded bg-[#ffd739] text-black font-black text-[8px] uppercase tracking-tighter shadow">
+            SPIN
+          </span>
+        </button>
+
+        {/* Exact 5-Tab Bottom Navigation Bar on Pre-Login (`Sports` | `In-play` | `Home` | `Casino` | `Menu`) (`00:00 - 00:07` of video) */}
+        <nav
+          aria-label="Pre-Login Bottom Navigation Bar"
+          data-testid="prelogin-bottom-navigation-bar"
+          className="fixed bottom-0 left-0 right-0 z-40 h-14 bg-[#332b09]/98 border-t border-[#ffd739]/40 grid grid-cols-5 items-center px-1 shadow-[0_-8px_25px_rgba(0,0,0,0.65)]"
+        >
+          <button
+            type="button"
+            onClick={() => handleOpenAuth('login')}
+            className="flex flex-col items-center justify-center py-1 text-amber-100/85 hover:text-[#ffd739] cursor-pointer"
+          >
+            <Trophy className="w-4 h-4" />
+            <span className="text-[10px] font-extrabold mt-0.5">Sports</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleOpenAuth('login')}
+            className="flex flex-col items-center justify-center py-1 text-amber-100/85 hover:text-[#ffd739] cursor-pointer"
+          >
+            <Zap className="w-4 h-4" />
+            <span className="text-[10px] font-extrabold mt-0.5">In-play</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="flex flex-col items-center justify-center py-1 cursor-pointer"
+          >
+            <div className="w-8 h-8 -mt-3 rounded-full bg-[#ffd739] text-black border-2 border-white flex items-center justify-center shadow-lg">
+              <Home className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] font-extrabold mt-0.5 text-[#ffd739]">
+              Home
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleOpenAuth('login')}
+            className="flex flex-col items-center justify-center py-1 text-amber-100/85 hover:text-[#ffd739] cursor-pointer"
+          >
+            <Flame className="w-4 h-4" />
+            <span className="text-[10px] font-extrabold mt-0.5">Casino</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleOpenAuth('signup')}
+            className="flex flex-col items-center justify-center py-1 text-amber-100/85 hover:text-[#ffd739] cursor-pointer"
+          >
+            <Menu className="w-4 h-4" />
+            <span className="text-[10px] font-extrabold mt-0.5">Menu</span>
+          </button>
+        </nav>
+
         <AuthModal
           isOpen={authModalOpen}
           initialMode={authInitialMode}
           onClose={() => setAuthModalOpen(false)}
           onSuccess={(user, msg) => {
             setCurrentUser(user);
+            setPromoAdOpen(true);
             showToast(msg);
           }}
         />
@@ -338,7 +423,7 @@ export default function App() {
     <div
       id="top"
       data-testid="page-2-postlogin-dashboard"
-      className="min-h-screen bg-[#241e06] text-white flex flex-col pb-20 md:pb-8"
+      className="min-h-screen bg-[#241e06] text-white flex flex-col pb-20 md:pb-16"
     >
       {/* Toast Notification Banner */}
       {toastMessage && (
@@ -349,6 +434,17 @@ export default function App() {
           {toastMessage}
         </div>
       )}
+
+      {/* Official Hindi ₹500 Welcome Bonus Advertisement Popup Overlay (`00:18 - 00:19` of video) */}
+      <SharkPromoAdOverlayModal
+        isOpen={promoAdOpen}
+        isLoggedIn={true}
+        onClose={() => setPromoAdOpen(false)}
+        onActionClick={() => {
+          setPromoAdOpen(false);
+          setActiveBottomHubTab('casino');
+        }}
+      />
 
       {/* 1. EXACT "SHARK EXCH" TOP AUTH BAR & GOLDEN-YELLOW WALLET HEADER (Deposit ⏫ | SHARK EXCH WALLET BALANCE | Withdraw ⏬) */}
       <SharkHeader
@@ -361,6 +457,7 @@ export default function App() {
         }}
         onOpenDeposit={() => setDepositModalOpen(true)}
         onOpenWithdraw={() => setWithdrawModalOpen(true)}
+        onOpenPromoAd={() => setPromoAdOpen(true)}
       />
 
       {/* 2. ADAPTIVE DESKTOP 3-COLUMN / MOBILE FULL-WIDTH EXCHANGE LOBBY */}
@@ -499,6 +596,7 @@ export default function App() {
             onOpenProfile={() => setProfileModalOpen(true)}
             onOpenDeposit={() => setDepositModalOpen(true)}
             onOpenSpinWheel={() => setSpinWheelModalOpen(true)}
+            onOpenPromoAd={() => setPromoAdOpen(true)}
             onSelectGame={handleSelectFeaturedGameCategory}
           />
 
@@ -509,6 +607,8 @@ export default function App() {
             onRequireAuth={() => handleOpenAuth('login')}
             onNotify={showToast}
             externalTicketTrigger={latestTicketTrigger}
+            activeHubTab={activeBottomHubTab}
+            onHubTabChange={setActiveBottomHubTab}
           />
 
           {/* 6 Official Exchange Links Section (Replaced Old Live Exchange Markets) */}
@@ -973,54 +1073,114 @@ export default function App() {
         </aside>
       </main>
 
-      {/* 3. MOBILE STICKY BOTTOM NAVIGATION BAR (`< 768px`) — Customer-Only */}
+      {/* 3A. FLOATING BOTTOM-LEFT SPINNING CASINO POKER CHIP (`00:00 - 02:04` of video) */}
+      <button
+        type="button"
+        data-testid="floating-spin-wheel-chip"
+        onClick={() => setSpinWheelModalOpen(true)}
+        aria-label="Open Daily Spin & Win Wheel"
+        className="fixed bottom-16 left-3 z-40 w-12 h-12 rounded-full bg-gradient-to-br from-[#ffd739] via-amber-500 to-red-600 p-1 shadow-[0_0_25px_rgba(255,215,57,0.65)] border-2 border-white flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
+      >
+        <div className="w-full h-full rounded-full border-2 border-dashed border-black/80 bg-[#241e06] flex flex-col items-center justify-center animate-spin [animation-duration:9s]">
+          <Sparkles className="w-4 h-4 text-[#ffd739]" />
+        </div>
+        <span className="absolute -bottom-1 px-1.5 py-0.2 rounded bg-[#ffd739] text-black font-black text-[8px] uppercase tracking-tighter shadow">
+          SPIN
+        </span>
+      </button>
+
+      {/* 3B. EXACT 5-TAB STICKY BOTTOM NAVIGATION BAR (`Sports` | `In-play` | `Home` | `Casino` | `Menu`) (`00:00 - 02:04` of video) */}
       <nav
-        aria-label="Mobile Bottom Navigation"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-14 bg-[#090d16]/95 border-t border-white/15 grid grid-cols-5 items-center px-1"
+        aria-label="Bottom Navigation Bar"
+        data-testid="video-bottom-navigation-bar"
+        className="fixed bottom-0 left-0 right-0 z-40 h-14 bg-[#332b09]/98 border-t border-[#ffd739]/40 grid grid-cols-5 items-center px-1 shadow-[0_-8px_25px_rgba(0,0,0,0.65)]"
       >
         <button
           type="button"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="flex flex-col items-center justify-center py-1 text-[#facc15] cursor-pointer"
+          data-testid="bottom-nav-sports"
+          onClick={() => {
+            setActiveBottomHubTab('sports');
+            window.scrollTo({ top: 280, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center justify-center py-1 cursor-pointer transition-colors ${
+            activeBottomHubTab === 'sports'
+              ? 'text-[#ffd739] font-black'
+              : 'text-amber-100/80 hover:text-[#ffd739]'
+          }`}
         >
-          <Home className="w-4 h-4" />
-          <span className="text-[10px] font-bold mt-0.5">Home</span>
+          <Trophy className="w-4 h-4" />
+          <span className="text-[10px] font-extrabold mt-0.5">Sports</span>
         </button>
 
         <button
           type="button"
-          onClick={() => handleOpenCreateIdForExchange(OFFICIAL_EXCHANGE_PLATFORMS[0].name)}
-          className="flex flex-col items-center justify-center py-1 text-slate-300 hover:text-[#facc15] cursor-pointer"
+          data-testid="bottom-nav-inplay"
+          onClick={() => {
+            setActiveBottomHubTab('inplay');
+            window.scrollTo({ top: 280, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center justify-center py-1 cursor-pointer transition-colors ${
+            activeBottomHubTab === 'inplay'
+              ? 'text-[#ffd739] font-black'
+              : 'text-amber-100/80 hover:text-[#ffd739]'
+          }`}
         >
-          <KeyRound className="w-4 h-4" />
-          <span className="text-[10px] font-medium mt-0.5">Create IDs</span>
+          <Zap className="w-4 h-4" />
+          <span className="text-[10px] font-extrabold mt-0.5">In-play</span>
         </button>
 
         <button
           type="button"
-          onClick={() => setDepositModalOpen(true)}
-          className="flex flex-col items-center justify-center py-1 text-emerald-400 cursor-pointer"
+          data-testid="bottom-nav-home"
+          onClick={() => {
+            setActiveBottomHubTab('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className="flex flex-col items-center justify-center py-1 cursor-pointer"
         >
-          <ArrowUpCircle className="w-4 h-4" />
-          <span className="text-[10px] font-bold mt-0.5">Deposit</span>
+          <div
+            className={`w-8 h-8 -mt-3 rounded-full flex items-center justify-center border-2 shadow-lg transition-all ${
+              activeBottomHubTab === 'home'
+                ? 'bg-[#ffd739] text-black border-white'
+                : 'bg-[#42370b] text-[#ffd739] border-[#ffd739]/50'
+            }`}
+          >
+            <Home className="w-4 h-4" />
+          </div>
+          <span
+            className={`text-[10px] font-extrabold mt-0.5 ${
+              activeBottomHubTab === 'home' ? 'text-[#ffd739]' : 'text-amber-100/80'
+            }`}
+          >
+            Home
+          </span>
         </button>
 
         <button
           type="button"
-          onClick={() => setWithdrawModalOpen(true)}
-          className="flex flex-col items-center justify-center py-1 text-amber-400 cursor-pointer"
+          data-testid="bottom-nav-casino"
+          onClick={() => {
+            setActiveBottomHubTab('casino');
+            window.scrollTo({ top: 280, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center justify-center py-1 cursor-pointer transition-colors ${
+            activeBottomHubTab === 'casino'
+              ? 'text-[#ffd739] font-black'
+              : 'text-amber-100/80 hover:text-[#ffd739]'
+          }`}
         >
-          <ArrowDownCircle className="w-4 h-4" />
-          <span className="text-[10px] font-bold mt-0.5">Withdraw</span>
+          <Flame className="w-4 h-4" />
+          <span className="text-[10px] font-extrabold mt-0.5">Casino</span>
         </button>
 
         <button
           type="button"
-          onClick={() => setProfileModalOpen(true)}
-          className="flex flex-col items-center justify-center py-1 text-slate-300 hover:text-[#facc15] cursor-pointer"
+          data-testid="bottom-nav-menu"
+          onClick={() => window.dispatchEvent(new CustomEvent('shark-open-side-drawer'))}
+          className="flex flex-col items-center justify-center py-1 text-amber-100/80 hover:text-[#ffd739] cursor-pointer"
         >
-          <UserIcon className="w-4 h-4" />
-          <span className="text-[10px] font-medium mt-0.5">My Wallet</span>
+          <Menu className="w-4 h-4" />
+          <span className="text-[10px] font-extrabold mt-0.5">Menu</span>
         </button>
       </nav>
 

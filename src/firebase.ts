@@ -63,6 +63,7 @@ import {
   getNextIstMidnightMs,
   selectWeightedSpinSegment,
   sanitizeSpinRecordToEligibleBonus,
+  SIGNUP_WELCOME_BONUS_AMOUNT,
 } from './utils/exchangeLogic';
 
 const STORAGE_CONFIG_KEY = 'shark_exch_firebase_config_v1';
@@ -249,13 +250,13 @@ export interface HybridDatabaseSchema {
 export const INITIAL_BANNERS: BannerSlide[] = [
   {
     id: 'banner-prelogin-mega-offer',
-    tag: 'SHARK EXCHANGE — MEGA OFFER',
-    title: '🔥 SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥',
+    tag: 'शार्क एक्सचेंज — ₹500 स्वागत बोनस',
+    title: '🔥 शार्क एक्सचेंज — अभी जुड़ें और पाएं ₹500 स्वागत बोनस! 🔥',
     subtitle:
-      'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal',
-    ctaText: 'Sign Up / Login',
+      'तुरंत जमा (डिपॉज़िट) · तुरंत निकासी (विथड्रॉल) · 24×7 ग्राहक सहायता · 100% सुरक्षित और भरोसेमंद',
+    ctaText: 'अभी ऑनलाइन खेलें',
     accentColor: '#facc15',
-    imageUrl: OFFICIAL_POSTER_ASSETS.megaOffer500Poster,
+    imageUrl: OFFICIAL_POSTER_ASSETS.hindiWelcome500AdPoster,
     secondaryImageUrl: OFFICIAL_POSTER_ASSETS.sexyVipLoungePoster,
   },
   {
@@ -452,7 +453,8 @@ function normalizeBannersStore(rawBanners?: BannerSlide[]): BannerSlide[] {
     (first.tag === '#PLAYSAFE' ||
       first.title === 'SEXY LIVE CASINO & VIP TABLES' ||
       first.imageUrl === '/assets/aistudio/IMG-20261103-WA0184_268471ee.jpg' ||
-      first.imageUrl === '/assets/aistudio/images__3__432421dc.jpeg')
+      first.imageUrl === '/assets/aistudio/images__3__432421dc.jpeg' ||
+      first.imageUrl === '/assets/aistudio/file_00000000032c821198d87fd2de4ca7de_303c7645.png')
   ) {
     return INITIAL_BANNERS;
   }
@@ -871,7 +873,8 @@ export function subscribeToAuthState(callback: AuthListenerCallback): () => void
                 (fbEmail ? fbEmail.split('@')[0] : 'VIP Player'),
               email: fbEmail || `${fbUser.uid}@sharkexch.in`,
               phone: fbUser.phoneNumber || '+91 98000 00000',
-              walletBalance: 0,
+              walletBalance: SIGNUP_WELCOME_BONUS_AMOUNT,
+              signupBonus: SIGNUP_WELCOME_BONUS_AMOUNT,
               status: 'Active',
               createdAt: new Date().toISOString(),
             };
@@ -954,6 +957,10 @@ export async function registerCustomerWithEmail(
     existingUser.name = cleanName || existingUser.name;
     existingUser.phone = cleanPhone || existingUser.phone;
     existingUser.password = password;
+    if (!existingUser.signupBonus && (existingUser.walletBalance || 0) === 0) {
+      existingUser.walletBalance = SIGNUP_WELCOME_BONUS_AMOUNT;
+      existingUser.signupBonus = SIGNUP_WELCOME_BONUS_AMOUNT;
+    }
     store.users[existingUser.uid] = existingUser;
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_SESSION_UID_KEY, existingUser.uid);
@@ -987,7 +994,8 @@ export async function registerCustomerWithEmail(
     email: cleanEmail,
     phone: cleanPhone,
     password,
-    walletBalance: 0,
+    walletBalance: SIGNUP_WELCOME_BONUS_AMOUNT,
+    signupBonus: SIGNUP_WELCOME_BONUS_AMOUNT,
     status: 'Active',
     createdAt: new Date().toISOString(),
   };
@@ -1171,7 +1179,8 @@ export async function loginWithGoogleFirebase(optionalPhone?: string): Promise<U
         name: fbUser.displayName || fbEmail.split('@')[0] || 'Google VIP User',
         email: fbEmail,
         phone: optionalPhone?.trim() || fbUser.phoneNumber || '+91 98000 00000',
-        walletBalance: 0,
+        walletBalance: SIGNUP_WELCOME_BONUS_AMOUNT,
+        signupBonus: SIGNUP_WELCOME_BONUS_AMOUNT,
         status: 'Active',
         createdAt: new Date().toISOString(),
       };
@@ -1222,7 +1231,8 @@ export async function loginWithGoogleFirebase(optionalPhone?: string): Promise<U
     name: 'VIP Google Member',
     email: fallbackGoogleEmail,
     phone: optionalPhone?.trim() || '+91 98000 00000',
-    walletBalance: 0,
+    walletBalance: SIGNUP_WELCOME_BONUS_AMOUNT,
+    signupBonus: SIGNUP_WELCOME_BONUS_AMOUNT,
     status: 'Active',
     createdAt: new Date().toISOString(),
   };

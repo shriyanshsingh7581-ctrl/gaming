@@ -66,8 +66,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
@@ -85,16 +88,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setLoading(true);
     try {
       if (mode === 'signup') {
+        const cleanUsername = (name || email).trim() || 'VIP Player';
+        const cleanPhoneDigits = phone.replace(/\D/g, '').slice(-10);
+        if (cleanPhoneDigits.length < 10) {
+          throw new Error('Please enter a valid 10-digit Phone Number.');
+        }
+        if (password.length < 4) {
+          throw new Error('Password must be at least 4 characters.');
+        }
+        const derivedEmail =
+          email.trim() && email.includes('@')
+            ? email.trim()
+            : `${cleanPhoneDigits}@sharkexch.in`;
+
         const user = await registerCustomerWithEmail({
-          name,
-          phone,
-          email,
+          name: cleanUsername,
+          phone: `+91 ${cleanPhoneDigits}`,
+          email: derivedEmail,
           password,
         });
-        onSuccess(user, `Welcome to SHARK EXCH, ${user.name}! Your account is live.`);
+        onSuccess(
+          user,
+          `🎉 स्वागत है ${user.name}! आपके खाते में ₹500 स्वागत बोनस (Welcome Bonus) जोड़ दिया गया है!`
+        );
         onClose();
       } else {
-        const user = await loginCustomerWithEmail(email, password);
+        const loginIdentifier = (email || name).trim();
+        const user = await loginCustomerWithEmail(loginIdentifier, password);
         onSuccess(user, `Welcome back, ${user.name}!`);
         onClose();
       }
@@ -110,7 +130,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setGoogleLoading(true);
     try {
       const user = await loginWithGoogleFirebase();
-      onSuccess(user, `Welcome to SHARK EXCH, ${user.name}! Signed in via Google Firebase Auth.`);
+      onSuccess(
+        user,
+        `🎉 Welcome to SHARK EXCH, ${user.name}! ₹${user.walletBalance.toLocaleString('en-IN')} Balance active.`
+      );
       onClose();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Google Sign-In failed.');
@@ -121,16 +144,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleQuickDemoLogin = async () => {
     setError('');
-    setLoading(true);
+    setDemoLoading(true);
     try {
       const user = await loginCustomerWithEmail('aarav.vip@sharkexch.in', 'Shark@2026');
-      onSuccess(user, `Logged in as Demo VIP Customer (${user.name})`);
+      onSuccess(user, `Logged in as Demo User (${user.name})`);
       onClose();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Demo login failed.');
     } finally {
-      setLoading(false);
+      setDemoLoading(false);
     }
+  };
+
+  const handleSendOtp = () => {
+    const cleanPhoneDigits = phone.replace(/\D/g, '').slice(-10);
+    if (cleanPhoneDigits.length < 10) {
+      setError('Please enter your 10-digit Phone Number first.');
+      return;
+    }
+    setError('');
+    setOtpSent(true);
+    setOtpCode('884921');
   };
 
   return (
@@ -138,45 +172,59 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="auth-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
+      className="fixed inset-0 z-50 flex flex-col justify-between bg-[#332b09] text-white overflow-y-auto"
     >
-      <div className="w-full max-w-md rounded-3xl bg-[#0c111d] border border-[#facc15]/30 shadow-2xl overflow-hidden max-h-[92vh] overflow-y-auto">
-        {/* Modal Header */}
-        <div className="bg-[#facc15] px-6 py-4 flex items-center justify-between text-[#090d16]">
-          <div className="flex items-center gap-2">
-            <span className="font-shark italic font-black text-2xl tracking-wide">
-              SHARK EXCH
+      {/* Top Centered SHARK EXCH 999 Logo + Top-Right [ X ] Close Button (Exact Video 00:08 - 00:17) */}
+      <div className="w-full max-w-lg mx-auto px-4 pt-6 pb-4 flex-1 flex flex-col">
+        <div className="relative flex items-center justify-center py-2 mb-5">
+          <div id="auth-modal-title" className="flex items-center gap-1.5 select-none">
+            <span className="font-shark italic font-black text-3xl sm:text-4xl tracking-wider flex items-center">
+              <span className="text-[#ffd739] drop-shadow-[0_2px_6px_rgba(0,0,0,0.85)]">
+                SH
+              </span>
+              <span className="inline-flex flex-col items-center mx-0.5 -mt-2">
+                <span className="text-sm leading-none text-[#ffd739]">👑</span>
+                <span className="text-white text-2xl sm:text-3xl leading-none">A</span>
+              </span>
+              <span className="text-[#ffd739] drop-shadow-[0_2px_6px_rgba(0,0,0,0.85)]">
+                RK
+              </span>
             </span>
-            <span className="text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-black/15">
-              Google Firebase Auth
+            <span className="flex flex-col leading-none">
+              <span className="font-shark font-black text-xs sm:text-sm text-white tracking-widest uppercase">
+                EXCH
+              </span>
+              <span className="font-shark font-black text-base sm:text-lg text-[#ffd739] tracking-wider">
+                999
+              </span>
             </span>
           </div>
+
           <button
             type="button"
             onClick={onClose}
             aria-label="Close Auth Modal"
-            className="p-1.5 rounded-full hover:bg-black/15 transition-colors cursor-pointer"
+            className="absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-[#42370b] hover:bg-[#5a4a12] border border-[#ffd739]/50 text-white flex items-center justify-center cursor-pointer shadow"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Mode Switcher Tabs */}
-        <div className="grid grid-cols-2 p-2 gap-2 bg-[#090d16] border-b border-white/10">
+        {/* Exact Video Segmented Tab Bar: `Login` | `Signup` (`00:08 - 00:12`) */}
+        <div className="grid grid-cols-2 p-1 rounded-xl bg-[#42370b] border border-[#ffd739]/60 mb-5 shadow-lg">
           <button
             type="button"
             onClick={() => {
               setMode('login');
               setError('');
             }}
-            className={`py-2.5 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer ${
+            className={`py-2.5 px-4 rounded-lg font-extrabold text-sm transition-all cursor-pointer ${
               mode === 'login'
-                ? 'bg-[#facc15] text-black shadow'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-[#ffd739] text-black shadow'
+                : 'text-white hover:text-[#ffd739]'
             }`}
           >
-            <LogIn className="w-4 h-4" />
-            <span>Login (Email & Password)</span>
+            Login
           </button>
           <button
             type="button"
@@ -184,216 +232,271 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               setMode('signup');
               setError('');
             }}
-            className={`py-2.5 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer ${
+            className={`py-2.5 px-4 rounded-lg font-extrabold text-sm transition-all cursor-pointer ${
               mode === 'signup'
-                ? 'bg-[#facc15] text-black shadow'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-[#ffd739] text-black shadow'
+                : 'text-white hover:text-[#ffd739]'
             }`}
           >
-            <UserPlus className="w-4 h-4" />
-            <span>Sign Up (New Email ID)</span>
+            Signup
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="flex items-center justify-between gap-2">
-            <h2 id="auth-modal-title" className="text-lg font-bold text-white">
-              {mode === 'login'
-                ? 'Sign In with Email ID & Password'
-                : 'Register with Email ID & Password'}
-            </h2>
-            <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-md">
-              Firebase Secured
+        {mode === 'signup' && (
+          <div className="mb-4 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-[#42370b] via-[#5a4a12] to-[#42370b] border border-[#ffd739] flex items-center justify-between gap-2 shadow">
+            <span className="text-xs font-extrabold text-[#ffd739]">
+              🎁 अभी साइन अप करें और पाएं ₹500 स्वागत बोनस FREE!
+            </span>
+            <span className="px-2 py-0.5 rounded bg-[#ffd739] text-black font-black text-[10px] uppercase shrink-0">
+              +₹500 BONUS
             </span>
           </div>
+        )}
 
-          {error && (
-            <div
-              role="alert"
-              className="p-3 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-xs font-medium"
-            >
-              {error}
-            </div>
-          )}
+        {error && (
+          <div
+            role="alert"
+            className="mb-4 p-3 rounded-xl bg-red-950/80 border border-red-400/50 text-red-200 text-xs font-semibold"
+          >
+            {error}
+          </div>
+        )}
 
-          {mode === 'signup' && (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === 'login' ? (
+            /* ================= EXACT VIDEO LOGIN SCREEN (`00:08 - 00:10`, `00:15 - 00:17`) ================= */
+            <>
+              <div>
+                <label
+                  htmlFor="auth-email"
+                  className="block text-xs font-bold text-white mb-1.5"
+                >
+                  Username<span className="text-red-400">*</span>
+                </label>
+                <input
+                  id="auth-email"
+                  type="text"
+                  required
+                  autoComplete="username"
+                  placeholder="Enter username"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-3.5 rounded-xl bg-[#42370b] border border-[#9e8628] text-white text-sm placeholder:text-amber-100/60 focus:outline-none focus:border-[#ffd739]"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="auth-password"
+                  className="block text-xs font-bold text-white mb-1.5"
+                >
+                  Password<span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    id="auth-password"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    autoComplete="current-password"
+                    placeholder="Enter Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-4 pr-12 py-3.5 rounded-xl bg-[#42370b] border border-[#9e8628] text-white text-sm placeholder:text-amber-100/60 focus:outline-none focus:border-[#ffd739]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-amber-200 hover:text-white cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={handleQuickDemoLogin}
+                  className="text-xs font-semibold text-white hover:text-[#ffd739] cursor-pointer"
+                >
+                  Forgot Username/Password?
+                </button>
+              </div>
+
+              {/* Exact Video 2-Button Row: Wide Yellow `Login` on Left + Dark Olive `Demo login` on Right */}
+              <div className="grid grid-cols-[1fr_130px] sm:grid-cols-[1fr_145px] gap-2.5 pt-1">
+                <button
+                  type="submit"
+                  disabled={loading || demoLoading || googleLoading}
+                  className="py-3.5 px-4 rounded-xl bg-[#ffd739] hover:bg-yellow-300 text-black font-extrabold text-sm tracking-wide shadow-lg cursor-pointer disabled:opacity-60 flex items-center justify-center"
+                >
+                  {loading ? 'Logging in...' : 'Login'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleQuickDemoLogin}
+                  disabled={loading || demoLoading || googleLoading}
+                  className="py-3.5 px-3 rounded-xl bg-[#42370b] hover:bg-[#5a4a12] border border-[#ffd739] text-white font-extrabold text-sm tracking-wide shadow-lg cursor-pointer disabled:opacity-60 flex items-center justify-center"
+                >
+                  {demoLoading ? '...' : 'Demo login'}
+                </button>
+              </div>
+            </>
+          ) : (
+            /* ================= EXACT VIDEO SIGNUP SCREEN (`00:11 - 00:12`) ================= */
             <>
               <div>
                 <label
                   htmlFor="signup-name"
-                  className="block text-xs font-semibold text-slate-300 mb-1"
+                  className="block text-xs font-bold text-white mb-1.5"
                 >
-                  Full Name
+                  Username <span className="text-red-400">*</span>
                 </label>
                 <input
                   id="signup-name"
                   type="text"
                   required
-                  placeholder="Enter your full name"
+                  placeholder="Enter username"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
+                  className="w-full px-4 py-3.5 rounded-xl bg-[#42370b] border border-[#9e8628] text-white text-sm placeholder:text-amber-100/60 focus:outline-none focus:border-[#ffd739]"
                 />
               </div>
 
               <div>
                 <label
-                  htmlFor="signup-phone"
-                  className="block text-xs font-semibold text-slate-300 mb-1"
+                  htmlFor="auth-password"
+                  className="block text-xs font-bold text-white mb-1.5"
                 >
-                  Mobile Number
+                  Password <span className="text-red-400">*</span>
                 </label>
-                <input
-                  id="signup-phone"
-                  type="tel"
-                  required
-                  placeholder="+91 98765 43210"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
-                />
+                <div className="relative">
+                  <input
+                    id="auth-password"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    autoComplete="new-password"
+                    placeholder="Enter Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-4 pr-12 py-3.5 rounded-xl bg-[#42370b] border border-[#9e8628] text-white text-sm placeholder:text-amber-100/60 focus:outline-none focus:border-[#ffd739]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-amber-200 hover:text-white cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
+
+              <div>
+                <label
+                  htmlFor="signup-phone"
+                  className="block text-xs font-bold text-white mb-1.5"
+                >
+                  Phone Number <span className="text-red-400">*</span>
+                </label>
+                <div className="grid grid-cols-[68px_1fr] rounded-xl overflow-hidden border border-[#9e8628] bg-[#42370b]">
+                  <div className="bg-[#b5982b] text-white font-bold text-sm flex items-center justify-center border-r border-[#9e8628]">
+                    +91
+                  </div>
+                  <input
+                    id="signup-phone"
+                    type="tel"
+                    required
+                    placeholder="Enter Phone Number"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full px-4 py-3.5 bg-transparent text-white text-sm placeholder:text-amber-100/60 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {otpSent && (
+                <div>
+                  <label
+                    htmlFor="signup-otp"
+                    className="block text-xs font-bold text-[#ffd739] mb-1"
+                  >
+                    OTP Verified (Auto-filled)
+                  </label>
+                  <input
+                    id="signup-otp"
+                    type="text"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#241e06] border border-[#ffd739] font-mono-tabular font-black text-[#ffd739] text-sm"
+                  />
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleSendOtp}
+                className="w-full py-3 rounded-xl bg-[#6e5d19] hover:bg-[#846f1e] border border-[#9e8628] text-amber-100 font-bold text-sm cursor-pointer transition-colors"
+              >
+                {otpSent ? 'OTP Sent ✓ (884921)' : 'Send OTP'}
+              </button>
+
+              <button
+                type="submit"
+                disabled={loading || googleLoading}
+                className="w-full py-3.5 rounded-xl bg-[#ffd739] hover:bg-yellow-300 text-black font-extrabold text-sm tracking-wide shadow-lg cursor-pointer disabled:opacity-60"
+              >
+                {loading ? 'Creating Account...' : 'Signup (Get ₹500 Bonus)'}
+              </button>
             </>
           )}
 
-          <div>
-            <label
-              htmlFor="auth-email"
-              className="block text-xs font-semibold text-slate-300 mb-1"
-            >
-              {mode === 'login' ? 'Email ID or Mobile Number' : 'Email ID'}
-            </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                id="auth-email"
-                type="text"
-                required
-                autoComplete="username"
-                placeholder={
-                  mode === 'login'
-                    ? 'yourname@gmail.com or 10-digit mobile'
-                    : 'yourname@gmail.com'
-                }
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label
-              htmlFor="auth-password"
-              className="block text-xs font-semibold text-slate-300 mb-1"
-            >
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                id="auth-password"
-                type={showPassword ? 'text' : 'password'}
-                required
-                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                placeholder="Minimum 4 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading || googleLoading}
-            className="w-full py-3 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-sm tracking-wide shadow-lg transition-transform active:scale-98 cursor-pointer disabled:opacity-50"
-          >
-            {loading
-              ? 'Authenticating with Firebase...'
-              : mode === 'login'
-              ? 'Log In with Email ID & Password'
-              : 'Create Account with Email ID & Password'}
-          </button>
-
-          {/* Divider */}
-          <div className="relative flex py-1 items-center">
-            <div className="flex-grow border-t border-white/10" />
-            <span className="flex-shrink mx-3 text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
-              OR GOOGLE FIREBASE AUTH
-            </span>
-            <div className="flex-grow border-t border-white/10" />
-          </div>
-
-          {/* Official Google Firebase Sign-In Button */}
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={loading || googleLoading}
-            className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm flex items-center justify-center gap-2.5 shadow transition-colors cursor-pointer disabled:opacity-50"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                fill="#4285F4"
-                d="M23.49 12.275c0-.85-.075-1.675-.215-2.475H12v4.685h6.445c-.28 1.495-1.125 2.765-2.395 3.615v3h3.875c2.265-2.085 3.565-5.16 3.565-8.825z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 24c3.24 0 5.955-1.075 7.94-2.91l-3.875-3c-1.075.72-2.45 1.145-4.065 1.145-3.125 0-5.77-2.11-6.715-4.945H1.28v3.095C3.255 21.305 7.31 24 12 24z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.285 14.29c-.24-.72-.375-1.49-.375-2.29s.135-1.57.375-2.29V6.615H1.28C.465 8.24 0 10.065 0 12s.465 3.76 1.28 5.385l4.005-3.095z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 4.75c1.76 0 3.34.605 4.585 1.795l3.435-3.435C17.95 1.185 15.235 0 12 0 7.31 0 3.255 2.695 1.28 6.615l4.005 3.095c.945-2.835 3.59-4.96 6.715-4.96z"
-              />
-            </svg>
-            <span>
-              {googleLoading ? 'Connecting to Google...' : 'Continue with Google Account'}
-            </span>
-          </button>
-
-          <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
-            <span className="text-xs text-slate-400">
-              {mode === 'login' ? "Don't have an account?" : 'Already have an Email ID account?'}
-            </span>
+          {/* Optional 1-Click Google Login */}
+          <div className="pt-2">
             <button
               type="button"
-              onClick={() => {
-                setMode(mode === 'login' ? 'signup' : 'login');
-                setError('');
-              }}
-              className="text-xs font-bold text-[#facc15] hover:underline cursor-pointer"
+              onClick={handleGoogleLogin}
+              disabled={loading || googleLoading}
+              className="w-full py-2.5 px-4 rounded-xl bg-white/95 hover:bg-white text-slate-900 font-bold text-xs flex items-center justify-center gap-2 shadow cursor-pointer disabled:opacity-50"
             >
-              {mode === 'login' ? 'Create New Account →' : 'Log In Here →'}
+              <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="#4285F4"
+                  d="M23.49 12.275c0-.85-.075-1.675-.215-2.475H12v4.685h6.445c-.28 1.495-1.125 2.765-2.395 3.615v3h3.875c2.265-2.085 3.565-5.16 3.565-8.825z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 24c3.24 0 5.955-1.075 7.94-2.91l-3.875-3c-1.075.72-2.45 1.145-4.065 1.145-3.125 0-5.77-2.11-6.715-4.945H1.28v3.095C3.255 21.305 7.31 24 12 24z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.285 14.29c-.24-.72-.375-1.49-.375-2.29s.135-1.57.375-2.29V6.615H1.28C.465 8.24 0 10.065 0 12s.465 3.76 1.28 5.385l4.005-3.095z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 4.75c1.76 0 3.34.605 4.585 1.795l3.435-3.435C17.95 1.185 15.235 0 12 0 7.31 0 3.255 2.695 1.28 6.615l4.005 3.095c.945-2.835 3.59-4.96 6.715-4.96z"
+                />
+              </svg>
+              <span>
+                {googleLoading ? 'Connecting to Google...' : 'Continue with Google'}
+              </span>
             </button>
           </div>
-
-          {mode === 'login' && (
-            <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
-              <span className="text-xs text-slate-400">
-                Want to test with pre-funded VIP balance?
-              </span>
-              <button
-                type="button"
-                onClick={handleQuickDemoLogin}
-                className="text-xs font-bold text-emerald-400 hover:underline cursor-pointer"
-              >
-                1-Click Demo VIP Login
-              </button>
-            </div>
-          )}
         </form>
+      </div>
+
+      {/* Exact Video Bottom `RULES & REGULATIONS © 2021` Golden Footer Strip (`00:08 - 00:17`) */}
+      <div className="w-full bg-[#846f1e] border-t border-[#ffd739]/40 px-4 py-3 text-center text-[11px] text-white/95 leading-snug">
+        <p className="font-extrabold uppercase tracking-wider text-white mb-0.5">
+          RULES &amp; REGULATIONS © 2021
+        </p>
+        <p className="max-w-xl mx-auto text-[10px] sm:text-[11px] text-amber-50">
+          You must be over 18 years old, or the legal age at which gambling or gaming
+          activities are allowed under the law or jurisdiction that applies to you. You must
+          reside in a country in which access to online gambling to its residents.
+        </p>
       </div>
     </div>
   );

@@ -8,3 +8,6 @@ coverage/
 !.env.example
 firebase-applet-config.json
 .aistudio/
+.playwright-cli/
+*.mp4
+

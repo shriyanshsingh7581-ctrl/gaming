@@ -170,9 +170,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [accountNumber, setAccountNumber] = useState<string>(paymentSettings.accountNumber);
   const [ifsc, setIfsc] = useState<string>(paymentSettings.ifsc);
 
-  // 5 Promotional Posters State (Master Admin Editable: 1 Pre-Login Poster + 4 Post-Login Dashboard Posters)
+  // 5 Promotional Posters State (Master Admin Editable: 1 Pre-Login/Popup Ad Poster + 4 Post-Login Dashboard Posters)
   const [bannerHeroImageUrl, setBannerHeroImageUrl] = useState<string>(
-    banners[0]?.imageUrl || OFFICIAL_POSTER_ASSETS.megaOffer500Poster
+    banners[0]?.imageUrl || OFFICIAL_POSTER_ASSETS.hindiWelcome500AdPoster
   );
   const [postLoginPoster1Url, setPostLoginPoster1Url] = useState<string>(
     banners[1]?.imageUrl || OFFICIAL_POSTER_ASSETS.sexyVipLoungePoster
@@ -187,17 +187,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     banners[4]?.imageUrl || OFFICIAL_POSTER_ASSETS.diveIntoActionPoster
   );
   const [bannerHeadline, setBannerHeadline] = useState<string>(
-    banners[0]?.title || '🔥 SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥'
+    banners[0]?.title ||
+      '🔥 शार्क एक्सचेंज — अभी जुड़ें और पाएं ₹500 स्वागत बोनस! 🔥'
   );
   const [bannerSubtitle, setBannerSubtitle] = useState<string>(
     banners[0]?.subtitle ||
-      'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal'
+      'Sign Up & Get ₹500 Instant Welcome Bonus Free | तुरंत जमा (डिपॉजिट) • तुरंत निकासी (विथड्रॉल) • 24×7 ग्राहक सहायता'
   );
 
   useEffect(() => {
     if (banners && banners.length > 0) {
       setBannerHeroImageUrl(
-        banners[0]?.imageUrl || OFFICIAL_POSTER_ASSETS.megaOffer500Poster
+        banners[0]?.imageUrl || OFFICIAL_POSTER_ASSETS.hindiWelcome500AdPoster
       );
       setPostLoginPoster1Url(
         banners[1]?.imageUrl || OFFICIAL_POSTER_ASSETS.sexyVipLoungePoster
@@ -212,11 +213,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         banners[4]?.imageUrl || OFFICIAL_POSTER_ASSETS.diveIntoActionPoster
       );
       setBannerHeadline(
-        banners[0]?.title || '🔥 SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥'
+        banners[0]?.title ||
+          '🔥 शार्क एक्सचेंज — अभी जुड़ें और पाएं ₹500 स्वागत बोनस! 🔥'
       );
       setBannerSubtitle(
         banners[0]?.subtitle ||
-          'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal'
+          'Sign Up & Get ₹500 Instant Welcome Bonus Free | तुरंत जमा (डिपॉजिट) • तुरंत निकासी (विथड्रॉल) • 24×7 ग्राहक सहायता'
       );
     }
   }, [banners]);
@@ -1132,7 +1134,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         {new Date(u.createdAt).toLocaleDateString('en-IN')}
                       </td>
                       <td className="py-3 px-3 font-mono-tabular font-bold text-sm text-[#facc15]">
-                        🪙 ₹{u.walletBalance.toLocaleString('en-IN')}
+                        <div>🪙 ₹{u.walletBalance.toLocaleString('en-IN')}</div>
+                        <div className="text-[10px] text-emerald-400 font-bold">
+                          🎁 Bonus: ₹{(u.signupBonus ?? 500).toLocaleString('en-IN')}
+                        </div>
                       </td>
                       <td className="py-3 px-3">
                         <span
@@ -1147,6 +1152,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       </td>
                       <td className="py-3 px-3 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await adminAdjustUserBalance(u.uid, 500);
+                              onNotify(
+                                `Credited +₹500 Welcome Bonus to ${u.name}'s Wallet!`
+                              );
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-bold text-xs cursor-pointer whitespace-nowrap"
+                          >
+                            🎁 +₹500 Bonus
+                          </button>
                           <button
                             type="button"
                             onClick={() => {
@@ -1700,11 +1717,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       <button
                         type="button"
                         onClick={() =>
-                          setBannerHeroImageUrl(OFFICIAL_POSTER_ASSETS.megaOffer500Poster)
+                          setBannerHeroImageUrl(
+                            OFFICIAL_POSTER_ASSETS.hindiWelcome500AdPoster
+                          )
                         }
                         className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/15 text-[11px] text-amber-300 cursor-pointer"
                       >
-                        Reset Default ₹500 Offer Poster
+                        Reset Hindi ₹500 स्वागत बोनस Poster
                       </button>
                     </div>
                   </div>

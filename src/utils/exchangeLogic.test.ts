@@ -447,4 +447,28 @@ test('tickLiveSportsMatches updates live sports odds while keeping Lay > Back', 
   }
 });
 
+test('SIGNUP_WELCOME_BONUS_AMOUNT is ₹500 and applySignupWelcomeBonus credits ₹500 on new sign-ups', async () => {
+  const { SIGNUP_WELCOME_BONUS_AMOUNT, applySignupWelcomeBonus } = await import(
+    './exchangeLogic'
+  );
+  assert.equal(SIGNUP_WELCOME_BONUS_AMOUNT, 500);
+  assert.equal(
+    OFFICIAL_POSTER_ASSETS.hindiWelcome500AdPoster,
+    '/assets/aistudio/file_000000003db482119b271b657ffd77dc_c3b494c1.png'
+  );
+
+  const credited = applySignupWelcomeBonus({
+    uid: 'usr_test_500',
+    name: 'Test Player',
+    email: 'test@sharkexch.in',
+    phone: '9876543210',
+    walletBalance: 0,
+    status: 'Active',
+    createdAt: '2026-11-10T00:00:00.000Z',
+  });
+  assert.equal(credited.walletBalance, 500);
+  assert.equal(credited.signupBonus, 500);
+});
+
+
 

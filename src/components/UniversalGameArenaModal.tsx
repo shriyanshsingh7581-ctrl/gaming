@@ -547,10 +547,38 @@ export const UniversalGameArenaModal: React.FC<UniversalGameArenaModalProps> = (
     player: '✊ ROCK',
     dealer: '✌️ SCISSORS',
   });
+  const adminForcedResultRef = useRef<'AUTO' | 'FORCE_WIN' | 'FORCE_LOSS' | 'FORCE_CRASH_LOW'>('AUTO');
 
   useEffect(() => {
     stakeRef.current = stake;
   }, [stake]);
+
+  // Sync Admin Panel Tab 7 gameOverrides for the active game in real time
+  useEffect(() => {
+    if (!game?.id) return;
+    let active = true;
+    const syncOverride = async () => {
+      try {
+        const res = await fetch('/api/exchange/state');
+        if (!res.ok || !active) return;
+        const data = await res.json();
+        const ov = data?.gameOverrides?.[game.id];
+        if (ov && ov.forcedResult) {
+          adminForcedResultRef.current = ov.forcedResult;
+        } else {
+          adminForcedResultRef.current = 'AUTO';
+        }
+      } catch {
+        // ignore
+      }
+    };
+    void syncOverride();
+    const poll = window.setInterval(syncOverride, 3500);
+    return () => {
+      active = false;
+      window.clearInterval(poll);
+    };
+  }, [game?.id]);
 
   // Live 15-second studio countdown timer for live dealer / WinGo tables
   useEffect(() => {
@@ -771,9 +799,14 @@ export const UniversalGameArenaModal: React.FC<UniversalGameArenaModalProps> = (
 
     activeCrashTicketRef.current = placed.ticket;
     const balanceAfterBet = placed.balanceAfterBet;
+    const forced = adminForcedResultRef.current;
     const roll = Math.random();
     const crashTarget =
-      roll < 0.32
+      forced === 'FORCE_LOSS' || forced === 'FORCE_CRASH_LOW'
+        ? Number((1.04 + Math.random() * 0.12).toFixed(2))
+        : forced === 'FORCE_WIN'
+        ? Number((Math.max(autoCashoutTarget + 1.5, 5.5) + Math.random() * 8.0).toFixed(2))
+        : roll < 0.32
         ? Number((1.14 + Math.random() * 0.75).toFixed(2))
         : roll < 0.78
         ? Number((1.95 + Math.random() * 4.2).toFixed(2))
@@ -915,7 +948,15 @@ export const UniversalGameArenaModal: React.FC<UniversalGameArenaModalProps> = (
     const nextPicks = { ...towerPicks, [lvl]: col };
     setTowerPicks(nextPicks);
 
-    if (towerTraps[lvl] === col) {
+    const forced = adminForcedResultRef.current;
+    const hitTrap =
+      forced === 'FORCE_LOSS' || forced === 'FORCE_CRASH_LOW'
+        ? true
+        : forced === 'FORCE_WIN'
+        ? false
+        : towerTraps[lvl] === col;
+
+    if (hitTrap) {
       setTowerActive(false);
       setTowerStatus('lost');
       await settleRealtimeBetTicket(
@@ -1005,7 +1046,15 @@ export const UniversalGameArenaModal: React.FC<UniversalGameArenaModalProps> = (
     nextRevealed.add(idx);
     setRevealedTiles(nextRevealed);
 
-    if (bombPositions.has(idx)) {
+    const forced = adminForcedResultRef.current;
+    const hitBomb =
+      forced === 'FORCE_LOSS' || forced === 'FORCE_CRASH_LOW'
+        ? true
+        : forced === 'FORCE_WIN'
+        ? false
+        : bombPositions.has(idx);
+
+    if (hitBomb) {
       setMinesActive(false);
       setMinesGameOver('exploded');
       await settleRealtimeBetTicket(
@@ -1101,6 +1150,7 @@ export const UniversalGameArenaModal: React.FC<UniversalGameArenaModalProps> = (
     }
 
     setTimeout(async () => {
+      const forced = adminForcedResultRef.current;
       const winChance =
         option.odds <= 2.2
           ? 0.56
@@ -1109,7 +1159,12 @@ export const UniversalGameArenaModal: React.FC<UniversalGameArenaModalProps> = (
           : option.odds <= 12
           ? 0.28
           : 0.18;
-      const won = Math.random() < winChance;
+      const won =
+        forced === 'FORCE_WIN'
+          ? true
+          : forced === 'FORCE_LOSS' || forced === 'FORCE_CRASH_LOW'
+          ? false
+          : Math.random() < winChance;
 
       // Update game-specific table state so the visual cards/dice/wheel match the outcome!
       const cA = drawRandomCard();

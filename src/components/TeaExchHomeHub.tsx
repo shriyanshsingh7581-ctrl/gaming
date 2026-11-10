@@ -40,12 +40,16 @@ import {
   Trophy,
 } from 'lucide-react';
 
+export type TeaExchBottomHubTab = 'home' | 'inplay' | 'casino' | 'sports';
+
 interface TeaExchHomeHubProps {
   currentUser: UserProfile | null;
   onOpenGame: (game: PlayableExchangeGame) => void;
   onRequireAuth: () => void;
   onNotify: (msg: string) => void;
   externalTicketTrigger?: ExchangeBetTicket | null;
+  activeHubTab?: TeaExchBottomHubTab;
+  onHubTabChange?: (tab: TeaExchBottomHubTab) => void;
 }
 
 interface PendingSportsSlip {
@@ -227,7 +231,32 @@ export const TeaExchHomeHub: React.FC<TeaExchHomeHubProps> = ({
   onRequireAuth,
   onNotify,
   externalTicketTrigger,
+  activeHubTab = 'home',
+  onHubTabChange,
 }) => {
+  const [internalHubTab, setInternalHubTab] = useState<TeaExchBottomHubTab>(activeHubTab);
+
+  useEffect(() => {
+    setInternalHubTab(activeHubTab);
+  }, [activeHubTab]);
+
+  useEffect(() => {
+    const handleSwitchTab = (evt: Event) => {
+      const custom = evt as CustomEvent<TeaExchBottomHubTab>;
+      if (custom.detail) {
+        setInternalHubTab(custom.detail);
+        onHubTabChange?.(custom.detail);
+      }
+    };
+    window.addEventListener('shark-switch-hub-tab', handleSwitchTab);
+    return () => window.removeEventListener('shark-switch-hub-tab', handleSwitchTab);
+  }, [onHubTabChange]);
+
+  const setHubTab = (tab: TeaExchBottomHubTab) => {
+    setInternalHubTab(tab);
+    onHubTabChange?.(tab);
+  };
+
   // Real-time feed states synced with `/api/exchange/realtime-feed`
   const [matches, setMatches] = useState<LiveSportsMatch[]>(INITIAL_LIVE_SPORTS_MATCHES);
   const [recentBigWins, setRecentBigWins] = useState<RecentBigWinItem[]>(
@@ -242,6 +271,18 @@ export const TeaExchHomeHub: React.FC<TeaExchHomeHubProps> = ({
   const [slipStake, setSlipStake] = useState<number>(500);
   const [placingBet, setPlacingBet] = useState<boolean>(false);
   const [settlingTicketId, setSettlingTicketId] = useState<string | null>(null);
+
+  // In-Play Accordion State (`00:21 - 00:23`, `01:30 - 01:36`)
+  const [collapsedSports, setCollapsedSports] = useState<Record<string, boolean>>({});
+
+  // Casino Tab Filter State (`00:25 - 01:29`)
+  const [casinoTopProvider, setCasinoTopProvider] = useState<string>('ALL');
+  const [casinoSubCategory, setCasinoSubCategory] = useState<string>('ALL');
+  const [casinoSearch, setCasinoSearch] = useState<string>('');
+
+  // Sportsbook 1x2 View State (`01:44 - 02:04`)
+  const [sportsbookActiveFilter, setSportsbookActiveFilter] = useState<string>('Cricket');
+  const [sportsbookQuickMenuOpen, setSportsbookQuickMenuOpen] = useState<boolean>(false);
 
   // 200 Games Catalog Filter State
   const [selectedGameCategory, setSelectedGameCategory] = useState<
@@ -348,6 +389,76 @@ export const TeaExchHomeHub: React.FC<TeaExchHomeHubProps> = ({
   });
 
   const displayedGames = showAll200AtOnce ? filteredGames : filteredGames.slice(0, 40);
+
+  // Exact Casino Tab Filtering (`00:25 - 01:29` of video)
+  const CASINO_VIDEO_PROVIDER_TABS = [
+    { key: 'ALL', label: 'ALL', isNew: false },
+    { key: 'RECENT', label: 'RECENT', isNew: false },
+    { key: 'FANTASY11', label: 'FANTASY11', isNew: true },
+    { key: 'RANDORA', label: 'RANDORA', isNew: true },
+    { key: 'Royal Gaming', label: 'ROYAL GAMING', isNew: false },
+    { key: 'Mac88', label: 'MAC88', isNew: false },
+    { key: 'Spribe', label: 'SPRIBE', isNew: false },
+    { key: 'JILI', label: 'JILI', isNew: false },
+    { key: 'Evolution', label: 'EVOLUTION', isNew: false },
+    { key: 'Ezugi', label: 'EZUGI', isNew: false },
+    { key: 'Turbogames', label: 'TURBOGAMES', isNew: false },
+    { key: 'Gamzix', label: 'GAMZIX', isNew: false },
+    { key: 'Smartsoft', label: 'SMARTSOFT', isNew: false },
+    { key: 'Fun Games', label: 'FUN GAMES', isNew: false },
+  ] as const;
+
+  const CASINO_VIDEO_CATEGORY_ICONS = [
+    { key: 'ALL', label: 'ALL', icon: '🎰', kw: '' },
+    { key: 'Dragon Tiger', label: 'Dragon Tiger', icon: '🐉', kw: 'dragon' },
+    { key: 'Aviator', label: 'Aviator', icon: '✈️', kw: 'aviator' },
+    { key: 'Mines', label: 'Mines', icon: '💣', kw: 'mines' },
+    { key: 'Color Prediction', label: 'Color Prediction', icon: '🎨', kw: 'color' },
+    { key: 'Andar Bahar', label: 'Andar Bahar', icon: '🃏', kw: 'andar' },
+    { key: 'Teenpatti', label: 'Teenpatti', icon: '👑', kw: 'teen' },
+    { key: 'Live Lobby', label: 'Live Lobby', icon: '🎥', kw: 'live' },
+    { key: 'Crash Games', label: 'Crash Games', icon: '🚀', kw: 'crash' },
+    { key: 'Casual Games', label: 'Casual Games', icon: '🎲', kw: 'plinko' },
+    { key: 'Scratch Cards', label: 'Scratch Cards', icon: '🎫', kw: 'scratch' },
+    { key: 'Live Blackjack', label: 'Live Blackjack', icon: '♠️', kw: 'blackjack' },
+    { key: 'Live Baccarat', label: 'Live Baccarat', icon: '💎', kw: 'baccarat' },
+    { key: 'Live Sic Bo', label: 'Live Sic Bo', icon: '🎲', kw: 'sic' },
+    { key: 'Live Roulette', label: 'Live Roulette', icon: '🎡', kw: 'roulette' },
+    { key: 'Virtual Casino', label: 'Virtual Casino', icon: '🕹️', kw: 'virtual' },
+    { key: 'Tv Games', label: 'Tv Games', icon: '📺', kw: 'wheel' },
+  ] as const;
+
+  const casinoTabFilteredGames = ALL_200_EXCHANGE_GAMES.filter((g) => {
+    if (casinoTopProvider !== 'ALL' && casinoTopProvider !== 'RECENT') {
+      const pLower = casinoTopProvider.toLowerCase();
+      const matchProv =
+        g.provider.toLowerCase().includes(pLower) ||
+        (g.rawProvider || '').toLowerCase().includes(pLower) ||
+        (casinoTopProvider === 'FANTASY11' && g.gameNumber <= 25) ||
+        (casinoTopProvider === 'RANDORA' && g.gameNumber > 25 && g.gameNumber <= 55);
+      if (!matchProv) return false;
+    }
+    if (casinoSubCategory !== 'ALL') {
+      const selectedCatObj = CASINO_VIDEO_CATEGORY_ICONS.find(
+        (c) => c.key === casinoSubCategory
+      );
+      const kw = (selectedCatObj?.kw || casinoSubCategory).toLowerCase();
+      const matchesCat =
+        g.name.toLowerCase().includes(kw) ||
+        g.category.toLowerCase().includes(kw) ||
+        g.engine.toLowerCase().includes(kw);
+      if (!matchesCat) return false;
+    }
+    if (casinoSearch.trim()) {
+      const q = casinoSearch.trim().toLowerCase();
+      return (
+        g.name.toLowerCase().includes(q) ||
+        g.provider.toLowerCase().includes(q) ||
+        (g.rawProvider || '').toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
 
   const slipMath = activeSlip
     ? calculateExchangeBetMath({
@@ -532,6 +643,633 @@ export const TeaExchHomeHub: React.FC<TeaExchHomeHubProps> = ({
 
   return (
     <div data-testid="teaexch-home-hub" className="space-y-5">
+      {/* ========================================================================
+       * VIDEO SCREEN MODE SWITCHER BAR (`Home` | `In-play` | `Casino` | `Sports 1x2`)
+       * Syncs with Fixed 5-Tab Bottom Navigation Bar (`00:00 - 02:04` of video)
+       * ======================================================================== */}
+      <div
+        data-testid="teaexch-video-view-switcher"
+        className="rounded-2xl bg-[#332b09] border border-[#ffd739]/40 p-1.5 grid grid-cols-4 gap-1.5 shadow-xl"
+      >
+        {(
+          [
+            { id: 'home', label: '🏠 Home', sub: 'Lobby' },
+            { id: 'inplay', label: '⚡ In-Play', sub: 'Exchange (21)' },
+            { id: 'casino', label: '🎰 Casino', sub: '200 Games' },
+            { id: 'sports', label: '🏆 Sports', sub: 'Sportsbook 1x2' },
+          ] as const
+        ).map((tab) => {
+          const active = internalHubTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              data-testid={`hub-tab-btn-${tab.id}`}
+              onClick={() => setHubTab(tab.id)}
+              className={`py-2 px-2 rounded-xl font-extrabold text-xs flex flex-col items-center justify-center transition-all cursor-pointer ${
+                active
+                  ? 'bg-[#ffd739] text-black shadow-md'
+                  : 'bg-[#241e06] text-amber-100 hover:text-white border border-[#ffd739]/20'
+              }`}
+            >
+              <span>{tab.label}</span>
+              <span
+                className={`text-[9px] font-mono-tabular ${
+                  active ? 'text-black/80 font-black' : 'text-[#ffd739]'
+                }`}
+              >
+                {tab.sub}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ========================================================================
+       * DEDICATED VIEW A: CASINO TAB (`00:25 - 01:29` & `01:37 - 01:43` of video)
+       * `[🟡 CASINO]` + `[Search games (X)]` + Provider Tabs + Category Icon Cards + Grid
+       * ======================================================================== */}
+      {internalHubTab === 'casino' && (
+        <section
+          aria-label="Casino Full View"
+          data-testid="video-casino-tab-view"
+          className="rounded-2xl bg-[#241e06] border border-[#ffd739]/45 overflow-hidden shadow-2xl space-y-3 pb-4"
+        >
+          {/* Top Bar: `[🟡 CASINO]` + `[Search games (X)]` */}
+          <div className="bg-[#332b09] px-3.5 py-2.5 border-b border-[#ffd739]/30 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="w-5 h-5 rounded-full bg-[#ffd739] text-black flex items-center justify-center font-black text-xs">
+                🎰
+              </span>
+              <span className="font-shark italic font-black text-sm sm:text-base text-[#ffd739] uppercase tracking-wider">
+                CASINO
+              </span>
+            </div>
+
+            <div className="relative flex-1 max-w-xs">
+              <input
+                type="text"
+                value={casinoSearch}
+                onChange={(e) => setCasinoSearch(e.target.value)}
+                placeholder="Search games"
+                className="w-full pl-3 pr-8 py-1.5 rounded-lg bg-[#241e06] border border-[#ffd739]/35 text-xs text-white placeholder:text-amber-200/60 focus:outline-none focus:border-[#ffd739]"
+              />
+              {casinoSearch ? (
+                <button
+                  type="button"
+                  onClick={() => setCasinoSearch('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-amber-200 hover:text-white cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              ) : (
+                <Search className="w-3.5 h-3.5 text-amber-200/70 absolute right-2.5 top-1/2 -translate-y-1/2" />
+              )}
+            </div>
+          </div>
+
+          {/* Row 1: Horizontal Provider Tabs (`ALL`, `RECENT`, `FANTASY11 [NEW]`, `RANDORA [NEW]`, `ROYAL GAMING`, `MAC88`, `SPRIBE`, `JILI`, `EVOLUTION`, etc.) */}
+          <div className="px-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar border-b border-[#ffd739]/20 pb-2">
+            {CASINO_VIDEO_PROVIDER_TABS.map((prov) => {
+              const isAct = casinoTopProvider === prov.key;
+              return (
+                <button
+                  key={prov.key}
+                  type="button"
+                  onClick={() => setCasinoTopProvider(prov.key)}
+                  className={`relative px-3 py-1.5 rounded-lg font-extrabold text-[11px] uppercase whitespace-nowrap shrink-0 cursor-pointer transition-all ${
+                    isAct
+                      ? 'bg-[#ffd739] text-black shadow'
+                      : 'bg-[#42370b] text-white hover:bg-[#5a4a12] border border-[#ffd739]/25'
+                  }`}
+                >
+                  <span>{prov.label}</span>
+                  {prov.isNew && (
+                    <span className="ml-1 px-1 py-0.2 rounded bg-red-600 text-white text-[8px] font-black animate-pulse">
+                      NEW
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Row 2: Horizontal Category Icon Cards (`ALL`, `Dragon Tiger`, `Aviator`, `Mines`, `Color Prediction`, `Andar Bahar`, `Teenpatti`, etc.) */}
+          <div className="px-3 flex items-stretch gap-2 overflow-x-auto no-scrollbar pb-1">
+            {CASINO_VIDEO_CATEGORY_ICONS.map((cat) => {
+              const isAct = casinoSubCategory === cat.key;
+              return (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setCasinoSubCategory(cat.key)}
+                  className={`px-3 py-2 rounded-xl border flex flex-col items-center justify-center gap-1 min-w-[76px] shrink-0 cursor-pointer transition-all ${
+                    isAct
+                      ? 'bg-[#ffd739] text-black border-[#ffd739] shadow-md'
+                      : 'bg-[#332b09] text-amber-100 border-[#ffd739]/30 hover:border-[#ffd739]'
+                  }`}
+                >
+                  <span className="text-base leading-none">{cat.icon}</span>
+                  <span className="text-[10px] font-extrabold whitespace-nowrap">
+                    {cat.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 3-Column Mobile / 5-Column Desktop Casino Game Thumbnail Grid */}
+          <div className="px-3 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
+            {casinoTabFilteredGames.map((game) => (
+              <button
+                key={`casino-tab-${game.id}`}
+                type="button"
+                onClick={() => onOpenGame(game)}
+                className="group relative rounded-xl overflow-hidden bg-[#42370b] border border-[#ffd739]/35 hover:border-[#ffd739] transition-all text-left cursor-pointer flex flex-col shadow-md"
+              >
+                <div className="relative w-full aspect-[336/440] bg-[#1a1504] overflow-hidden">
+                  <img
+                    src={formatTeaExchCdnImage(game.imgUrl, 336, 80)}
+                    alt={game.name}
+                    loading="lazy"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (target.src !== game.imgUrl) {
+                        target.src = game.imgUrl;
+                      }
+                    }}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
+                    <p className="text-[10px] sm:text-[11px] font-extrabold text-white truncate">
+                      {game.name}
+                    </p>
+                    <p className="text-[9px] text-[#ffd739] font-mono-tabular truncate">
+                      {game.rawProvider || game.provider}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ========================================================================
+       * DEDICATED VIEW B: IN-PLAY EXCHANGE TAB (`00:21 - 00:23`, `01:30 - 01:36`)
+       * Golden Marquee + `[LIVE]` Sport Icons Strip + `EXCHANGE (21)` + Collapsible
+       * `CRICKET`, `TENNIS`, `BINARY`, `BASKETBALL`, `TABLE TENNIS`, `ICE HOCKEY`
+       * ======================================================================== */}
+      {internalHubTab === 'inplay' && (
+        <section
+          aria-label="In-Play Exchange Full View"
+          data-testid="video-inplay-tab-view"
+          className="rounded-2xl bg-[#241e06] border border-[#ffd739]/45 overflow-hidden shadow-2xl space-y-3 pb-4"
+        >
+          {/* Golden Marquee Ticker (`00:21` of video) */}
+          <div className="bg-[#332b09] px-3 py-1.5 border-b border-[#ffd739]/35 flex items-center gap-2 text-xs text-[#ffd739] font-bold overflow-hidden">
+            <span className="shrink-0">🔔</span>
+            <div className="truncate font-mono-tabular">
+              • 1500 GAMES IN CASINO • Group betting is not allowed in our exchange • Sign Up &amp; Get ₹500 Instant Welcome Bonus!
+            </div>
+          </div>
+
+          {/* Horizontal `[LIVE]` Sport Icons Strip (`All`, `Cricket [LIVE]`, `Football [LIVE]`, `Tennis [LIVE]`, `Binary [LIVE]`, `Basketball [LIVE]`, `Table Tennis [LIVE]`, `Ice Hockey [LIVE]`) */}
+          <div className="px-3 flex items-center gap-2 overflow-x-auto no-scrollbar pt-1">
+            {[
+              { key: 'ALL', label: 'All', liveCount: matches.length, icon: '🌐' },
+              { key: 'Cricket', label: 'Cricket', liveCount: 4, icon: '🏏' },
+              { key: 'Football', label: 'Football', liveCount: 2, icon: '⚽' },
+              { key: 'Tennis', label: 'Tennis', liveCount: 2, icon: '🎾' },
+              { key: 'Binary', label: 'Binary', liveCount: 1, icon: '📈' },
+            ].map((sp) => {
+              const active = selectedSport === sp.key;
+              return (
+                <button
+                  key={sp.key}
+                  type="button"
+                  onClick={() => setSelectedSport(sp.key as 'ALL' | SportCategoryKey)}
+                  className={`relative px-3 py-2 rounded-xl border flex flex-col items-center justify-center min-w-[74px] shrink-0 cursor-pointer ${
+                    active
+                      ? 'bg-[#ffd739] text-black border-[#ffd739] font-black'
+                      : 'bg-[#42370b] text-white border-[#ffd739]/30'
+                  }`}
+                >
+                  <span className="px-1.5 py-0.2 rounded bg-red-600 text-white font-black text-[8px] uppercase mb-0.5">
+                    LIVE
+                  </span>
+                  <span className="text-sm">{sp.icon}</span>
+                  <span className="text-[10px] font-extrabold mt-0.5">{sp.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* `EXCHANGE (21)` Header Pill Bar (`00:22` of video) */}
+          <div className="px-3 flex items-center justify-between gap-2">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#ffd739] text-black font-black text-xs uppercase tracking-wider shadow">
+              <span>EXCHANGE ({matches.length + 10})</span>
+            </div>
+            <span className="text-[11px] font-mono-tabular text-amber-200">
+              1 (Back/Lay) · X · 2 (Back/Lay)
+            </span>
+          </div>
+
+          {/* Collapsible Sport Accordions (`CRICKET`, `TENNIS`, `BINARY`, `FOOTBALL`) */}
+          <div className="px-3 space-y-3">
+            {(['Cricket', 'Tennis', 'Binary', 'Football'] as const)
+              .filter((sp) => selectedSport === 'ALL' || selectedSport === sp)
+              .map((sportKey) => {
+                const sportMatches = matches.filter((m) => m.sport === sportKey);
+                if (sportMatches.length === 0) return null;
+                const isCollapsed = Boolean(collapsedSports[sportKey]);
+
+                return (
+                  <div
+                    key={`inplay-acc-${sportKey}`}
+                    className="rounded-xl overflow-hidden border border-[#ffd739]/35 bg-[#332b09]"
+                  >
+                    {/* Golden-Olive Sport Header Bar (`CRICKET`, `TENNIS`, `BINARY`) */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCollapsedSports((prev) => ({
+                          ...prev,
+                          [sportKey]: !prev[sportKey],
+                        }))
+                      }
+                      className="w-full px-3.5 py-2 bg-gradient-to-r from-[#846f1e] to-[#5a4a12] flex items-center justify-between text-left cursor-pointer"
+                    >
+                      <span className="font-shark italic font-black text-sm text-[#ffd739] uppercase tracking-wider">
+                        {sportKey} ({sportMatches.length})
+                      </span>
+                      <div className="flex items-center gap-4 text-[10px] font-mono-tabular font-black text-white">
+                        <span>1</span>
+                        <span>X</span>
+                        <span>2</span>
+                        <span>{isCollapsed ? '➕' : '➖'}</span>
+                      </div>
+                    </button>
+
+                    {!isCollapsed && (
+                      <div className="divide-y divide-[#ffd739]/20">
+                        {sportMatches.map((match) => (
+                          <div
+                            key={`inplay-row-${match.id}`}
+                            className="p-2.5 sm:p-3 bg-[#42370b] flex flex-col lg:flex-row lg:items-center justify-between gap-2.5"
+                          >
+                            {/* Left Match Title + `LIVE` badge + `P | MO | BM | F` Yellow Circular Badges */}
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="px-1.5 py-0.5 rounded bg-emerald-500 text-black font-black text-[9px] uppercase">
+                                  LIVE
+                                </span>
+                                <span className="text-[10px] text-amber-200 font-semibold truncate">
+                                  {match.competitionName}
+                                </span>
+                                {/* Exact `P | MO | BM | F` yellow circular badges from video `00:22` */}
+                                <div className="flex items-center gap-1 ml-auto sm:ml-2">
+                                  {['P', 'MO', 'BM', 'F'].map((b) => (
+                                    <span
+                                      key={b}
+                                      className="w-4 h-4 rounded-full bg-[#ffd739] text-black font-black text-[8px] flex items-center justify-center shadow"
+                                    >
+                                      {b}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                              <p className="font-extrabold text-xs sm:text-sm text-white truncate">
+                                {match.eventName}
+                              </p>
+                              <p className="text-[10px] font-mono-tabular text-[#ffd739]">
+                                {match.scoreSummary}
+                              </p>
+                            </div>
+
+                            {/* 6-Column Blue (`#72bbef`) Back & Pink (`#faa9ba`) Lay Odds Strip */}
+                            <div className="grid grid-cols-6 gap-1 shrink-0">
+                              {/* 1 Back / Lay */}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setActiveSlip({
+                                    matchId: match.id,
+                                    eventName: match.eventName,
+                                    competitionName: match.competitionName,
+                                    marketName: 'Match Odds',
+                                    selection: match.runners.home.label,
+                                    betType: 'BACK',
+                                    odds: match.runners.home.back,
+                                  })
+                                }
+                                className="py-1.5 px-2 rounded bg-[#72bbef] text-slate-950 font-mono-tabular text-center cursor-pointer"
+                              >
+                                <div className="text-[11px] font-black leading-none">
+                                  {match.runners.home.back.toFixed(2)}
+                                </div>
+                                <div className="text-[8px] font-bold opacity-75">
+                                  {match.runners.home.backSize}
+                                </div>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setActiveSlip({
+                                    matchId: match.id,
+                                    eventName: match.eventName,
+                                    competitionName: match.competitionName,
+                                    marketName: 'Match Odds',
+                                    selection: match.runners.home.label,
+                                    betType: 'LAY',
+                                    odds: match.runners.home.lay,
+                                  })
+                                }
+                                className="py-1.5 px-2 rounded bg-[#faa9ba] text-slate-950 font-mono-tabular text-center cursor-pointer"
+                              >
+                                <div className="text-[11px] font-black leading-none">
+                                  {match.runners.home.lay.toFixed(2)}
+                                </div>
+                                <div className="text-[8px] font-bold opacity-75">
+                                  {match.runners.home.laySize}
+                                </div>
+                              </button>
+
+                              {/* X Back / Lay */}
+                              <div className="py-1.5 px-2 rounded bg-[#72bbef]/40 text-white font-mono-tabular text-center flex flex-col items-center justify-center text-[10px] font-bold">
+                                {match.runners.draw
+                                  ? match.runners.draw.back.toFixed(2)
+                                  : '—'}
+                              </div>
+                              <div className="py-1.5 px-2 rounded bg-[#faa9ba]/40 text-white font-mono-tabular text-center flex flex-col items-center justify-center text-[10px] font-bold">
+                                {match.runners.draw
+                                  ? match.runners.draw.lay.toFixed(2)
+                                  : '—'}
+                              </div>
+
+                              {/* 2 Back / Lay */}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setActiveSlip({
+                                    matchId: match.id,
+                                    eventName: match.eventName,
+                                    competitionName: match.competitionName,
+                                    marketName: 'Match Odds',
+                                    selection: match.runners.away.label,
+                                    betType: 'BACK',
+                                    odds: match.runners.away.back,
+                                  })
+                                }
+                                className="py-1.5 px-2 rounded bg-[#72bbef] text-slate-950 font-mono-tabular text-center cursor-pointer"
+                              >
+                                <div className="text-[11px] font-black leading-none">
+                                  {match.runners.away.back.toFixed(2)}
+                                </div>
+                                <div className="text-[8px] font-bold opacity-75">
+                                  {match.runners.away.backSize}
+                                </div>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setActiveSlip({
+                                    matchId: match.id,
+                                    eventName: match.eventName,
+                                    competitionName: match.competitionName,
+                                    marketName: 'Match Odds',
+                                    selection: match.runners.away.label,
+                                    betType: 'LAY',
+                                    odds: match.runners.away.lay,
+                                  })
+                                }
+                                className="py-1.5 px-2 rounded bg-[#faa9ba] text-slate-950 font-mono-tabular text-center cursor-pointer"
+                              >
+                                <div className="text-[11px] font-black leading-none">
+                                  {match.runners.away.lay.toFixed(2)}
+                                </div>
+                                <div className="text-[8px] font-bold opacity-75">
+                                  {match.runners.away.laySize}
+                                </div>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        </section>
+      )}
+
+      {/* ========================================================================
+       * DEDICATED VIEW C: SPORTSBOOK `1x2` VIEW (`01:44 - 02:04` of video)
+       * `[ ★ ]`, `[ ((•)) ]`, `Cricket (24)`, `Soccer (181)`, `Tennis (70)`, `SRL`
+       * + `LIVE EVENTS` & `UPCOMING EVENTS` with `Score [ 0:0 ]` & `1x2` buttons
+       * + Floating Right-Edge Purple Quick Menu (`Home`, `Inplay`, `My Bets`, `Results`, `Favourites`, `Search`)
+       * ======================================================================== */}
+      {internalHubTab === 'sports' && (
+        <section
+          aria-label="Sportsbook 1x2 View"
+          data-testid="video-sportsbook-tab-view"
+          className="relative rounded-2xl bg-[#191528] border border-[#ffd739]/45 overflow-hidden shadow-2xl space-y-4 p-3.5 sm:p-5"
+        >
+          {/* Top Horizontal Sport Counter Strip (`01:44` of video) */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+            {[
+              { key: 'Fav', label: '★', count: 0 },
+              { key: 'Live', label: '((•)) LIVE', count: 21 },
+              { key: 'Cricket', label: '🏏 Cricket', count: 24 },
+              { key: 'Football', label: '⚽ Soccer', count: 181 },
+              { key: 'Tennis', label: '🎾 Tennis', count: 70 },
+              { key: 'SRL', label: '🎮 SRL', count: 16 },
+            ].map((item) => {
+              const isAct = sportsbookActiveFilter === item.key;
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => setSportsbookActiveFilter(item.key)}
+                  className={`px-3 py-2 rounded-xl font-extrabold text-xs whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer transition-all ${
+                    isAct
+                      ? 'bg-[#ffd739] text-black shadow'
+                      : 'bg-[#28223d] text-white border border-white/10 hover:border-[#ffd739]/50'
+                  }`}
+                >
+                  <span>{item.label}</span>
+                  {item.count > 0 && (
+                    <span
+                      className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono-tabular ${
+                        isAct ? 'bg-black/20 text-black' : 'bg-white/10 text-[#ffd739]'
+                      }`}
+                    >
+                      {item.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* LIVE EVENTS Header (`01:45` of video) */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-shark italic font-black text-base text-[#ffd739] uppercase tracking-wider flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                <span>LIVE EVENTS</span>
+              </h3>
+              <span className="text-[11px] font-mono-tabular text-amber-200">
+                Market: 1x2
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {matches.map((m) => (
+                <div
+                  key={`sb-card-${m.id}`}
+                  className="rounded-xl bg-[#251f3a] border border-[#ffd739]/30 p-3 space-y-2.5 shadow-lg"
+                >
+                  <div className="flex items-center justify-between text-[11px] text-amber-200/90 border-b border-white/10 pb-1.5">
+                    <span className="truncate font-bold">
+                      {m.sport} · {m.competitionName}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono-tabular font-bold text-[10px]">
+                      1st innings · LIVE
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <p className="font-extrabold text-xs sm:text-sm text-white truncate">
+                        {m.teamA}
+                      </p>
+                      <p className="font-extrabold text-xs sm:text-sm text-white truncate">
+                        {m.teamB}
+                      </p>
+                    </div>
+                    <div className="px-3 py-1.5 rounded-lg bg-black/50 border border-[#ffd739]/40 text-center shrink-0">
+                      <span className="block text-[9px] text-amber-200/80 uppercase">
+                        Score
+                      </span>
+                      <span className="font-mono-tabular font-black text-xs text-[#ffd739]">
+                        {m.scoreSummary.slice(0, 18)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 1 | X | 2 Odds Buttons */}
+                  <div className="grid grid-cols-3 gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActiveSlip({
+                          matchId: m.id,
+                          eventName: m.eventName,
+                          competitionName: m.competitionName,
+                          marketName: '1x2 Sportsbook',
+                          selection: m.teamA,
+                          betType: 'BACK',
+                          odds: m.runners.home.back,
+                        })
+                      }
+                      className="py-2 px-2.5 rounded-lg bg-[#382f56] hover:bg-[#ffd739] hover:text-black text-white font-mono-tabular flex items-center justify-between text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      <span className="opacity-75">1</span>
+                      <span className="font-black text-[#ffd739] group-hover:text-black">
+                        {m.runners.home.back.toFixed(2)}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActiveSlip({
+                          matchId: m.id,
+                          eventName: m.eventName,
+                          competitionName: m.competitionName,
+                          marketName: '1x2 Sportsbook',
+                          selection: 'Draw (X)',
+                          betType: 'BACK',
+                          odds: m.runners.draw?.back || 3.45,
+                        })
+                      }
+                      className="py-2 px-2.5 rounded-lg bg-[#382f56] hover:bg-[#ffd739] hover:text-black text-white font-mono-tabular flex items-center justify-between text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      <span className="opacity-75">X</span>
+                      <span className="font-black text-[#ffd739]">
+                        {(m.runners.draw?.back || 3.45).toFixed(2)}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActiveSlip({
+                          matchId: m.id,
+                          eventName: m.eventName,
+                          competitionName: m.competitionName,
+                          marketName: '1x2 Sportsbook',
+                          selection: m.teamB,
+                          betType: 'BACK',
+                          odds: m.runners.away.back,
+                        })
+                      }
+                      className="py-2 px-2.5 rounded-lg bg-[#382f56] hover:bg-[#ffd739] hover:text-black text-white font-mono-tabular flex items-center justify-between text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      <span className="opacity-75">2</span>
+                      <span className="font-black text-[#ffd739]">
+                        {m.runners.away.back.toFixed(2)}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right-Edge Floating Purple Quick Menu (`01:46 - 02:04` of video) */}
+          <div className="fixed right-3 bottom-20 z-30 flex flex-col items-end gap-1.5">
+            {sportsbookQuickMenuOpen && (
+              <div className="rounded-2xl bg-[#3b1d5e]/95 border border-[#ffd739]/50 p-2 shadow-2xl flex flex-col gap-1.5 min-w-[130px] backdrop-blur-md">
+                {[
+                  { label: '🏠 Home', act: () => setHubTab('home') },
+                  { label: '⚡ Inplay', act: () => setHubTab('inplay') },
+                  {
+                    label: '🎫 My Bets',
+                    act: () =>
+                      sportsSectionRef.current?.scrollIntoView({ behavior: 'smooth' }),
+                  },
+                  { label: '🏆 Results', act: () => onNotify('All Live Match Results synced!') },
+                  { label: '⭐ Favourites', act: () => setSportsbookActiveFilter('Fav') },
+                  { label: '🔍 Search', act: () => setHubTab('casino') },
+                ].map((mItem) => (
+                  <button
+                    key={mItem.label}
+                    type="button"
+                    onClick={() => {
+                      mItem.act();
+                      setSportsbookQuickMenuOpen(false);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-[#ffd739] hover:text-black text-white font-extrabold text-xs text-left transition-colors cursor-pointer"
+                  >
+                    {mItem.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setSportsbookQuickMenuOpen((p) => !p)}
+              className="px-3.5 py-2 rounded-full bg-gradient-to-r from-[#581c87] to-[#7e22ce] border-2 border-[#ffd739] text-[#ffd739] font-black text-xs shadow-xl cursor-pointer flex items-center gap-1.5"
+            >
+              <span>{sportsbookQuickMenuOpen ? '✕ Close Menu' : '☰ Sports Menu'}</span>
+            </button>
+          </div>
+        </section>
+      )}
+
       {/* ========================================================================
        * 1. RECENT BIG WINS LIVE TICKER (Exact teaexch999.com/home `recent-big-wins`)
        *    Shows real game thumbnails (`imgUrl`), Crown icon, player name & Gold Coin amount
@@ -1715,6 +2453,166 @@ export const TeaExchHomeHub: React.FC<TeaExchHomeHubProps> = ({
           </div>
         )}
       </section>
+
+      {/* ========================================================================
+       * 12. APP DOWNLOAD BANNER (Exact teaexch999.com/home `app-download-banner`:
+       *     "Enhance Your Betting Journey — Download our App for the Ultimate Experience")
+       * ======================================================================== */}
+      <section
+        aria-label="App Download Banner"
+        data-testid="teaexch-app-download-banner"
+        className="rounded-2xl bg-gradient-to-r from-[#241e06] via-[#42370b] to-[#846f1e] border-2 border-[#ffd739]/60 p-4 sm:p-6 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4"
+      >
+        <div className="space-y-1 text-center sm:text-left">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#ffd739]/20 border border-[#ffd739]/40 text-[10px] font-black uppercase tracking-wider text-[#ffd739]">
+            SHARK EXCH MOBILE APK
+          </div>
+          <h3 className="font-shark italic font-black text-lg sm:text-2xl text-white uppercase tracking-wide">
+            Enhance Your Betting Journey
+          </h3>
+          <p className="text-xs sm:text-sm text-amber-100/90">
+            Download our App for the Ultimate Experience · Instant 1-Click Login, Live Sports Odds &amp; All 200 Casino Games
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() =>
+            onNotify(
+              'SHARK EXCH Official Android App (v4.8 APK) ready! Use Add to Home Screen or contact WhatsApp Support for direct APK link.'
+            )
+          }
+          className="px-6 py-3 rounded-xl bg-[#ffd739] hover:bg-yellow-300 text-black font-black text-xs sm:text-sm uppercase tracking-wider shadow-xl cursor-pointer shrink-0 flex items-center gap-2"
+        >
+          <span>📲 Download App</span>
+        </button>
+      </section>
+
+      {/* ========================================================================
+       * 13. OFFICIAL 4-COLUMN FOOTER (`FooterView-B22YVgsr.js`:
+       *     `Explore`, `Support`, `About`, `Legal` + 18+ Responsible Gaming)
+       * ======================================================================== */}
+      <footer
+        aria-label="Exchange Footer"
+        data-testid="teaexch-home-footer"
+        className="rounded-2xl bg-[#1a1504] border border-[#ffd739]/30 p-4 sm:p-6 space-y-5 text-xs text-amber-100/80"
+      >
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="space-y-2">
+            <h4 className="font-black text-[#ffd739] uppercase tracking-wider text-xs">
+              Explore
+            </h4>
+            <ul className="space-y-1.5 text-[11px]">
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedSport('Cricket');
+                    sportsSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="hover:text-[#ffd739] cursor-pointer"
+                >
+                  Cricket Exchange
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedSport('Football');
+                    sportsSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="hover:text-[#ffd739] cursor-pointer"
+                >
+                  Football &amp; Tennis In-Play
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() =>
+                    scrollToCatalogWithFilter({
+                      section: 'live_casino_games',
+                      category: 'ALL',
+                      provider: 'ALL',
+                      search: '',
+                    })
+                  }
+                  className="hover:text-[#ffd739] cursor-pointer"
+                >
+                  Live Casino Studios
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() =>
+                    scrollToCatalogWithFilter({
+                      section: 'hot_games',
+                      category: 'ALL',
+                      provider: 'ALL',
+                      search: '',
+                    })
+                  }
+                  className="hover:text-[#ffd739] cursor-pointer"
+                >
+                  Aviator &amp; Crash Originals
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="font-black text-[#ffd739] uppercase tracking-wider text-xs">
+              Support
+            </h4>
+            <ul className="space-y-1.5 text-[11px]">
+              <li>24/7 Live WhatsApp Support</li>
+              <li>Instant Deposit &amp; UTR Verification</li>
+              <li>Fast Bank &amp; UPI Withdrawals</li>
+              <li>VIP Account Manager</li>
+            </ul>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="font-black text-[#ffd739] uppercase tracking-wider text-xs">
+              About
+            </h4>
+            <ul className="space-y-1.5 text-[11px]">
+              <li>SHARK EXCH Official Platform</li>
+              <li>15 Certified Casino Providers</li>
+              <li>200 Real-Time Playable Games</li>
+              <li>Real-Time Back &amp; Lay Match Odds</li>
+            </ul>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="font-black text-[#ffd739] uppercase tracking-wider text-xs">
+              Legal
+            </h4>
+            <ul className="space-y-1.5 text-[11px]">
+              <li>Rules &amp; Regulations</li>
+              <li>Responsible Gaming (18+ Only)</li>
+              <li>Terms &amp; Conditions</li>
+              <li>Privacy &amp; Fair Play Policy</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-[#ffd739]/20 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-amber-200/70">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded bg-red-600 text-white font-black text-[10px]">
+              18+
+            </span>
+            <span>
+              Players must be 18 years or older. Play responsibly within your limits.
+            </span>
+          </div>
+          <span className="font-mono-tabular text-[#ffd739]">
+            © {new Date().getFullYear()} SHARK EXCH · Golden Sunbet Edition
+          </span>
+        </div>
+      </footer>
     </div>
   );
 };
