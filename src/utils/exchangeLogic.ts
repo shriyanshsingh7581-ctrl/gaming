@@ -103,6 +103,7 @@ export interface PaymentSettings {
   minDeposit: number;
   minWithdrawal: number;
   promoVideoUrl?: string;
+  promoVideoOrientation?: 'landscape' | 'portrait';
   authPosterUrl?: string;
   homePosterUrl?: string;
   updatedAt: string;

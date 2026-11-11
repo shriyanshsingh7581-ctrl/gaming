@@ -315,6 +315,7 @@ export const INITIAL_PAYMENT_SETTINGS: PaymentSettings = {
   minDeposit: 500,
   minWithdrawal: 500,
   promoVideoUrl: DEFAULT_CLOUDINARY_PROMO_VIDEO_URL,
+  promoVideoOrientation: 'landscape',
   authPosterUrl: '',
   homePosterUrl: OFFICIAL_POSTER_ASSETS.permanentThreeGirlsPoster,
   updatedAt: new Date().toISOString(),
@@ -637,6 +638,10 @@ function loadHybridStore(): HybridDatabaseSchema {
               !String(parsed.paymentSettings.promoVideoUrl).includes('ihegf7oimbdgdq9zmlsb')
                 ? toPlayableCloudinaryVideoUrl(parsed.paymentSettings.promoVideoUrl)
                 : DEFAULT_CLOUDINARY_PROMO_VIDEO_URL,
+            promoVideoOrientation:
+              parsed.paymentSettings?.promoVideoOrientation === 'portrait'
+                ? 'portrait'
+                : 'landscape',
             homePosterUrl:
               parsed.paymentSettings?.homePosterUrl &&
               parsed.paymentSettings.homePosterUrl !==
@@ -909,6 +914,10 @@ export function subscribeToRealtimeData(callback: ListenerCallback): () => void 
       const nextPromoVideoUrl = toPlayableCloudinaryVideoUrl(
         candidateVideoUrl || DEFAULT_CLOUDINARY_PROMO_VIDEO_URL
       );
+      const nextPromoVideoOrientation =
+        srvPs.promoVideoOrientation ||
+        current.paymentSettings.promoVideoOrientation ||
+        'landscape';
       const nextHomePosterUrl =
         srvPs.homePosterUrl || current.paymentSettings.homePosterUrl;
 
@@ -916,6 +925,7 @@ export function subscribeToRealtimeData(callback: ListenerCallback): () => void 
         ...current.paymentSettings,
         ...srvPs,
         promoVideoUrl: nextPromoVideoUrl,
+        promoVideoOrientation: nextPromoVideoOrientation,
         homePosterUrl: nextHomePosterUrl,
       };
 
@@ -1817,6 +1827,7 @@ export async function uploadImageToCloudinary(
  */
 export async function adminSaveMediaSettings(params: {
   promoVideoUrl?: string;
+  promoVideoOrientation?: 'landscape' | 'portrait';
   authPosterUrl?: string;
   homePosterUrl?: string;
 }): Promise<PaymentSettings> {
@@ -1830,6 +1841,9 @@ export async function adminSaveMediaSettings(params: {
     ...store.paymentSettings,
     ...(normalizedVideoUrl !== undefined
       ? { promoVideoUrl: normalizedVideoUrl }
+      : {}),
+    ...(params.promoVideoOrientation !== undefined
+      ? { promoVideoOrientation: params.promoVideoOrientation }
       : {}),
     ...(params.authPosterUrl !== undefined
       ? { authPosterUrl: params.authPosterUrl }
@@ -1848,6 +1862,7 @@ export async function adminSaveMediaSettings(params: {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         promoVideoUrl: updated.promoVideoUrl,
+        promoVideoOrientation: updated.promoVideoOrientation,
         authPosterUrl: updated.authPosterUrl,
         homePosterUrl: updated.homePosterUrl,
       }),

@@ -40,7 +40,9 @@ export type GameCategoryType =
  */
 export const CloudinaryPromoVideoSection: React.FC<{
   videoUrl?: string;
-}> = ({ videoUrl }) => {
+  orientation?: 'landscape' | 'portrait';
+}> = ({ videoUrl, orientation = 'landscape' }) => {
+  const isPortrait = orientation === 'portrait';
   const normalizedUrl = toPlayableCloudinaryVideoUrl(
     videoUrl || DEFAULT_CLOUDINARY_PROMO_VIDEO_URL
   );
@@ -144,95 +146,111 @@ export const CloudinaryPromoVideoSection: React.FC<{
   }, [resolvedSrc]);
 
   return (
-    <section
-      aria-label="Promotional Video and Instant Bonus"
-      data-testid="cloudinary-video-section"
-      data-cloudinary-cloud-name={CLOUDINARY_CLOUD_NAME}
-      data-cloudinary-upload-preset={CLOUDINARY_UPLOAD_PRESET}
-      className="rounded-2xl overflow-hidden border-2 border-[#facc15]/70 bg-[#050811] shadow-[0_10px_30px_rgba(0,0,0,0.65)]"
-    >
-      <div
-        className="relative w-full min-h-[210px] sm:min-h-[280px] bg-black flex items-center justify-center cursor-pointer"
-        onClick={() => {
-          const v = videoRef.current;
-          if (!v) return;
-          v.defaultMuted = false;
-          v.muted = false;
-          v.volume = 1.0;
-          v.loop = true;
-          void v.play().catch(() => {});
-        }}
+    <div className="w-full space-y-3.5 pt-1.5 sm:pt-2">
+      {/* 1. Video Container (Landscape 16:9 banner or Portrait full-page view) */}
+      <section
+        aria-label="Promotional Video"
+        data-testid="cloudinary-video-section"
+        data-cloudinary-cloud-name={CLOUDINARY_CLOUD_NAME}
+        data-cloudinary-upload-preset={CLOUDINARY_UPLOAD_PRESET}
+        className={`w-full rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-[#facc15]/80 bg-[#050811] shadow-[0_10px_32px_rgba(0,0,0,0.7)] transition-all ${
+          isPortrait
+            ? 'min-h-[500px] sm:min-h-[640px] max-h-[82vh]'
+            : 'min-h-[210px] sm:min-h-[290px]'
+        }`}
       >
-        <video
-          ref={videoRef}
-          key={resolvedSrc}
-          data-testid="cloudinary-promo-video"
-          src={resolvedSrc}
-          preload="auto"
-          className="w-full min-h-[210px] sm:min-h-[280px] max-h-[280px] sm:max-h-[360px] object-contain bg-black block"
-          autoPlay
-          loop
-          playsInline
-          onLoadedMetadata={(e) => {
-            const v = e.currentTarget;
+        <div
+          className={`relative w-full bg-black flex items-center justify-center cursor-pointer ${
+            isPortrait
+              ? 'h-[72vh] min-h-[500px] sm:min-h-[640px]'
+              : 'min-h-[210px] sm:min-h-[290px]'
+          }`}
+          onClick={() => {
+            const v = videoRef.current;
+            if (!v) return;
             v.defaultMuted = false;
+            v.muted = false;
             v.volume = 1.0;
             v.loop = true;
+            void v.play().catch(() => {});
           }}
-          onCanPlay={(e) => {
-            const v = e.currentTarget;
-            if (v.paused) {
-              void startPlaybackWithAudio(v);
-            }
-          }}
-          onError={() => {
-            // 1. If an uploaded mobile video (e.g. HEVC/H.265) needs transcoding on Cloudinary,
-            // automatically apply Cloudinary's H.264 + AAC MP4 transformation.
-            if (
-              resolvedSrc.includes('res.cloudinary.com') &&
-              resolvedSrc.includes('/video/upload/') &&
-              !resolvedSrc.includes('vc_h264')
-            ) {
-              setResolvedSrc(
-                resolvedSrc.replace(
-                  '/video/upload/',
-                  '/video/upload/f_mp4,vc_h264,ac_aac/'
-                )
-              );
-              return;
-            }
-            // 2. If a stale or broken URL was cached, fall back to the verified Cloudinary loop video
-            if (
-              resolvedSrc !== DEFAULT_CLOUDINARY_PROMO_VIDEO_URL &&
-              resolvedSrc !== '/uploads/shark-promo-loop.mp4'
-            ) {
-              setResolvedSrc(DEFAULT_CLOUDINARY_PROMO_VIDEO_URL);
-              return;
-            }
-            // 3. Final local fallback
-            if (resolvedSrc !== '/uploads/shark-promo-loop.mp4') {
-              setResolvedSrc('/uploads/shark-promo-loop.mp4');
-            }
-          }}
-        />
-      </div>
+        >
+          <video
+            ref={videoRef}
+            key={`${resolvedSrc}_${orientation}`}
+            data-testid="cloudinary-promo-video"
+            src={resolvedSrc}
+            preload="auto"
+            className={`w-full bg-black block ${
+              isPortrait
+                ? 'h-full object-cover sm:object-contain'
+                : 'min-h-[210px] sm:min-h-[290px] max-h-[300px] sm:max-h-[380px] object-contain'
+            }`}
+            autoPlay
+            loop
+            playsInline
+            onLoadedMetadata={(e) => {
+              const v = e.currentTarget;
+              v.defaultMuted = false;
+              v.volume = 1.0;
+              v.loop = true;
+            }}
+            onCanPlay={(e) => {
+              const v = e.currentTarget;
+              if (v.paused) {
+                void startPlaybackWithAudio(v);
+              }
+            }}
+            onError={() => {
+              // 1. If an uploaded mobile video (e.g. HEVC/H.265) needs transcoding on Cloudinary,
+              // automatically apply Cloudinary's H.264 + AAC MP4 transformation.
+              if (
+                resolvedSrc.includes('res.cloudinary.com') &&
+                resolvedSrc.includes('/video/upload/') &&
+                !resolvedSrc.includes('vc_h264')
+              ) {
+                setResolvedSrc(
+                  resolvedSrc.replace(
+                    '/video/upload/',
+                    '/video/upload/f_mp4,vc_h264,ac_aac/'
+                  )
+                );
+                return;
+              }
+              // 2. If a stale or broken URL was cached, fall back to the verified Cloudinary loop video
+              if (
+                resolvedSrc !== DEFAULT_CLOUDINARY_PROMO_VIDEO_URL &&
+                resolvedSrc !== '/uploads/shark-promo-loop.mp4'
+              ) {
+                setResolvedSrc(DEFAULT_CLOUDINARY_PROMO_VIDEO_URL);
+                return;
+              }
+              // 3. Final local fallback
+              if (resolvedSrc !== '/uploads/shark-promo-loop.mp4') {
+                setResolvedSrc('/uploads/shark-promo-loop.mp4');
+              }
+            }}
+          />
+        </div>
+      </section>
 
-      {/* Single-line, bold green strip (zoomed/prominent, no line-break) */}
+      {/* 2. Separate Rounded Green Strip with gap below video */}
       <div
         data-testid="promo-green-strip"
-        className="w-full bg-gradient-to-r from-[#059669] via-[#10b981] to-[#059669] border-t-2 border-emerald-300 px-3 py-2.5 sm:py-3 text-center overflow-hidden"
+        className="w-full rounded-2xl sm:rounded-3xl bg-gradient-to-r from-[#059669] via-[#10b981] to-[#059669] border-2 border-emerald-300 shadow-[0_6px_20px_rgba(16,185,129,0.35)] px-3 py-3 sm:py-3.5 text-center overflow-hidden"
       >
         <p className="font-black text-white text-sm sm:text-xl md:text-2xl tracking-wide whitespace-nowrap truncate drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] scale-[1.03]">
           {PROMO_GREEN_STRIP_TEXT}
         </p>
       </div>
-    </section>
+    </div>
   );
 };
 
 interface PreLoginLandingPageProps {
   banners: BannerSlide[];
   promoVideoUrl?: string;
+  promoVideoOrientation?: 'landscape' | 'portrait';
   authPosterUrl?: string;
   onOpenSignUpModal: () => void;
   onOpenLoginModal: () => void;
@@ -242,17 +260,19 @@ interface PreLoginLandingPageProps {
 
 /**
  * PRE-LOGIN LANDING & AUTH PAGE (Login & Signup Screen):
- * - Minimalist Top Header with White & Yellow "SHARK / - EXCHANGE -" logo.
- * - Single Cloudinary Video Player (`dxeuzdwkz` / `Sharkexchange`) looping with Audio Permanently ON
- *   (NO poster image before or below the video — only the Admin Panel video is shown)
- *   + single-line bold green strip: "Pay 500 and get 1000 instant bonus"
+ * - Top Header includes White & Yellow SHARK / - EXCHANGE - Logo on left
+ *   AND Login & Sign Up buttons on the right (marked in red circle).
+ *   These buttons disappear immediately upon login.
+ * - Single Cloudinary Video Player (`dxeuzdwkz` / `Sharkexchange`) looping with Audio Permanently ON.
+ *   Orientation switchable between Landscape (default banner) and Portrait (full-page view) via Admin Panel.
+ * - Distinct, standalone rounded green strip separated by a gap below the video.
  * - Clean Authentication Card:
- *   - No "Continue with Google" or "Demo Account" options.
  *   - Signup Form: strictly 3 fields (Mobile Number, Email, Password).
  *   - Login Form: strictly 2 fields (Email, Password).
  */
 export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
   promoVideoUrl,
+  promoVideoOrientation = 'landscape',
   onAuthSuccess,
 }) => {
   const [authTab, setAuthTab] = useState<'signup' | 'login'>('signup');
@@ -261,6 +281,13 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const authCardRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToAuthCard = (tab: 'signup' | 'login') => {
+    setAuthTab(tab);
+    authCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -306,27 +333,57 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
       data-testid="page-1-prelogin-landing"
       className="min-h-screen bg-[#070a10] text-white flex flex-col pb-12"
     >
-      {/* Minimalist Top Black Header Bar with White & Yellow SHARK / - EXCHANGE - Logo */}
-      <header className="bg-[#070a10] border-b border-white/10 px-3.5 sm:px-6 py-2.5 flex items-center justify-between gap-2">
+      {/* Top Black Header Bar: Logo on left + Sign Up and Login buttons on right (Disappear once logged in) */}
+      <header
+        data-testid="prelogin-header"
+        className="bg-[#070a10] border-b border-white/10 px-3.5 sm:px-6 py-2.5 flex items-center justify-between gap-2 sticky top-0 z-30"
+      >
         <SharkXLogo size="sm" />
+
+        {/* User-requested Header Auth Buttons in red-circled area */}
+        <div
+          data-testid="header-auth-buttons"
+          className="flex items-center gap-2"
+        >
+          <button
+            type="button"
+            data-testid="header-btn-signup"
+            onClick={() => scrollToAuthCard('signup')}
+            className="px-3 sm:px-4 py-1.5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-extrabold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer shadow transition-transform active:scale-95"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>Sign Up</span>
+          </button>
+          <button
+            type="button"
+            data-testid="header-btn-login"
+            onClick={() => scrollToAuthCard('login')}
+            className="px-3 sm:px-4 py-1.5 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer shadow transition-transform active:scale-95"
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            <span>Login</span>
+          </button>
+        </div>
       </header>
 
       {/* Main Pre-Login Front Page Container */}
-      <main className="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 pt-4 space-y-5">
-        {/* 1. CLOUDINARY LOOP VIDEO ONLY (NO POSTER, AUDIO AUTOMATICALLY ON) + BOLD GREEN STRIP */}
-        <CloudinaryPromoVideoSection videoUrl={promoVideoUrl} />
-
+      <main className="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 pt-3 sm:pt-4 space-y-6">
+        {/* 1. CLOUDINARY LOOP VIDEO ONLY (NO POSTER, AUDIO ON, PORTRAIT/LANDSCAPE OPTIMIZED) + ROUNDED GREEN STRIP WITH GAP */}
+        <CloudinaryPromoVideoSection
+          videoUrl={promoVideoUrl}
+          orientation={promoVideoOrientation}
+        />
 
         {/* 2. SIGNUP / LOGIN TAB BUTTONS */}
         <div
           aria-label="Primary Hero Actions"
           data-testid="hero-below-cta-bar"
-          className="grid grid-cols-2 gap-3"
+          className="grid grid-cols-2 gap-3 pt-1"
         >
           <button
             type="button"
             data-testid="hero-cta-signup"
-            onClick={() => setAuthTab('signup')}
+            onClick={() => scrollToAuthCard('signup')}
             className={`py-3 px-4 rounded-2xl font-extrabold text-sm sm:text-base tracking-wide uppercase flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95 border-2 ${
               authTab === 'signup'
                 ? 'bg-[#10b981] text-white border-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.35)]'
@@ -340,7 +397,7 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
           <button
             type="button"
             data-testid="hero-cta-login"
-            onClick={() => setAuthTab('login')}
+            onClick={() => scrollToAuthCard('login')}
             className={`py-3 px-4 rounded-2xl font-extrabold text-sm sm:text-base tracking-wide uppercase flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95 border-2 ${
               authTab === 'login'
                 ? 'bg-[#facc15] text-[#090d16] border-yellow-200 shadow-[0_0_20px_rgba(250,204,21,0.35)]'
@@ -353,11 +410,12 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
         </div>
 
         {/* 3. AUTHENTICATION FORM CARD (Signup: 3 fields | Login: 2 fields) */}
-        <section
-          aria-label="Customer Sign Up and Login Form"
-          data-testid="page-1-auth-card"
-          className="rounded-3xl bg-[#0c111d] border-2 border-[#facc15]/50 shadow-[0_18px_48px_rgba(0,0,0,0.75)] overflow-hidden"
-        >
+        <div ref={authCardRef}>
+          <section
+            aria-label="Customer Sign Up and Login Form"
+            data-testid="page-1-auth-card"
+            className="rounded-3xl bg-[#0c111d] border-2 border-[#facc15]/50 shadow-[0_18px_48px_rgba(0,0,0,0.75)] overflow-hidden"
+          >
           <div className="bg-[#facc15] text-[#090d16] px-5 py-3.5 flex items-center justify-between gap-2">
             <h3 className="font-shark italic font-black text-base sm:text-xl tracking-wide uppercase">
               {authTab === 'signup' ? 'SIGN UP ACCOUNT' : 'MEMBER LOGIN'}
@@ -452,6 +510,7 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
             </form>
           </div>
         </section>
+        </div>
       </main>
     </div>
   );

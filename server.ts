@@ -247,12 +247,14 @@ async function startServer() {
    * Dedicated fast endpoint for saving Admin Panel promoVideoUrl and homePosterUrl.
    */
   app.post('/api/exchange/media-settings', (req, res) => {
-    const { promoVideoUrl, homePosterUrl, authPosterUrl } = req.body || {};
+    const { promoVideoUrl, promoVideoOrientation, homePosterUrl, authPosterUrl } =
+      req.body || {};
     const existing = serverLiveHybridStore || { updatedAt: new Date().toISOString() };
     const currentPs = (existing.paymentSettings || {}) as Record<string, unknown>;
     const updatedPs: Record<string, unknown> = {
       ...currentPs,
       ...(promoVideoUrl !== undefined ? { promoVideoUrl } : {}),
+      ...(promoVideoOrientation !== undefined ? { promoVideoOrientation } : {}),
       ...(homePosterUrl !== undefined ? { homePosterUrl } : {}),
       ...(authPosterUrl !== undefined ? { authPosterUrl } : {}),
       updatedAt: new Date().toISOString(),

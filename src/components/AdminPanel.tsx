@@ -232,6 +232,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [promoVideoUrlInput, setPromoVideoUrlInput] = useState<string>(
     paymentSettings.promoVideoUrl || DEFAULT_CLOUDINARY_PROMO_VIDEO_URL
   );
+  const [promoVideoOrientationInput, setPromoVideoOrientationInput] = useState<
+    'landscape' | 'portrait'
+  >(paymentSettings.promoVideoOrientation || 'landscape');
   const [authPosterUrlInput, setAuthPosterUrlInput] = useState<string>(
     paymentSettings.authPosterUrl || ''
   );
@@ -252,6 +255,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setIfsc(paymentSettings.ifsc);
     setPromoVideoUrlInput(
       paymentSettings.promoVideoUrl || DEFAULT_CLOUDINARY_PROMO_VIDEO_URL
+    );
+    setPromoVideoOrientationInput(
+      paymentSettings.promoVideoOrientation || 'landscape'
     );
     setAuthPosterUrlInput(paymentSettings.authPosterUrl || '');
     setHomePosterUrlInput(
@@ -318,13 +324,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     await adminSaveMediaSettings({
       promoVideoUrl:
         promoVideoUrlInput.trim() || DEFAULT_CLOUDINARY_PROMO_VIDEO_URL,
+      promoVideoOrientation: promoVideoOrientationInput,
       authPosterUrl: '',
       homePosterUrl:
         homePosterUrlInput.trim() ||
         OFFICIAL_POSTER_ASSETS.permanentThreeGirlsPoster,
     });
     onNotify(
-      '✅ Saved Home Screen Poster & Login/Signup Loop Video!'
+      `✅ Saved Video (${promoVideoOrientationInput.toUpperCase()}) & Home Poster!`
     );
   };
 
@@ -776,6 +783,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       minDeposit: paymentSettings.minDeposit || 500,
       minWithdrawal: paymentSettings.minWithdrawal || 500,
       promoVideoUrl: cleanVideoUrl,
+      promoVideoOrientation: promoVideoOrientationInput,
       authPosterUrl: '',
       homePosterUrl: cleanHomePosterUrl,
       updatedAt: new Date().toISOString(),
@@ -1613,6 +1621,44 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           loop
                           playsInline
                         />
+                      </div>
+
+                      {/* Orientation Mode Switcher: Landscape (Banner) vs Portrait (Full Page) */}
+                      <div className="pt-1">
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                          Screen Display Mode (Landscape / Portrait)
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            data-testid="admin-orientation-landscape-btn"
+                            onClick={() => setPromoVideoOrientationInput('landscape')}
+                            className={`py-2 px-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 cursor-pointer border transition-colors ${
+                              promoVideoOrientationInput === 'landscape'
+                                ? 'bg-[#facc15] text-black border-[#facc15] shadow'
+                                : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'
+                            }`}
+                          >
+                            <span>📺 Landscape (Default)</span>
+                          </button>
+                          <button
+                            type="button"
+                            data-testid="admin-orientation-portrait-btn"
+                            onClick={() => setPromoVideoOrientationInput('portrait')}
+                            className={`py-2 px-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 cursor-pointer border transition-colors ${
+                              promoVideoOrientationInput === 'portrait'
+                                ? 'bg-emerald-400 text-black border-emerald-400 shadow'
+                                : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'
+                            }`}
+                          >
+                            <span>📱 Portrait (Full Page)</span>
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-1">
+                          {promoVideoOrientationInput === 'portrait'
+                            ? '✨ Portrait mode active: Video will stretch to full page height on customer Login/Signup screens.'
+                            : '✨ Landscape mode active: Video displays in standard banner format.'}
+                        </p>
                       </div>
 
                       <div>

@@ -115,7 +115,8 @@
     "promoVideoUrl": "https://res.cloudinary.com/dxeuzdwkz/video/upload/v1794419293/lvhgrawz00aem6fvayez.mp4",
     "authPosterUrl": "",
     "homePosterUrl": "/assets/aistudio/file_00000000efc4821190c85e045f25eb1f_3e6a5a0f.png",
-    "updatedAt": "2026-11-11T17:53:54.546Z"
+    "updatedAt": "2026-11-11T18:03:06.258Z",
+    "promoVideoOrientation": "portrait"
   },
   "banners": [
     {
@@ -208,5 +209,5 @@
       }
     }
   },
-  "updatedAt": "2026-11-11T17:53:54.549Z"
+  "updatedAt": "2026-11-11T18:03:57.402Z"
 }

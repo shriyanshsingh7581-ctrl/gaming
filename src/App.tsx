@@ -278,6 +278,7 @@ export default function App() {
         <PreLoginLandingPage
           banners={banners}
           promoVideoUrl={paymentSettings.promoVideoUrl}
+          promoVideoOrientation={paymentSettings.promoVideoOrientation || 'landscape'}
           authPosterUrl={paymentSettings.authPosterUrl}
           onOpenSignUpModal={() => handleOpenAuth('signup')}
           onOpenLoginModal={() => handleOpenAuth('login')}
