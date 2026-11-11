@@ -470,5 +470,46 @@ test('SIGNUP_WELCOME_BONUS_AMOUNT is ₹500 and applySignupWelcomeBonus credits 
   assert.equal(credited.signupBonus, 500);
 });
 
+test('Cloudinary config constants, green promo strip text, and Create ID wallet balance validation', async () => {
+  const {
+    CLOUDINARY_CLOUD_NAME,
+    CLOUDINARY_UPLOAD_PRESET,
+    PROMO_GREEN_STRIP_TEXT,
+    INSUFFICIENT_BALANCE_CREATE_ID_ERROR,
+    validateCreateIdInput,
+    calculateWalletAfterCreateIdRequest,
+  } = await import('./exchangeLogic');
+
+  assert.equal(CLOUDINARY_CLOUD_NAME, 'dxeuzdwkz');
+  assert.equal(CLOUDINARY_UPLOAD_PRESET, 'Sharkexchange');
+  assert.equal(PROMO_GREEN_STRIP_TEXT, 'Pay 500 and get 1000 instant bonus');
+
+  const insufficientZero = validateCreateIdInput({
+    username: 'shark_player',
+    amount: 500,
+    walletBalance: 0,
+  });
+  assert.equal(insufficientZero.valid, false);
+  assert.equal(insufficientZero.error, INSUFFICIENT_BALANCE_CREATE_ID_ERROR);
+  assert.equal(insufficientZero.error, 'Insufficient wallet balance to create ID');
+
+  const insufficientPartial = validateCreateIdInput({
+    username: 'shark_player',
+    amount: 1000,
+    walletBalance: 500,
+  });
+  assert.equal(insufficientPartial.valid, false);
+  assert.equal(insufficientPartial.error, 'Insufficient wallet balance to create ID');
+
+  const validReq = validateCreateIdInput({
+    username: 'shark_player',
+    amount: 500,
+    walletBalance: 1200,
+  });
+  assert.equal(validReq.valid, true);
+  assert.equal(calculateWalletAfterCreateIdRequest(1200, 500), 700);
+});
+
+
 
 

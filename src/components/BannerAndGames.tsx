@@ -1,30 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   BannerSlide,
   UserProfile,
   OFFICIAL_POSTER_ASSETS,
-  PUBLIC_HOMEPAGE_SLIDER_INTERVAL_MS,
+  DEFAULT_CLOUDINARY_PROMO_VIDEO_URL,
+  CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_UPLOAD_PRESET,
+  PROMO_GREEN_STRIP_TEXT,
 } from '../utils/exchangeLogic';
 import {
   registerCustomerWithEmail,
   loginCustomerWithEmail,
-  loginWithGoogleFirebase,
 } from '../firebase';
+import { SharkXLogo } from './SharkHeader';
 import {
-  ChevronLeft,
-  ChevronRight,
-  Flame,
-  Trophy,
-  Zap,
-  Play,
   UserPlus,
   LogIn,
-  Crown,
-  Sparkles,
   Mail,
   Lock,
   Phone,
-  User as UserIcon,
 } from 'lucide-react';
 
 export type GameCategoryType =
@@ -34,8 +28,57 @@ export type GameCategoryType =
   | 'color'
   | 'casino';
 
+/**
+ * Reusable Cloudinary Single Video Player + Bold Green Strip Component:
+ * - Replaces top banner sliders with a single video player hosted/streamed via Cloudinary
+ *   (Cloud Name: `dxeuzdwkz`, Upload Preset: `Sharkexchange`).
+ * - Under the video, displays a single-line, bold green strip (zoomed/prominent, no line-break)
+ *   with the exact text: "Pay 500 and get 1000 instant bonus"
+ */
+export const CloudinaryPromoVideoSection: React.FC<{
+  videoUrl?: string;
+}> = ({ videoUrl }) => {
+  const activeVideoUrl = videoUrl || DEFAULT_CLOUDINARY_PROMO_VIDEO_URL;
+
+  return (
+    <section
+      aria-label="Promotional Video and Instant Bonus"
+      data-testid="cloudinary-video-section"
+      data-cloudinary-cloud-name={CLOUDINARY_CLOUD_NAME}
+      data-cloudinary-upload-preset={CLOUDINARY_UPLOAD_PRESET}
+      className="rounded-2xl overflow-hidden border-2 border-[#facc15]/70 bg-[#050811] shadow-[0_10px_30px_rgba(0,0,0,0.65)]"
+    >
+      <div className="relative w-full bg-black">
+        <video
+          key={activeVideoUrl}
+          data-testid="cloudinary-promo-video"
+          src={activeVideoUrl}
+          poster={OFFICIAL_POSTER_ASSETS.megaOffer500Poster}
+          className="w-full max-h-[260px] sm:max-h-[340px] object-cover block"
+          controls
+          autoPlay
+          muted
+          loop
+          playsInline
+        />
+      </div>
+
+      {/* Single-line, bold green strip (zoomed/prominent, no line-break) */}
+      <div
+        data-testid="promo-green-strip"
+        className="w-full bg-gradient-to-r from-[#059669] via-[#10b981] to-[#059669] border-t-2 border-emerald-300 px-3 py-2.5 sm:py-3 text-center overflow-hidden"
+      >
+        <p className="font-black text-white text-sm sm:text-xl md:text-2xl tracking-wide whitespace-nowrap truncate drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] scale-[1.03]">
+          {PROMO_GREEN_STRIP_TEXT}
+        </p>
+      </div>
+    </section>
+  );
+};
+
 interface PreLoginLandingPageProps {
   banners: BannerSlide[];
+  promoVideoUrl?: string;
   onOpenSignUpModal: () => void;
   onOpenLoginModal: () => void;
   onOpenPromoAd?: () => void;
@@ -43,69 +86,28 @@ interface PreLoginLandingPageProps {
 }
 
 /**
- * PAGE 1: PRE-LOGIN PROMOTIONAL LANDING & AUTH PAGE (00:00 - 00:06 of video):
- * - Top slim bar: SHARK EXCH on left; green `Sign Up`, yellow `Login`, and dark `EN` button on right.
- * - Highlighted promotional banner card (`front-hero-promo-banner`):
- *   - Top row: `[👑 SHARK EXCHANGE]` on left and `[✨ MEGA OFFER · ₹500 की ID पर ₹500 FREE!]` on right.
- *   - 2-slide auto-sliding carousel (`megaOffer500Poster` & `spinWheelPoster`) with 2 indicator dots.
- *   - Highlighted Offer Callout Box directly under the slider (`🔥 SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥`, `[💸 ₹500 की ID पर | ₹500 FREE!]`, `[Pay ₹500 ➔ Get ₹1,000 Instant ID]`).
- * - Directly below the promo card:
- *   - 2 Hero Action Buttons: Left green `[👤+ SIGN UP]` and right dark-bordered `[➔] LOGIN]`.
- *   - Inline VIP Account Card (`page-1-auth-card`) with yellow top header bar (`CREATE YOUR VIP ACCOUNT (SIGN UP)` | `INSTANT ACCESS`), white `Continue with Google (Instant Login)` button, `OR WITH EMAIL & PASSWORD` divider, Full Name, WhatsApp / Mobile Number, Email ID, Password, yellow `Sign Up & Enter SHARK EXCH Dashboard` button, and 1-Click Demo VIP Login link.
+ * PRE-LOGIN LANDING & AUTH PAGE:
+ * - Minimalist Top Header with SharkX branding ("Shark" large prominent, "X" smaller royal/classic)
+ *   and Login / Signup buttons.
+ * - Single Cloudinary Video Player (`dxeuzdwkz` / `Sharkexchange`) + single-line bold green strip:
+ *   "Pay 500 and get 1000 instant bonus"
+ * - Clean Authentication Card:
+ *   - No "Continue with Google" or "Demo Account" options.
+ *   - Signup Form: strictly 3 fields (Mobile Number, Email, Password).
+ *   - Login Form: strictly 2 fields (Email, Password).
  */
 export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
-  banners,
+  promoVideoUrl,
   onOpenSignUpModal,
   onOpenLoginModal,
   onAuthSuccess,
 }) => {
   const [authTab, setAuthTab] = useState<'signup' | 'login'>('signup');
-  const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [demoLoading, setDemoLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const frontMegaOfferBanner = banners[0];
-  const megaOfferPosterUrl =
-    frontMegaOfferBanner?.imageUrl || OFFICIAL_POSTER_ASSETS.megaOffer500Poster;
-
-  const mainOfferHeadline =
-    frontMegaOfferBanner?.title ||
-    '🔥 SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥';
-  const subOfferHeadline =
-    frontMegaOfferBanner?.subtitle ||
-    'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal';
-
-  const publicPromoSlides = [
-    {
-      id: 'public-slide-mega-offer',
-      imageUrl: megaOfferPosterUrl,
-      alt: 'SHARK EXCHANGE MEGA OFFER: ₹500 की ID पर ₹500 FREE!',
-      badgeText: 'MEGA OFFER · ₹500 की ID पर ₹500 FREE!',
-    },
-    {
-      id: 'public-slide-spin-wheel-poster',
-      imageUrl: OFFICIAL_POSTER_ASSETS.spinWheelPoster,
-      alt: 'SHARK EXCHANGE — SPIN THE WHEEL Promotional Poster',
-      badgeText: 'SPIN THE WHEEL · EXCITING REWARDS DAILY!',
-    },
-  ];
-
-  const [publicSlideIndex, setPublicSlideIndex] = useState(0);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setPublicSlideIndex((prev) => (prev + 1) % publicPromoSlides.length);
-    }, PUBLIC_HOMEPAGE_SLIDER_INTERVAL_MS);
-    return () => window.clearInterval(timer);
-  }, [publicPromoSlides.length]);
-
-  const activePublicSlide =
-    publicPromoSlides[publicSlideIndex] || publicPromoSlides[0];
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,17 +115,19 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
     setLoading(true);
     try {
       if (authTab === 'signup') {
-        if (!name.trim()) throw new Error('Please enter your full name.');
-        if (phone.replace(/\D/g, '').length < 10) {
-          throw new Error('Please enter a valid 10-digit WhatsApp/Mobile number.');
+        const cleanDigits = phone.replace(/\D/g, '').slice(-10);
+        if (cleanDigits.length < 10) {
+          throw new Error('Please enter a valid 10-digit Mobile Number.');
+        }
+        if (!email.trim() || !email.includes('@')) {
+          throw new Error('Please enter a valid Email address.');
         }
         if (password.length < 6) {
           throw new Error('Password must be at least 6 characters.');
         }
         const profile = await registerCustomerWithEmail({
-          name,
-          phone: `+91 ${phone.replace(/\D/g, '').slice(-10)}`,
-          email: email.trim() || `${phone.replace(/\D/g, '').slice(-10)}@sharkexch.in`,
+          phone: `+91 ${cleanDigits}`,
+          email: email.trim(),
           password,
         });
         onAuthSuccess(
@@ -131,7 +135,10 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
           `🎉 Welcome ${profile.name}! ₹500 Welcome Bonus credited to your wallet!`
         );
       } else {
-        const profile = await loginCustomerWithEmail(email, password);
+        if (!email.trim()) {
+          throw new Error('Please enter your Email.');
+        }
+        const profile = await loginCustomerWithEmail(email.trim(), password);
         onAuthSuccess(profile, `Welcome back, ${profile.name}!`);
       }
     } catch (err: unknown) {
@@ -141,196 +148,47 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
     }
   };
 
-  const handleDemoLogin = async () => {
-    setError(null);
-    setDemoLoading(true);
-    try {
-      const profile = await loginCustomerWithEmail('aarav.vip@sharkexch.in', 'Shark@2026');
-      onAuthSuccess(
-        profile,
-        `Logged in as Demo VIP Customer (${profile.name})`
-      );
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Demo login failed.');
-    } finally {
-      setDemoLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    setError(null);
-    setGoogleLoading(true);
-    try {
-      const profile = await loginWithGoogleFirebase(phone);
-      onAuthSuccess(profile, `Signed in with Google as ${profile.name}!`);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Google sign-in failed.');
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
-
   return (
     <div
       data-testid="page-1-prelogin-landing"
       className="min-h-screen bg-[#070a10] text-white flex flex-col pb-12"
     >
-      {/* Top Bar (SHARK EXCH Logo + Green Sign Up / Yellow Login / EN) */}
+      {/* Minimalist Top Header Bar (SharkX + Login / Signup buttons) */}
       <header className="bg-[#070a10] border-b border-white/10 px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5">
-          <span className="font-shark italic font-black text-lg sm:text-2xl tracking-wider">
-            <span className="text-white">SHARK</span>{' '}
-            <span className="text-[#facc15]">EXCH</span>
-          </span>
-          <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Official Gaming Exchange
-          </span>
-        </div>
+        <SharkXLogo size="sm" />
 
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => {
-              setAuthTab('signup');
-              onOpenSignUpModal();
-            }}
-            className="px-3.5 py-1.5 rounded-xl bg-[#10b981] hover:bg-emerald-400 text-white font-extrabold text-xs sm:text-sm tracking-wide cursor-pointer"
-          >
-            Sign Up
-          </button>
-          <button
-            type="button"
+            data-testid="prelogin-header-login-btn"
             onClick={() => {
               setAuthTab('login');
               onOpenLoginModal();
             }}
-            className="px-3.5 py-1.5 rounded-xl bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold text-xs sm:text-sm tracking-wide cursor-pointer"
+            className="px-3.5 py-1.5 rounded-lg bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold text-xs sm:text-sm tracking-wide cursor-pointer"
           >
             Login
           </button>
-          <span className="px-2.5 py-1.5 rounded-xl bg-[#111726] border border-white/15 text-xs font-extrabold text-white">
-            EN
-          </span>
+          <button
+            type="button"
+            data-testid="prelogin-header-signup-btn"
+            onClick={() => {
+              setAuthTab('signup');
+              onOpenSignUpModal();
+            }}
+            className="px-3.5 py-1.5 rounded-lg bg-[#10b981] hover:bg-emerald-400 text-white font-extrabold text-xs sm:text-sm tracking-wide cursor-pointer"
+          >
+            Signup
+          </button>
         </div>
       </header>
 
       {/* Main Pre-Login Front Page Container */}
       <main className="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 pt-4 space-y-5">
-        {/* 1. HIGHLIGHTED FULL-HD "SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE!" POSTER */}
-        <section
-          aria-label="Promotional Offers"
-          data-testid="front-hero-promo-banner"
-          className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#140e00] via-[#090d16] to-[#1a1100] border-[3px] border-[#facc15] shadow-[0_0_48px_rgba(250,204,21,0.38)]"
-        >
-          {/* Ambient Gold Spotlight */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(250,204,21,0.22),transparent_65%)] pointer-events-none" />
+        {/* 1. CLOUDINARY VIDEO PLAYER + SINGLE-LINE BOLD GREEN STRIP */}
+        <CloudinaryPromoVideoSection videoUrl={promoVideoUrl} />
 
-          <div className="relative p-2.5 sm:p-4 space-y-3">
-            {/* Top Brand & Highlighted Bonus Strip */}
-            <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/80 border border-[#facc15]/70 shadow">
-                <Crown className="w-3.5 h-3.5 text-[#facc15]" />
-                <span className="font-shark italic font-black text-xs sm:text-sm text-white tracking-wider">
-                  SHARK <span className="text-[#facc15]">EXCHANGE</span>
-                </span>
-              </div>
-
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-gradient-to-r from-[#facc15] via-yellow-300 to-[#eab308] text-black font-black text-[11px] sm:text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(250,204,21,0.75)] border border-white">
-                <Sparkles className="w-3.5 h-3.5 fill-current" />
-                <span>{activePublicSlide.badgeText}</span>
-              </span>
-            </div>
-
-            {/* Automatic Promotional Banner Slider (2 Slides: Mega Offer ₹500 + Spin the Wheel) */}
-            <div
-              data-testid="public-front-banner-slider"
-              className="relative rounded-2xl overflow-hidden border-2 border-[#facc15]/80 bg-[#050811] shadow-[0_0_32px_rgba(250,204,21,0.3)] select-none"
-            >
-              <div className="relative w-full overflow-hidden">
-                <div
-                  className="flex transition-transform duration-700 ease-in-out"
-                  style={{
-                    transform: `translateX(-${publicSlideIndex * 100}%)`,
-                  }}
-                >
-                  {publicPromoSlides.map((slide, idx) => (
-                    <div
-                      key={slide.id}
-                      data-testid={`public-promo-slide-${idx + 1}`}
-                      className="w-full shrink-0"
-                    >
-                      <img
-                        src={slide.imageUrl}
-                        alt={slide.alt}
-                        data-testid={
-                          idx === 0
-                            ? 'prelogin-mega-offer-poster-img'
-                            : 'prelogin-spin-wheel-poster-img'
-                        }
-                        referrerPolicy="no-referrer"
-                        className="w-full h-auto object-contain block pointer-events-none"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Navigation Dots for Public Front Page Automatic Banner Slider */}
-              <div
-                data-testid="public-front-slider-dots"
-                className="flex items-center justify-center gap-2.5 py-2.5 bg-[#070a10]/90 border-t border-white/10"
-              >
-                {publicPromoSlides.map((slide, idx) => (
-                  <button
-                    key={`public-dot-${slide.id}`}
-                    type="button"
-                    data-testid={`public-slider-dot-${idx + 1}`}
-                    aria-label={`Promotional banner slide ${idx + 1}`}
-                    onClick={() => setPublicSlideIndex(idx)}
-                    className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
-                      publicSlideIndex === idx
-                        ? 'w-8 bg-[#facc15] shadow-[0_0_10px_rgba(250,204,21,0.8)]'
-                        : 'w-2.5 bg-white/35 hover:bg-white/60'
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Highlighted Offer Callout Bar Directly Under Poster */}
-            <div className="relative rounded-2xl bg-gradient-to-r from-[#1a1100] via-[#2b1d00] to-[#1a1100] border-2 border-[#facc15] px-3.5 py-3 sm:px-5 sm:py-3.5 text-center shadow-[0_0_28px_rgba(250,204,21,0.35)] space-y-2">
-              <h2
-                data-testid="hero-mega-offer-headline"
-                className="font-black text-base sm:text-2xl text-[#facc15] drop-shadow-[0_2px_10px_rgba(250,204,21,0.65)] tracking-tight leading-snug"
-              >
-                {mainOfferHeadline}
-              </h2>
-
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <div className="px-3.5 py-1 rounded-xl bg-gradient-to-r from-[#facc15] via-yellow-300 to-[#eab308] text-black font-black text-xs sm:text-base tracking-wide shadow border border-white flex items-center gap-1.5">
-                  <span>💸 ₹500 की ID पर</span>
-                  <span className="px-2 py-0.5 rounded-md bg-black text-[#facc15] font-extrabold">
-                    ₹500 FREE!
-                  </span>
-                </div>
-
-                <div className="px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-400 text-emerald-300 font-extrabold text-xs sm:text-sm tracking-wide">
-                  Pay ₹500 ➔ Get ₹1,000 Instant ID
-                </div>
-              </div>
-
-              <p
-                data-testid="hero-mega-offer-subheadline"
-                className="text-xs sm:text-sm font-bold text-white/95"
-              >
-                {subOfferHeadline}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* 2. DIRECTLY BELOW PROMO POSTER ON PAGE 1: GREEN "SIGN UP" AND DARK-BORDERED "LOGIN" BUTTONS (00:00 - 00:06) */}
+        {/* 2. SIGNUP / LOGIN TAB BUTTONS */}
         <div
           aria-label="Primary Hero Actions"
           data-testid="hero-below-cta-bar"
@@ -339,11 +197,12 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
           <button
             type="button"
             data-testid="hero-cta-signup"
-            onClick={() => {
-              setAuthTab('signup');
-              onOpenSignUpModal();
-            }}
-            className="py-3.5 px-4 rounded-2xl bg-[#10b981] hover:bg-emerald-400 text-white font-extrabold text-sm sm:text-base tracking-wide uppercase shadow-[0_0_24px_rgba(16,185,129,0.4)] border-2 border-emerald-300 flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95"
+            onClick={() => setAuthTab('signup')}
+            className={`py-3 px-4 rounded-2xl font-extrabold text-sm sm:text-base tracking-wide uppercase flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95 border-2 ${
+              authTab === 'signup'
+                ? 'bg-[#10b981] text-white border-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.35)]'
+                : 'bg-[#0c111d] text-emerald-400 border-emerald-500/40'
+            }`}
           >
             <UserPlus className="w-5 h-5 stroke-[2.5]" />
             <span>Sign Up</span>
@@ -352,77 +211,32 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
           <button
             type="button"
             data-testid="hero-cta-login"
-            onClick={() => {
-              setAuthTab('login');
-              onOpenLoginModal();
-            }}
-            className="py-3.5 px-4 rounded-2xl bg-[#0c111d] hover:bg-[#131b2e] text-[#facc15] font-extrabold text-sm sm:text-base tracking-wide uppercase shadow-lg border-2 border-[#facc15]/60 flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95"
+            onClick={() => setAuthTab('login')}
+            className={`py-3 px-4 rounded-2xl font-extrabold text-sm sm:text-base tracking-wide uppercase flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95 border-2 ${
+              authTab === 'login'
+                ? 'bg-[#facc15] text-[#090d16] border-yellow-200 shadow-[0_0_20px_rgba(250,204,21,0.35)]'
+                : 'bg-[#0c111d] text-[#facc15] border-[#facc15]/50'
+            }`}
           >
             <LogIn className="w-5 h-5 stroke-[2.5]" />
             <span>Login</span>
           </button>
         </div>
 
-        {/* 3. INLINE VIP ACCOUNT CARD (`00:01 - 00:05` of video) */}
+        {/* 3. AUTHENTICATION FORM CARD (Signup: 3 fields | Login: 2 fields) */}
         <section
           aria-label="Customer Sign Up and Login Form"
           data-testid="page-1-auth-card"
           className="rounded-3xl bg-[#0c111d] border-2 border-[#facc15]/50 shadow-[0_18px_48px_rgba(0,0,0,0.75)] overflow-hidden"
         >
-          {/* Yellow Top Header Bar (`CREATE YOUR VIP ACCOUNT (SIGN UP)` | `INSTANT ACCESS`) */}
           <div className="bg-[#facc15] text-[#090d16] px-5 py-3.5 flex items-center justify-between gap-2">
             <h3 className="font-shark italic font-black text-base sm:text-xl tracking-wide uppercase">
-              {authTab === 'signup'
-                ? 'CREATE YOUR VIP ACCOUNT (SIGN UP)'
-                : 'VIP MEMBER LOGIN'}
+              {authTab === 'signup' ? 'SIGN UP ACCOUNT' : 'MEMBER LOGIN'}
             </h3>
-            <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider">
-              INSTANT ACCESS
-            </span>
+            <SharkXLogo size="sm" darkText />
           </div>
 
           <div className="p-5 sm:p-6 space-y-4">
-            {/* White Google Instant Login Button */}
-            <button
-              type="button"
-              data-testid="landing-google-auth-btn"
-              onClick={handleGoogleLogin}
-              disabled={googleLoading || loading || demoLoading}
-              className="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-[#090d16] font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-md transition-transform active:scale-98 cursor-pointer disabled:opacity-50"
-            >
-              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  fill="#EA4335"
-                  d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.4 1 3.5 3.6 1.6 7.4l3.7 2.8C6.2 7.2 8.9 5 12 5z"
-                />
-                <path
-                  fill="#4285F4"
-                  d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.6l3.7 2.9c2.2-2 3.7-5 3.7-8.7z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.3 14.8c-.2-.8-.4-1.6-.4-2.5s.2-1.7.4-2.5L1.6 7C.6 9 0 11.2 0 13.5s.6 4.5 1.6 6.5l3.7-2.9z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 24c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3.1 0-5.8-2.1-6.7-5l-3.7 2.8C3.5 20.9 7.4 24 12 24z"
-                />
-              </svg>
-              <span>
-                {googleLoading
-                  ? 'Connecting to Google...'
-                  : 'Continue with Google (Instant Login)'}
-              </span>
-            </button>
-
-            <div className="relative flex items-center justify-center">
-              <div className="border-t border-white/10 w-full" />
-              <span className="bg-[#0c111d] px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">
-                OR WITH EMAIL &amp; PASSWORD
-              </span>
-              <div className="border-t border-white/10 w-full" />
-            </div>
-
             {error && (
               <div className="p-3 rounded-xl bg-red-500/15 border border-red-400/40 text-red-200 text-xs font-bold text-center">
                 {error}
@@ -431,107 +245,82 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
 
             <form onSubmit={handleAuthSubmit} className="space-y-3.5">
               {authTab === 'signup' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1">
-                      Full Name
-                    </label>
-                    <div className="relative">
-                      <UserIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                      <input
-                        type="text"
-                        required
-                        placeholder="Enter your name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#070a10] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1">
-                      WhatsApp / Mobile Number
-                    </label>
-                    <div className="relative">
-                      <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                      <input
-                        type="tel"
-                        required
-                        placeholder="10-digit mobile number"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#070a10] border border-white/15 text-white text-sm font-mono-tabular focus:outline-none focus:border-[#facc15]"
-                      />
-                    </div>
+                <div>
+                  <label
+                    htmlFor="landing-signup-phone"
+                    className="block text-xs font-bold text-slate-300 mb-1"
+                  >
+                    Mobile Number
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      id="landing-signup-phone"
+                      type="tel"
+                      required
+                      placeholder="10-digit mobile number"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#070a10] border border-white/15 text-white text-sm font-mono-tabular focus:outline-none focus:border-[#facc15]"
+                    />
                   </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Email ID
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                    <input
-                      type="email"
-                      required
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#070a10] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
-                    />
-                  </div>
+              <div>
+                <label
+                  htmlFor="landing-auth-email"
+                  className="block text-xs font-bold text-slate-300 mb-1"
+                >
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  <input
+                    id="landing-auth-email"
+                    type="email"
+                    required
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#070a10] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
+                  />
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                    <input
-                      type="password"
-                      required
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#070a10] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
-                    />
-                  </div>
+              <div>
+                <label
+                  htmlFor="landing-auth-password"
+                  className="block text-xs font-bold text-slate-300 mb-1"
+                >
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  <input
+                    id="landing-auth-password"
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#070a10] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
+                  />
                 </div>
               </div>
 
               <button
                 type="submit"
-                disabled={loading || googleLoading || demoLoading}
+                disabled={loading}
                 className="w-full py-3.5 px-4 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-[#090d16] font-extrabold text-sm tracking-wide shadow-lg transition-transform active:scale-98 cursor-pointer disabled:opacity-50"
               >
                 {loading
                   ? 'Please wait...'
                   : authTab === 'signup'
-                  ? 'Sign Up & Enter SHARK EXCH Dashboard'
-                  : 'Log In & Enter SHARK EXCH Dashboard'}
+                  ? 'Sign Up'
+                  : 'Login'}
               </button>
             </form>
-
-            {/* Quick 1-Click Demo VIP Account bar */}
-            <div className="p-3 rounded-xl bg-[#090d16] border border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
-              <span className="text-slate-400">
-                Want to test with pre-funded VIP balance?
-              </span>
-              <button
-                type="button"
-                data-testid="landing-demo-login-btn"
-                onClick={handleDemoLogin}
-                disabled={loading || googleLoading || demoLoading}
-                className="font-extrabold text-emerald-400 hover:text-emerald-300 underline cursor-pointer"
-              >
-                {demoLoading ? 'Logging in...' : '1-Click Demo VIP Login'}
-              </button>
-            </div>
           </div>
         </section>
       </main>
@@ -541,6 +330,7 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
 
 interface BannerAndGamesProps {
   banners: BannerSlide[];
+  promoVideoUrl?: string;
   currentUser?: UserProfile | null;
   activeIdCount?: number;
   onOpenCreateId: () => void;
@@ -548,222 +338,48 @@ interface BannerAndGamesProps {
   onOpenLogin?: () => void;
   onOpenProfile?: () => void;
   onOpenDeposit?: () => void;
-  onOpenSpinWheel?: () => void;
   onOpenPromoAd?: () => void;
   onSelectGame?: (game: GameCategoryType) => void;
 }
 
 /**
- * PAGE 2 (POST-LOGIN MAIN WALLET & EXCHANGE DASHBOARD - 00:12 - 00:54 of video):
- * Displays the 4 promotional posters inside the Post-Login Wallet Dashboard section:
- *  - Poster 1: "Sexy VIP LIVE LOUNGE — SHARKVIP #PLAYSAFE"
- *  - Poster 2: "SHARK EXCHANGE — Ultimate Gaming Destination: PLAY • BET • WIN"
- *  - Poster 3: "SHARK EXCHANGE — Game. Win. Repeat. Experience Next-Level Online Gaming"
- *  - Poster 4: "SHARK EXCHANGE — DIVE INTO REAL GAMING ACTION"
- * Followed by the Spin the Wheel VIP banner strip, the clickable yellow "Create IDs" button,
- * and playable featured game cards (`Aviatrix`, `MINES`, `Cricket Live`, `Color Prediction`, `Live Casino`).
+ * POST-LOGIN HOMEPAGE TOP SECTION:
+ * - Single Cloudinary Video Player (`dxeuzdwkz` / `Sharkexchange`) + single-line bold green strip:
+ *   "Pay 500 and get 1000 instant bonus"
+ * - Single Fixed Large Banner matching the provided reference image (`fixedCricketBanner`)
+ * - 3-Card Action Row (`Create IDs`, `Aviatrix`, `MINES`) — Spin the Wheel and the 3 secondary
+ *   green-marked cards (`Cricket Live`, `Color Prediction`, `Live Casino`) are removed.
  */
 export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
-  banners,
+  promoVideoUrl,
   onOpenCreateId,
-  onOpenSpinWheel,
   onSelectGame,
 }) => {
-  const postLoginPosters = [
-    {
-      id: 'poster-1',
-      title: banners[1]?.title || 'Sexy VIP LIVE LOUNGE — SHARKVIP #PLAYSAFE',
-      tag: banners[1]?.tag || 'SHARKVIP #PLAYSAFE',
-      imageUrl:
-        banners[1]?.imageUrl || OFFICIAL_POSTER_ASSETS.sexyVipLoungePoster,
-    },
-    {
-      id: 'poster-2',
-      title:
-        banners[2]?.title ||
-        'SHARK EXCHANGE — Ultimate Gaming Destination: PLAY • BET • WIN',
-      tag: banners[2]?.tag || 'PLAY • BET • WIN',
-      imageUrl: banners[2]?.imageUrl || OFFICIAL_POSTER_ASSETS.playBetWinPoster,
-    },
-    {
-      id: 'poster-3',
-      title:
-        banners[3]?.title ||
-        'SHARK EXCHANGE — Game. Win. Repeat. Experience Next-Level Online Gaming',
-      tag: banners[3]?.tag || 'NEXT-LEVEL GAMING',
-      imageUrl:
-        banners[3]?.imageUrl || OFFICIAL_POSTER_ASSETS.gameWinRepeatPoster,
-    },
-    {
-      id: 'poster-4',
-      title:
-        banners[4]?.title ||
-        'SHARK EXCHANGE — DIVE INTO REAL GAMING ACTION',
-      tag: banners[4]?.tag || 'PREMIUM GAMING',
-      imageUrl:
-        banners[4]?.imageUrl || OFFICIAL_POSTER_ASSETS.diveIntoActionPoster,
-    },
-  ];
-
-  const [activeSlide, setActiveSlide] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveSlide((prev) => (prev + 1) % postLoginPosters.length);
-    }, 4800);
-    return () => clearInterval(timer);
-  }, [postLoginPosters.length]);
-
-  const currentPoster = postLoginPosters[activeSlide] || postLoginPosters[0];
-
   return (
     <div className="space-y-3.5">
-      {/* 1. POST-LOGIN INTERACTIVE AUTO-SLIDING 4-POSTER BANNER CAROUSEL & SHOWCASE */}
+      {/* 1. CLOUDINARY VIDEO PLAYER + BOLD GREEN STRIP */}
+      <CloudinaryPromoVideoSection videoUrl={promoVideoUrl} />
+
+      {/* 2. SINGLE FIXED LARGE BANNER MATCHING REFERENCE IMAGE */}
       <section
-        aria-label="Sexy VIP Live Lounge and SHARK EXCHANGE Promotional Posters"
-        data-testid="postlogin-sexy-vip-banner"
-        className="relative rounded-3xl overflow-hidden border-2 border-[#facc15]/60 bg-[#090d16] shadow-[0_12px_34px_rgba(0,0,0,0.7)] select-none"
+        aria-label="Featured Cricket Banner"
+        data-testid="postlogin-fixed-large-banner"
+        className="relative rounded-3xl overflow-hidden border-2 border-[#facc15]/60 bg-black shadow-[0_12px_34px_rgba(0,0,0,0.7)] select-none"
       >
-        {/* Main Active Poster Display */}
-        <div className="relative">
-          <img
-            src={currentPoster.imageUrl}
-            alt={currentPoster.title}
-            data-testid={`postlogin-active-poster-${activeSlide + 1}`}
-            referrerPolicy="no-referrer"
-            onClick={onOpenCreateId}
-            className="w-full h-auto object-contain block cursor-pointer"
-          />
-
-          {/* Left Carousel Arrow */}
-          <button
-            type="button"
-            onClick={() =>
-              setActiveSlide(
-                (prev) =>
-                  (prev - 1 + postLoginPosters.length) % postLoginPosters.length
-              )
-            }
-            aria-label="Previous Banner Slide"
-            className="absolute left-2.5 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/70 hover:bg-black/90 text-white flex items-center justify-center border border-[#facc15]/50 shadow-lg cursor-pointer transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-[#facc15]" />
-          </button>
-
-          {/* Right Carousel Arrow */}
-          <button
-            type="button"
-            onClick={() =>
-              setActiveSlide((prev) => (prev + 1) % postLoginPosters.length)
-            }
-            aria-label="Next Banner Slide"
-            className="absolute right-2.5 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/70 hover:bg-black/90 text-white flex items-center justify-center border border-[#facc15]/50 shadow-lg cursor-pointer transition-colors"
-          >
-            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#facc15]" />
-          </button>
-
-          {/* Static SHARKVIP #PLAYSAFE Badge Reference */}
-          <div
-            data-testid="sharkvip-static-badge"
-            className="hidden sm:inline-flex items-center gap-1.5 absolute top-3 right-3 border border-white/70 rounded-full px-3 py-1 bg-black/75 shadow select-none cursor-default"
-          >
-            <span className="font-shark font-black text-xs text-white">
-              SHARK<span className="text-[#facc15]">VIP</span>
-            </span>
-            <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-pink-600 to-rose-500 text-white font-extrabold text-[9px] uppercase">
-              {currentPoster.tag}
-            </span>
-          </div>
-        </div>
-
-        {/* Bottom 4-Poster Interactive Thumbnail Showcase & Slide Indicators */}
-        <div className="p-2.5 sm:p-3 bg-gradient-to-r from-[#090d16] via-[#121a2d] to-[#090d16] border-t border-white/10 space-y-2">
-          <div
-            data-testid="postlogin-4-posters-grid"
-            className="grid grid-cols-4 gap-2"
-          >
-            {postLoginPosters.map((poster, idx) => {
-              const isSelected = idx === activeSlide;
-              return (
-                <button
-                  key={poster.id}
-                  type="button"
-                  data-testid={`postlogin-poster-thumb-${idx + 1}`}
-                  onClick={() => setActiveSlide(idx)}
-                  className={`group relative rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
-                    isSelected
-                      ? 'border-[#facc15] shadow-[0_0_15px_rgba(250,204,21,0.5)] scale-[1.02]'
-                      : 'border-white/15 opacity-75 hover:opacity-100 hover:border-white/40'
-                  }`}
-                >
-                  <img
-                    src={poster.imageUrl}
-                    alt={poster.title}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-12 sm:h-16 object-cover object-center block"
-                  />
-                  <div className="absolute inset-x-0 bottom-0 bg-black/80 px-1 py-0.5 text-[8px] sm:text-[9px] font-extrabold text-[#facc15] truncate text-center uppercase">
-                    {poster.tag}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex items-center justify-center gap-2">
-            {postLoginPosters.map((poster, idx) => (
-              <button
-                key={`vip-slider-dot-${poster.id}`}
-                type="button"
-                onClick={() => setActiveSlide(idx)}
-                aria-label={`Banner slide ${idx + 1}`}
-                className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                  activeSlide === idx
-                    ? 'w-8 bg-[#facc15]'
-                    : 'w-4 bg-white/30 hover:bg-white/50'
-                }`}
-              />
-            ))}
-          </div>
-        </div>
+        <img
+          src={OFFICIAL_POSTER_ASSETS.fixedCricketBanner}
+          alt="SharkX Featured Cricket Banner"
+          data-testid="fixed-reference-banner-img"
+          referrerPolicy="no-referrer"
+          onClick={onOpenCreateId}
+          className="w-full max-h-[340px] object-contain mx-auto block cursor-pointer"
+        />
       </section>
 
-      {/* 2. ACTION & FEATURED LIVE GAMES ROW */}
-      <section aria-label="Create IDs and Featured Games" className="space-y-3">
-        {onOpenSpinWheel && (
-          <div className="rounded-2xl bg-gradient-to-r from-[#2c0743] via-[#170526] to-[#2c0743] border-2 border-[#facc15] p-3 sm:px-4 sm:py-3 flex items-center justify-between gap-3 shadow-[0_0_24px_rgba(250,204,21,0.3)]">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <img
-                src={OFFICIAL_POSTER_ASSETS.spinWheelPoster}
-                alt="SHARK EXCHANGE Spin the Wheel"
-                className="w-14 h-9 sm:w-16 sm:h-10 object-cover rounded-lg border border-[#facc15] shrink-0"
-              />
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-[#facc15] shrink-0" />
-                  <span className="font-shark italic font-black text-xs sm:text-base text-white tracking-wide truncate">
-                    SPIN THE <span className="text-[#facc15]">WHEEL</span> · DAILY VIP REWARDS
-                  </span>
-                </div>
-                <p className="text-[10px] sm:text-xs text-purple-200 truncate">
-                  Win iPhone, Laptop, Smart TV &amp; Instant Bonus Rewards
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              data-testid="dashboard-spin-and-win-btn"
-              onClick={onOpenSpinWheel}
-              className="px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-[#facc15] via-yellow-300 to-[#eab308] hover:brightness-110 text-black font-extrabold text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_18px_rgba(250,204,21,0.6)] border border-white shrink-0 cursor-pointer transition-transform active:scale-95"
-            >
-              🎡 Spin &amp; Win
-            </button>
-          </div>
-        )}
-
+      {/* 3. PRIMARY ACTION & GAMES ROW: [Create IDs | Aviatrix | MINES] */}
+      <section aria-label="Create IDs and Featured Games">
         <div className="grid grid-cols-3 gap-2.5 sm:gap-4 items-stretch">
-          {/* 1. Left Bright Yellow Pill/Card Button: "Create IDs" (ACTIVE & CLICKABLE) */}
+          {/* 1. Left Bright Yellow Pill/Card Button: "Create IDs" */}
           <button
             type="button"
             data-testid="row-create-ids-active-btn"
@@ -773,7 +389,7 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
             Create IDs
           </button>
 
-          {/* 2. Middle Feature Game Card: "Aviatrix" (PLAYABLE REAL-TIME CRASH GAME) */}
+          {/* 2. Middle Feature Game Card: "Aviatrix" */}
           <div
             data-testid="dummy-card-aviatrix"
             role="button"
@@ -806,7 +422,7 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
             </svg>
           </div>
 
-          {/* 3. Right Feature Game Card: "MINES" (PLAYABLE REAL-TIME 5x5 MINES GAME) */}
+          {/* 3. Right Feature Game Card: "MINES" */}
           <div
             data-testid="dummy-card-mines"
             role="button"
@@ -842,93 +458,8 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
             </svg>
           </div>
         </div>
-
-        {/* Secondary Game Category Row: Cricket Live, Color Prediction, Live Casino (PLAYABLE REAL-TIME GAMES) */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4">
-          {/* Cricket Live Card */}
-          <div
-            data-testid="dummy-card-cricket"
-            role="button"
-            tabIndex={0}
-            onClick={() => onSelectGame?.('cricket')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') onSelectGame?.('cricket');
-            }}
-            className="relative h-[76px] sm:h-[88px] rounded-2xl overflow-hidden border border-emerald-500/30 hover:border-[#facc15] bg-gradient-to-r from-[#062e22] via-[#064e3b] to-[#090d16] p-3.5 sm:p-4 flex items-center justify-between text-left select-none cursor-pointer transition-transform active:scale-98"
-          >
-            <div>
-              <div className="flex items-center gap-1.5">
-                <Trophy className="w-4 h-4 text-[#facc15]" />
-                <span className="font-shark italic font-bold text-base sm:text-xl text-white">
-                  Cricket Live
-                </span>
-              </div>
-              <p className="text-[11px] text-emerald-300/90 mt-0.5">
-                IND vs AUS · Live Back/Lay Exchange
-              </p>
-            </div>
-            <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 font-mono-tabular text-xs font-bold">
-              1.92 / 1.94
-            </span>
-          </div>
-
-          {/* Color Prediction Card */}
-          <div
-            data-testid="dummy-card-color"
-            role="button"
-            tabIndex={0}
-            onClick={() => onSelectGame?.('color')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') onSelectGame?.('color');
-            }}
-            className="relative h-[76px] sm:h-[88px] rounded-2xl overflow-hidden border border-purple-500/30 hover:border-[#facc15] bg-gradient-to-r from-[#2e1065] via-[#4c1d95] to-[#090d16] p-3.5 sm:p-4 flex items-center justify-between text-left select-none cursor-pointer transition-transform active:scale-98"
-          >
-            <div>
-              <div className="flex items-center gap-1.5">
-                <Zap className="w-4 h-4 text-[#facc15]" />
-                <span className="font-shark italic font-bold text-base sm:text-xl text-white">
-                  Color Prediction
-                </span>
-              </div>
-              <p className="text-[11px] text-purple-200/90 mt-0.5">
-                WinGo 30s · Red / Green / Violet 9X
-              </p>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-4 h-4 rounded-full bg-emerald-500 border border-white/40" />
-              <span className="w-4 h-4 rounded-full bg-violet-500 border border-white/40" />
-              <span className="w-4 h-4 rounded-full bg-rose-500 border border-white/40" />
-            </div>
-          </div>
-
-          {/* Live Casino Card */}
-          <div
-            data-testid="dummy-card-casino"
-            role="button"
-            tabIndex={0}
-            onClick={() => onSelectGame?.('casino')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') onSelectGame?.('casino');
-            }}
-            className="relative h-[76px] sm:h-[88px] rounded-2xl overflow-hidden border border-pink-500/30 hover:border-[#facc15] bg-gradient-to-r from-[#3b0724] via-[#701a46] to-[#090d16] p-3.5 sm:p-4 flex items-center justify-between text-left select-none cursor-pointer transition-transform active:scale-98"
-          >
-            <div>
-              <div className="flex items-center gap-1.5">
-                <Flame className="w-4 h-4 text-[#facc15]" />
-                <span className="font-shark italic font-bold text-base sm:text-xl text-white">
-                  Live Casino
-                </span>
-              </div>
-              <p className="text-[11px] text-pink-200/90 mt-0.5">
-                Teen Patti · Lightning Roulette · Baccarat
-              </p>
-            </div>
-            <span className="w-8 h-8 rounded-full bg-[#facc15] text-black flex items-center justify-center shadow">
-              <Play className="w-4 h-4 fill-current ml-0.5" />
-            </span>
-          </div>
-        </div>
       </section>
     </div>
   );
 };
+

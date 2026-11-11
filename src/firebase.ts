@@ -51,7 +51,12 @@ import {
   calculateWalletAfterDepositApproval,
   calculateWalletAfterWithdrawalRequest,
   calculateWalletAfterWithdrawalRejection,
+  calculateWalletAfterCreateIdRequest,
   calculateAdminBalanceAdjustment,
+  validateCreateIdInput,
+  DEFAULT_CLOUDINARY_PROMO_VIDEO_URL,
+  CLOUDINARY_VIDEO_UPLOAD_URL,
+  CLOUDINARY_UPLOAD_PRESET,
   CELEBRITY_BANNER_ASSETS,
   OFFICIAL_POSTER_ASSETS,
   SpinRecord,
@@ -307,6 +312,7 @@ export const INITIAL_PAYMENT_SETTINGS: PaymentSettings = {
   ifsc: 'HDFC0001482',
   minDeposit: 500,
   minWithdrawal: 500,
+  promoVideoUrl: DEFAULT_CLOUDINARY_PROMO_VIDEO_URL,
   updatedAt: new Date().toISOString(),
 };
 
@@ -906,7 +912,7 @@ export function subscribeToAuthState(callback: AuthListenerCallback): () => void
 export async function registerCustomerWithEmail(
   paramsOrName:
     | {
-        name: string;
+        name?: string;
         phone: string;
         email: string;
         password: string;
@@ -926,12 +932,13 @@ export async function registerCustomerWithEmail(
         }
       : paramsOrName;
 
-  const cleanName = (rawParams.name || '').trim() || 'VIP Player';
   const cleanPhone = (rawParams.phone || '').trim() || '+91 98000 00000';
   const rawEmailInput = (rawParams.email || '').trim().toLowerCase();
   const cleanEmail = rawEmailInput.includes('@')
     ? rawEmailInput
     : `${(rawEmailInput || cleanPhone.replace(/\D/g, '') || `vip_${Date.now()}`).replace(/[^a-z0-9._-]/g, '')}@sharkexch.in`;
+  const cleanName =
+    (rawParams.name || '').trim() || cleanEmail.split('@')[0] || 'VIP Player';
   const password = rawParams.password || '';
 
   if (password.length < 4) {
@@ -1431,6 +1438,8 @@ export async function submitWithdrawalRequest(params: {
 
 /**
  * Submit a Customer "Create IDs" Request to `/idRequests/{requestId}`
+ * Enforces wallet balance validation ("Insufficient wallet balance to create ID")
+ * and deducts the requested ID amount from the user's live wallet balance.
  */
 export async function submitCreateIdRequest(params: {
   user: UserProfile;
@@ -1441,6 +1450,22 @@ export async function submitCreateIdRequest(params: {
   screenshotUrl?: string;
 }): Promise<IdRequestRecord> {
   const store = loadHybridStore();
+  const liveUser = store.users[params.user.uid] || params.user;
+
+  const validation = validateCreateIdInput({
+    username: params.preferredUsername,
+    amount: params.depositAmount,
+    walletBalance: liveUser.walletBalance,
+  });
+  if (!validation.valid) {
+    throw new Error(validation.error || 'Insufficient wallet balance to create ID');
+  }
+
+  const nextBalance = calculateWalletAfterCreateIdRequest(
+    liveUser.walletBalance,
+    params.depositAmount
+  );
+
   let requestId = `idreq_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
   if (isLiveFirebaseConnected && firebaseDb) {
@@ -1454,10 +1479,10 @@ export async function submitCreateIdRequest(params: {
 
   const record: IdRequestRecord = {
     id: requestId,
-    uid: params.user.uid,
-    userName: params.user.name,
-    userEmail: params.user.email,
-    userPhone: params.user.phone,
+    uid: liveUser.uid,
+    userName: liveUser.name,
+    userEmail: liveUser.email,
+    userPhone: liveUser.phone,
     platform: params.platform,
     preferredUsername: params.preferredUsername.trim(),
     depositAmount: Math.round(params.depositAmount),
@@ -1467,11 +1492,18 @@ export async function submitCreateIdRequest(params: {
     createdAt: new Date().toISOString(),
   };
 
+  store.users[liveUser.uid] = {
+    ...liveUser,
+    walletBalance: nextBalance,
+  };
   store.idRequests[requestId] = record;
   saveHybridStore(store);
 
   if (isLiveFirebaseConnected && firebaseDb) {
     try {
+      await update(ref(firebaseDb, `users/${liveUser.uid}`), {
+        walletBalance: nextBalance,
+      });
       await set(ref(firebaseDb, `idRequests/${requestId}`), record);
     } catch {
       // ignore
@@ -1479,6 +1511,46 @@ export async function submitCreateIdRequest(params: {
   }
 
   return record;
+}
+
+/**
+ * Upload Promotional Video to Cloudinary (`cloudName: dxeuzdwkz`, `uploadPreset: Sharkexchange`)
+ * and persist the live stream URL in `paymentSettings.promoVideoUrl`.
+ */
+export async function uploadPromoVideoToCloudinary(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+  const response = await fetch(CLOUDINARY_VIDEO_UPLOAD_URL, {
+    method: 'POST',
+    body: formData,
+  });
+  const data = await response.json();
+  if (!response.ok || !data.secure_url) {
+    throw new Error(
+      data?.error?.message || 'Failed to upload video to Cloudinary (Sharkexchange).'
+    );
+  }
+
+  const secureUrl: string = data.secure_url;
+  const store = loadHybridStore();
+  store.paymentSettings = {
+    ...store.paymentSettings,
+    promoVideoUrl: secureUrl,
+    updatedAt: new Date().toISOString(),
+  };
+  saveHybridStore(store);
+
+  if (isLiveFirebaseConnected && firebaseDb) {
+    try {
+      await set(ref(firebaseDb, 'paymentSettings'), store.paymentSettings);
+    } catch {
+      // ignore
+    }
+  }
+
+  return secureUrl;
 }
 
 /**

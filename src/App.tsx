@@ -40,7 +40,6 @@ import {
   UserProfileModal,
 } from './components/CustomerModals';
 import { MiniGameModal } from './components/MiniGameModal';
-import { SpinWheelModal } from './components/SpinWheelModal';
 import { AdminPanel } from './components/AdminPanel';
 import { LiveChatWidget, OfficialWhatsAppLogoSvg } from './components/LiveChatWidget';
 import {
@@ -50,14 +49,11 @@ import {
   ArrowDownCircle,
   Rocket,
   Bomb,
-  Trophy,
-  Zap,
-  Flame,
-  Wallet,
+  FileText,
   Copy,
   Check,
   ExternalLink,
-  Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 
 export default function App() {
@@ -143,9 +139,7 @@ export default function App() {
   const [copiedIdKey, setCopiedIdKey] = useState<string | null>(null);
   const [liveChatOpen, setLiveChatOpen] = useState<boolean>(false);
   const [activeGame, setActiveGame] = useState<GameCategoryType | null>(null);
-  const [spinWheelModalOpen, setSpinWheelModalOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [rightPanelTab, setRightPanelTab] = useState<'my-wallet' | 'live-feed'>('my-wallet');
 
   useEffect(() => {
     const unsubDb = subscribeToRealtimeData((snapshot) => {
@@ -268,7 +262,7 @@ export default function App() {
     );
   }
 
-  /* ---------------- PAGE 1: PRE-LOGIN PROMOTIONAL LANDING & AUTH PAGE (WHEN USER IS LOGGED OUT) ---------------- */
+  /* ---------------- PAGE 1: PRE-LOGIN LANDING & AUTH PAGE (WHEN USER IS LOGGED OUT) ---------------- */
   if (!currentUser) {
     return (
       <>
@@ -283,6 +277,7 @@ export default function App() {
 
         <PreLoginLandingPage
           banners={banners}
+          promoVideoUrl={paymentSettings.promoVideoUrl}
           onOpenSignUpModal={() => handleOpenAuth('signup')}
           onOpenLoginModal={() => handleOpenAuth('login')}
           onAuthSuccess={(user, msg) => {
@@ -312,12 +307,12 @@ export default function App() {
     );
   }
 
-  /* ---------------- PAGE 2: RESTORED ORIGINAL MAIN CUSTOMER DASHBOARD (IMMEDIATELY AFTER SIGN-UP / LOGIN) ---------------- */
+  /* ---------------- PAGE 2: MAIN CUSTOMER DASHBOARD (AFTER SIGN-UP / LOGIN) ---------------- */
   return (
     <div
       id="top"
       data-testid="page-2-postlogin-dashboard"
-      className="min-h-screen bg-[#070a10] text-white flex flex-col pb-20 md:pb-16"
+      className="min-h-screen bg-[#070a10] text-white flex flex-col pb-24"
     >
       {/* Toast Notification Banner */}
       {toastMessage && (
@@ -329,7 +324,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 1. EXACT "SHARK EXCH" TOP AUTH BAR & GOLDEN-YELLOW WALLET HEADER (Deposit ⏫ | SHARK EXCH WALLET BALANCE | Withdraw ⏬) */}
+      {/* 1. MINIMALIST SHARKX HEADER & GOLDEN-YELLOW WALLET SECTION */}
       <SharkHeader
         currentUser={currentUser}
         onOpenAuth={handleOpenAuth}
@@ -342,8 +337,8 @@ export default function App() {
         onOpenWithdraw={() => setWithdrawModalOpen(true)}
       />
 
-      {/* 2. ADAPTIVE DESKTOP 3-COLUMN / MOBILE FULL-WIDTH EXCHANGE LOBBY */}
-      <main className="flex-1 max-w-[1440px] w-full mx-auto px-3 sm:px-6 pt-4 grid grid-cols-1 lg:grid-cols-[230px_1fr_320px] gap-5 items-start">
+      {/* 2. ADAPTIVE EXCHANGE LOBBY (No "My Wallet History" on homepage; transactions live in Account Statement) */}
+      <main className="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 pt-4 grid grid-cols-1 lg:grid-cols-[230px_1fr] gap-5 items-start">
         {/* LEFT NAVIGATION SIDEBAR (Desktop >= 1024px) */}
         <aside
           aria-label="Exchange Categories Sidebar"
@@ -351,7 +346,7 @@ export default function App() {
         >
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
-              Quick Wallet &amp; IDs
+              Quick Actions
             </p>
             <div className="space-y-1.5">
               <button
@@ -360,7 +355,7 @@ export default function App() {
                 className="w-full py-2.5 px-3 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-xs flex items-center gap-2.5 cursor-pointer transition-transform active:scale-98"
               >
                 <KeyRound className="w-4 h-4 shrink-0" />
-                <span>Create Exchange IDs</span>
+                <span>Create ID</span>
               </button>
               <button
                 type="button"
@@ -368,7 +363,7 @@ export default function App() {
                 className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-emerald-400 font-bold text-xs flex items-center gap-2.5 cursor-pointer"
               >
                 <ArrowUpCircle className="w-4 h-4 shrink-0" />
-                <span>Deposit Funds (UPI)</span>
+                <span>Deposit</span>
               </button>
               <button
                 type="button"
@@ -376,16 +371,15 @@ export default function App() {
                 className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-amber-400 font-bold text-xs flex items-center gap-2.5 cursor-pointer"
               >
                 <ArrowDownCircle className="w-4 h-4 shrink-0" />
-                <span>Withdraw Winnings</span>
+                <span>Withdrawal</span>
               </button>
               <button
                 type="button"
-                data-testid="sidebar-spin-and-win-btn"
-                onClick={() => setSpinWheelModalOpen(true)}
-                className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-[#3b0764] to-[#6b21a8] hover:brightness-110 border border-[#facc15]/60 text-[#facc15] font-extrabold text-xs flex items-center gap-2.5 cursor-pointer"
+                onClick={() => setProfileModalOpen(true)}
+                className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-[#facc15] font-bold text-xs flex items-center gap-2.5 cursor-pointer"
               >
-                <Sparkles className="w-4 h-4 shrink-0 text-[#facc15]" />
-                <span>Spin &amp; Win (1/Day)</span>
+                <FileText className="w-4 h-4 shrink-0" />
+                <span>Account Statement</span>
               </button>
               <button
                 type="button"
@@ -400,7 +394,7 @@ export default function App() {
 
           <div className="border-t border-white/10 pt-3">
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
-              Featured Exchange Games
+              Featured Games
             </p>
             <div className="space-y-1 select-none">
               <button
@@ -410,7 +404,7 @@ export default function App() {
               >
                 <span className="flex items-center gap-2">
                   <Rocket className="w-4 h-4 text-sky-400" />
-                  <span>Aviatrix Crash</span>
+                  <span>Aviatrix</span>
                 </span>
                 <span className="font-mono-tabular text-[10px] text-sky-400">10,000x</span>
               </button>
@@ -422,54 +416,19 @@ export default function App() {
               >
                 <span className="flex items-center gap-2">
                   <Bomb className="w-4 h-4 text-red-400" />
-                  <span>MINES Turbo</span>
+                  <span>MINES</span>
                 </span>
                 <span className="font-mono-tabular text-[10px] text-red-400">97% RTP</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveGame('cricket')}
-                className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 font-semibold text-xs flex items-center justify-between cursor-pointer"
-              >
-                <span className="flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-emerald-400" />
-                  <span>Cricket Live</span>
-                </span>
-                <span className="font-mono-tabular text-[10px] text-emerald-400">In-Play</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveGame('color')}
-                className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 font-semibold text-xs flex items-center justify-between cursor-pointer"
-              >
-                <span className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-purple-400" />
-                  <span>Color Prediction</span>
-                </span>
-                <span className="font-mono-tabular text-[10px] text-purple-400">WinGo</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveGame('casino')}
-                className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 font-semibold text-xs flex items-center justify-between cursor-pointer"
-              >
-                <span className="flex items-center gap-2">
-                  <Flame className="w-4 h-4 text-pink-400" />
-                  <span>Sexy Live Casino</span>
-                </span>
-                <span className="font-mono-tabular text-[10px] text-pink-400">VIP</span>
               </button>
             </div>
           </div>
         </aside>
 
-        {/* CENTER COLUMN: PROMOTIONAL BANNER CAROUSEL, CREATE IDs, GAME CARDS & 6 EXCHANGE PLATFORMS */}
+        {/* CENTER COLUMN: CLOUDINARY VIDEO, FIXED LARGE BANNER, [Create IDs | Aviatrix | MINES], & NUMBERED EXCHANGE LIST */}
         <div className="space-y-5 min-w-0">
           <BannerAndGames
             banners={banners}
+            promoVideoUrl={paymentSettings.promoVideoUrl}
             currentUser={currentUser}
             activeIdCount={myIdRequests.filter((r) => r.status === 'Created').length}
             onOpenCreateId={() => handleOpenCreateIdForExchange(OFFICIAL_EXCHANGE_PLATFORMS[0].name)}
@@ -477,31 +436,30 @@ export default function App() {
             onOpenLogin={() => handleOpenAuth('login')}
             onOpenProfile={() => setProfileModalOpen(true)}
             onOpenDeposit={() => setDepositModalOpen(true)}
-            onOpenSpinWheel={() => setSpinWheelModalOpen(true)}
             onSelectGame={(cat) => setActiveGame(cat)}
           />
 
-          {/* 6 Official Exchange Links Section (Directly below Featured Games as in 00:13 - 00:15 of video) */}
+          {/* Official Exchange Platforms Section:
+              - Large white text banner "Official Exchange ID & Instant Withdrawal" removed
+              - Smaller badge "Instant ID Approval 24*7 Direct Withdrawal" kept
+              - Clean numbered list of exchange platforms with "Create ID" and "Withdrawal" actions */}
           <section
             aria-label="Official Gaming Exchanges"
             data-testid="official-exchanges-section"
             className="rounded-2xl bg-[#0c111d] border border-white/10 overflow-hidden shadow-xl"
           >
-            <div className="px-4 py-3.5 bg-gradient-to-r from-[#11192c] to-[#0c111d] border-b border-white/10 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <KeyRound className="w-4 h-4 text-[#facc15]" />
-                <h2 className="font-shark italic font-black text-base sm:text-lg text-white tracking-wide uppercase">
-                  OFFICIAL EXCHANGE IDs &amp; INSTANT WITHDRAW
-                </h2>
-              </div>
-              <span className="text-[11px] text-slate-400 font-mono-tabular">
-                Instant ID Approval · 24/7 Direct Withdraw
+            <div className="px-4 py-3 bg-gradient-to-r from-[#11192c] to-[#0c111d] border-b border-white/10 flex items-center justify-between gap-2">
+              <span
+                data-testid="instant-approval-badge"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 text-xs font-extrabold tracking-wide"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>Instant ID Approval 24*7 Direct Withdrawal</span>
               </span>
             </div>
 
             <div className="divide-y divide-white/10">
               {OFFICIAL_EXCHANGE_PLATFORMS.map((exch, exchIdx) => {
-                // Find any ID requests by the logged-in customer for this exchange
                 const customerExchReqs = myIdRequests.filter(
                   (r) => (r.platform || '').toLowerCase() === exch.name.toLowerCase()
                 );
@@ -551,12 +509,11 @@ export default function App() {
                           className="px-3.5 py-2 rounded-xl bg-[#131c2e] hover:bg-[#1b2740] border border-[#facc15]/40 text-[#facc15] font-extrabold text-xs flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95"
                         >
                           <ArrowDownCircle className="w-3.5 h-3.5" />
-                          <span>Withdraw</span>
+                          <span>Withdrawal</span>
                         </button>
                       </div>
                     </div>
 
-                    {/* Display Assigned User ID & Password or Pending Status directly under the respective exchange */}
                     {customerExchReqs.length > 0 && (
                       <div className="pl-10 space-y-2">
                         {customerExchReqs.map((req, reqIdx) => (
@@ -634,10 +591,10 @@ export default function App() {
                                   <strong className="font-mono-tabular text-white">
                                     {req.preferredUsername}
                                   </strong>{' '}
-                                  (Refill: ₹{req.depositAmount.toLocaleString('en-IN')})
+                                  (Amount: ₹{req.depositAmount.toLocaleString('en-IN')})
                                 </span>
                                 <span className="text-[11px] font-bold uppercase">
-                                  Verifying Payment
+                                  Pending Approval
                                 </span>
                               </div>
                             )}
@@ -651,351 +608,105 @@ export default function App() {
             </div>
           </section>
         </div>
-
-        {/* RIGHT PANEL: USER WALLET HISTORY & LIVE TRANSACTIONS */}
-        <aside
-          id="wallet-history-section"
-          aria-label="Wallet Activity and Live Transactions"
-          className="rounded-2xl bg-[#0c111d] border border-white/10 p-4 space-y-4 sticky top-4"
-        >
-          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-[#090d16] border border-white/10">
-            <button
-              type="button"
-              onClick={() => setRightPanelTab('my-wallet')}
-              className={`py-2 rounded-lg font-bold text-xs cursor-pointer transition-colors ${
-                rightPanelTab === 'my-wallet'
-                  ? 'bg-[#facc15] text-black'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              My Wallet History
-            </button>
-            <button
-              type="button"
-              onClick={() => setRightPanelTab('live-feed')}
-              className={`py-2 rounded-lg font-bold text-xs cursor-pointer transition-colors ${
-                rightPanelTab === 'live-feed'
-                  ? 'bg-[#facc15] text-black'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Platform Feed
-            </button>
-          </div>
-
-          {rightPanelTab === 'my-wallet' ? (
-            <div className="space-y-3">
-              {!currentUser ? (
-                <div className="text-center py-6 space-y-3">
-                  <Wallet className="w-8 h-8 text-[#facc15] mx-auto opacity-80" />
-                  <p className="text-xs text-slate-300">
-                    Log in or create an account to track your live deposits, withdrawals, and Exchange IDs.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenAuth('login')}
-                    className="px-4 py-2 rounded-xl bg-[#facc15] text-black font-extrabold text-xs cursor-pointer"
-                  >
-                    Login / Sign Up Now
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
-                  {/* Customer Profile Summary Card in Right Panel */}
-                  <div
-                    data-testid="right-panel-user-profile-card"
-                    className="p-3.5 rounded-2xl bg-gradient-to-br from-[#11192e] to-[#0c1220] border border-[#facc15]/40 space-y-2.5"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-[#facc15] text-black font-black text-sm flex items-center justify-center shrink-0">
-                          {(currentUser.name || 'U').charAt(0).toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-extrabold text-xs text-white truncate">
-                            {currentUser.name}
-                          </p>
-                          <p className="text-[10px] text-slate-400 truncate">
-                            {currentUser.email}
-                          </p>
-                          <p className="text-[10px] font-mono-tabular text-[#facc15]">
-                            {currentUser.phone}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setProfileModalOpen(true)}
-                        className="px-2.5 py-1.5 rounded-lg bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-[11px] shrink-0 cursor-pointer"
-                      >
-                        My Profile
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Active Issued Exchange IDs (`My IDs`) */}
-                  {myIdRequests.map((req, reqIdx) => {
-                    const matchedExch = OFFICIAL_EXCHANGE_PLATFORMS.find(
-                      (e) => e.name.toLowerCase() === (req.platform || '').toLowerCase()
-                    );
-                    const exchUrl = matchedExch
-                      ? matchedExch.url
-                      : `https://${(req.platform || 'dexch99.now').toLowerCase().replace(/\s+/g, '')}`;
-
-                    return (
-                      <div
-                        key={`my-idreq-${req.id || reqIdx}-${reqIdx}`}
-                        data-testid={`my-wallet-id-card-${req.id}`}
-                        className="p-3.5 rounded-xl bg-[#0c1220] border border-[#facc15]/40 text-xs space-y-2"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <a
-                            href={exchUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-extrabold text-[#facc15] hover:underline inline-flex items-center gap-1"
-                          >
-                            <span>{req.platform}</span>
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                          <span
-                            className={`px-2 py-0.5 rounded font-bold text-[10px] ${
-                              req.status === 'Created'
-                                ? 'bg-emerald-500/20 text-emerald-300'
-                                : 'bg-amber-500/20 text-amber-300'
-                            }`}
-                          >
-                            {req.status === 'Created' ? 'Active ID' : 'Pending Approval'}
-                          </span>
-                        </div>
-
-                        <div className="text-slate-300 flex items-center justify-between">
-                          <span>
-                            Requested: <span className="font-mono-tabular text-white">{req.preferredUsername}</span>
-                          </span>
-                          <span className="font-mono-tabular text-emerald-400">
-                            ₹{req.depositAmount.toLocaleString('en-IN')}
-                          </span>
-                        </div>
-
-                        {req.assignedId ? (
-                          <div className="pt-2 border-t border-white/10 space-y-2">
-                            <div className="p-2 rounded-lg bg-[#090d16] border border-emerald-500/30 font-mono-tabular text-[11px] space-y-1">
-                              <div className="flex items-center justify-between">
-                                <span className="text-slate-400">User ID:</span>
-                                <span className="font-bold text-[#facc15]">{req.assignedId}</span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-slate-400">Password:</span>
-                                <span className="font-bold text-emerald-300">
-                                  {req.assignedPassword}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleCopyCredential(
-                                    `Exchange: ${req.platform} | User ID: ${req.assignedId} | Password: ${req.assignedPassword}`,
-                                    `wallet-${req.id}`,
-                                    `${req.platform} ID & Password`
-                                  )
-                                }
-                                className="flex-1 py-1.5 px-2.5 rounded-lg bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-[11px] inline-flex items-center justify-center gap-1 cursor-pointer"
-                              >
-                                {copiedIdKey === `wallet-${req.id}` ? (
-                                  <>
-                                    <Check className="w-3 h-3" />
-                                    <span>Copied!</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Copy className="w-3 h-3" />
-                                    <span>Copy ID &amp; Pass</span>
-                                  </>
-                                )}
-                              </button>
-                              <a
-                                href={exchUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="py-1.5 px-2.5 rounded-lg bg-white/10 hover:bg-white/15 text-white font-bold text-[11px] inline-flex items-center gap-1"
-                              >
-                                <span>Open Link</span>
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-[11px] text-amber-300">
-                            ⏳ Waiting for Admin/Staff to assign User ID &amp; Password...
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {/* Customer Deposits */}
-                  {myDeposits.map((dep, depIdx) => (
-                    <div
-                      key={`my-dep-${dep.id || depIdx}-${depIdx}`}
-                      className="p-3 rounded-xl bg-[#0c1220] border border-white/10 flex items-center justify-between text-xs"
-                    >
-                      <div>
-                        <div className="font-bold text-emerald-400">
-                          Deposit +₹{dep.amount.toLocaleString('en-IN')}
-                        </div>
-                        <div className="text-[11px] text-slate-400 font-mono-tabular">
-                          UTR: {dep.utr}
-                        </div>
-                      </div>
-                      <span
-                        className={`font-bold ${
-                          dep.status === 'Pending'
-                            ? 'text-amber-400'
-                            : dep.status === 'Approved'
-                            ? 'text-emerald-400'
-                            : 'text-red-400'
-                        }`}
-                      >
-                        {dep.status}
-                      </span>
-                    </div>
-                  ))}
-
-                  {/* Customer Withdrawals */}
-                  {myWithdrawals.map((wdr, wdrIdx) => (
-                    <div
-                      key={`my-wdr-${wdr.id || wdrIdx}-${wdrIdx}`}
-                      className="p-3 rounded-xl bg-[#0c1220] border border-white/10 flex items-center justify-between text-xs"
-                    >
-                      <div>
-                        <div className="font-bold text-amber-300">
-                          Withdraw -₹{wdr.amount.toLocaleString('en-IN')}
-                        </div>
-                        <div className="text-[11px] text-slate-400 font-mono-tabular">
-                          {wdr.method === 'UPI' ? wdr.upiId : wdr.accountNumber}
-                        </div>
-                      </div>
-                      <span
-                        className={`font-bold ${
-                          wdr.status === 'Pending'
-                            ? 'text-amber-400'
-                            : wdr.status === 'Approved'
-                            ? 'text-emerald-400'
-                            : 'text-red-400'
-                        }`}
-                      >
-                        {wdr.status}
-                      </span>
-                    </div>
-                  ))}
-
-                  {myDeposits.length === 0 &&
-                    myWithdrawals.length === 0 &&
-                    myIdRequests.length === 0 && (
-                      <p className="text-xs text-slate-400 text-center py-6">
-                        No transactions yet. Click Deposit ⏫ to add funds via UPI.
-                      </p>
-                    )}
-                </div>
-              )}
-            </div>
-          ) : (
-            /* Live Platform Settlements Feed */
-            <div className="space-y-2.5 max-h-[420px] overflow-y-auto pr-1 text-xs">
-              {deposits.slice(0, 4).map((d, depIdx) => (
-                <div
-                  key={`feed-dep-${d.id || depIdx}-${depIdx}`}
-                  className="p-2.5 rounded-xl bg-[#0c1220] border border-white/5 flex items-center justify-between"
-                >
-                  <div>
-                    <span className="font-bold text-white">{d.userName}</span>
-                    <span className="block text-[10px] text-slate-400">
-                      UPI Deposit · UTR #{(d.utr || '0000').slice(-4)}
-                    </span>
-                  </div>
-                  <span className="font-mono-tabular font-bold text-emerald-400">
-                    +₹{d.amount.toLocaleString('en-IN')}
-                  </span>
-                </div>
-              ))}
-              {withdrawals.slice(0, 4).map((w, wdrIdx) => (
-                <div
-                  key={`feed-wdr-${w.id || wdrIdx}-${wdrIdx}`}
-                  className="p-2.5 rounded-xl bg-[#0c1220] border border-white/5 flex items-center justify-between"
-                >
-                  <div>
-                    <span className="font-bold text-white">{w.userName}</span>
-                    <span className="block text-[10px] text-slate-400">
-                      {w.method} Payout ({w.status})
-                    </span>
-                  </div>
-                  <span className="font-mono-tabular font-bold text-[#facc15]">
-                    ₹{w.amount.toLocaleString('en-IN')}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </aside>
       </main>
 
-      {/* 3. MOBILE STICKY BOTTOM NAVIGATION BAR (5 Customer Buttons Only) */}
+      {/* 3. STICKY BOTTOM NAVIGATION BAR (Strictly Fixed Order: 1. Create ID | 2. Deposit | 3. Home (Center) | 4. Withdrawal | 5. Account Statement) */}
       <nav
-        aria-label="Mobile Bottom Navigation"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-[#090d16]/95 backdrop-blur-md border-t border-white/10 grid grid-cols-5 items-center px-1"
+        aria-label="Bottom Navigation"
+        data-testid="bottom-navigation-bar"
+        className="fixed bottom-0 left-0 right-0 z-[60] h-16 bg-[#090d16]/95 backdrop-blur-md border-t border-white/10 grid grid-cols-5 items-center px-1 max-w-5xl mx-auto"
       >
+        {/* 1. Create ID */}
         <button
           type="button"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="flex flex-col items-center justify-center py-1 text-[#facc15] cursor-pointer"
-        >
-          <Home className="w-4 h-4" />
-          <span className="text-[10px] font-bold mt-0.5">Home</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleOpenCreateIdForExchange(OFFICIAL_EXCHANGE_PLATFORMS[0].name)}
+          data-testid="bottom-nav-create-id"
+          onClick={() => {
+            setDepositModalOpen(false);
+            setWithdrawModalOpen(false);
+            setProfileModalOpen(false);
+            handleOpenCreateIdForExchange(OFFICIAL_EXCHANGE_PLATFORMS[0].name);
+          }}
           className="flex flex-col items-center justify-center py-1 text-slate-300 hover:text-[#facc15] cursor-pointer"
         >
           <KeyRound className="w-4 h-4 text-[#facc15]" />
-          <span className="text-[10px] font-bold mt-0.5">Create IDs</span>
+          <span className="text-[10px] sm:text-xs font-bold mt-0.5 whitespace-nowrap">
+            Create ID
+          </span>
         </button>
 
+        {/* 2. Deposit */}
         <button
           type="button"
-          onClick={() => setDepositModalOpen(true)}
+          data-testid="bottom-nav-deposit"
+          onClick={() => {
+            setCreateIdModalOpen(false);
+            setWithdrawModalOpen(false);
+            setProfileModalOpen(false);
+            setDepositModalOpen(true);
+          }}
           className="flex flex-col items-center justify-center py-1 text-emerald-400 cursor-pointer"
         >
           <ArrowUpCircle className="w-4 h-4" />
-          <span className="text-[10px] font-bold mt-0.5">Deposit</span>
+          <span className="text-[10px] sm:text-xs font-bold mt-0.5 whitespace-nowrap">
+            Deposit
+          </span>
         </button>
 
+        {/* 3. Home (Center) */}
         <button
           type="button"
-          onClick={() => setWithdrawModalOpen(true)}
+          data-testid="bottom-nav-home"
+          onClick={() => {
+            setCreateIdModalOpen(false);
+            setDepositModalOpen(false);
+            setWithdrawModalOpen(false);
+            setProfileModalOpen(false);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className="flex flex-col items-center justify-center py-1 text-[#facc15] cursor-pointer"
+        >
+          <div className="w-8 h-8 rounded-full bg-[#facc15] text-[#090d16] flex items-center justify-center shadow-[0_0_12px_rgba(250,204,21,0.5)]">
+            <Home className="w-4 h-4 stroke-[2.5]" />
+          </div>
+          <span className="text-[10px] sm:text-xs font-extrabold mt-0.5 whitespace-nowrap">
+            Home
+          </span>
+        </button>
+
+        {/* 4. Withdrawal */}
+        <button
+          type="button"
+          data-testid="bottom-nav-withdrawal"
+          onClick={() => {
+            setCreateIdModalOpen(false);
+            setDepositModalOpen(false);
+            setProfileModalOpen(false);
+            setWithdrawModalOpen(true);
+          }}
           className="flex flex-col items-center justify-center py-1 text-amber-400 cursor-pointer"
         >
           <ArrowDownCircle className="w-4 h-4" />
-          <span className="text-[10px] font-bold mt-0.5">Withdraw</span>
+          <span className="text-[10px] sm:text-xs font-bold mt-0.5 whitespace-nowrap">
+            Withdrawal
+          </span>
         </button>
 
+        {/* 5. Account Statement (Renamed from "My Wallet") */}
         <button
           type="button"
+          data-testid="bottom-nav-account-statement"
           onClick={() => {
-            setRightPanelTab('my-wallet');
-            document
-              .getElementById('wallet-history-section')
-              ?.scrollIntoView({ behavior: 'smooth' });
+            setCreateIdModalOpen(false);
+            setDepositModalOpen(false);
+            setWithdrawModalOpen(false);
+            setProfileModalOpen(true);
           }}
           className="flex flex-col items-center justify-center py-1 text-slate-300 hover:text-white cursor-pointer"
         >
-          <Wallet className="w-4 h-4 text-[#facc15]" />
-          <span className="text-[10px] font-bold mt-0.5">My Wallet</span>
+          <FileText className="w-4 h-4 text-[#facc15]" />
+          <span className="text-[9px] sm:text-xs font-bold mt-0.5 whitespace-nowrap tracking-tight">
+            Account Statement
+          </span>
         </button>
       </nav>
 
@@ -1078,13 +789,7 @@ export default function App() {
         }}
         onSuccess={(msg) => showToast(msg)}
       />
-
-      <SpinWheelModal
-        isOpen={spinWheelModalOpen}
-        currentUser={currentUser}
-        onClose={() => setSpinWheelModalOpen(false)}
-        onNotify={(msg) => showToast(msg)}
-      />
     </div>
   );
 }
+

@@ -102,7 +102,64 @@ export interface PaymentSettings {
   ifsc: string;
   minDeposit: number;
   minWithdrawal: number;
+  promoVideoUrl?: string;
   updatedAt: string;
+}
+
+export const CLOUDINARY_CLOUD_NAME = 'dxeuzdwkz';
+export const CLOUDINARY_UPLOAD_PRESET = 'Sharkexchange';
+export const CLOUDINARY_VIDEO_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`;
+export const DEFAULT_CLOUDINARY_PROMO_VIDEO_URL =
+  'https://res.cloudinary.com/dxeuzdwkz/video/upload/v1794402121/ihegf7oimbdgdq9zmlsb.mp4';
+export const PROMO_GREEN_STRIP_TEXT = 'Pay 500 and get 1000 instant bonus';
+export const INSUFFICIENT_BALANCE_CREATE_ID_ERROR =
+  'Insufficient wallet balance to create ID';
+
+export function validateCreateIdInput(params: {
+  username: string;
+  amount: number;
+  walletBalance: number;
+}): { valid: boolean; error?: string } {
+  const cleanUser = (params.username || '').trim();
+  if (!cleanUser) {
+    return {
+      valid: false,
+      error: 'Please enter a username.',
+    };
+  }
+  if (!Number.isFinite(params.amount) || params.amount <= 0) {
+    return {
+      valid: false,
+      error: 'Please enter a valid amount.',
+    };
+  }
+  if (
+    !Number.isFinite(params.walletBalance) ||
+    params.walletBalance <= 0 ||
+    params.amount > params.walletBalance
+  ) {
+    return {
+      valid: false,
+      error: INSUFFICIENT_BALANCE_CREATE_ID_ERROR,
+    };
+  }
+  return { valid: true };
+}
+
+export function calculateWalletAfterCreateIdRequest(
+  currentBalance: number,
+  amount: number
+): number {
+  if (
+    !Number.isFinite(amount) ||
+    amount <= 0 ||
+    !Number.isFinite(currentBalance) ||
+    currentBalance <= 0 ||
+    amount > currentBalance
+  ) {
+    throw new Error(INSUFFICIENT_BALANCE_CREATE_ID_ERROR);
+  }
+  return Math.max(0, Math.round(currentBalance - amount));
 }
 
 export interface BannerSlide {
@@ -135,6 +192,8 @@ export const OFFICIAL_POSTER_ASSETS = {
   /** Post-Login Poster 4: "SHARK EXCHANGE — DIVE INTO REAL GAMING ACTION" */
   diveIntoActionPoster:
     '/assets/aistudio/file_00000000ab348211b4927714b776e20e_d079797d.png',
+  /** Fixed Large Homepage Cricket/VIP Banner Reference Image */
+  fixedCricketBanner: '/assets/aistudio/IMG-20261111-WA0117_9f537b0a.jpg',
 } as const;
 
 export const PUBLIC_HOMEPAGE_SLIDER_INTERVAL_MS = 10000;

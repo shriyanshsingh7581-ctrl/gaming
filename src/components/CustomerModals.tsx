@@ -6,20 +6,20 @@ import {
   IdRequestRecord,
   PaymentSettings,
   OFFICIAL_EXCHANGE_PLATFORMS,
-  OFFICIAL_POSTER_ASSETS,
   validateDepositInput,
   validateWithdrawalInput,
+  validateCreateIdInput,
 } from '../utils/exchangeLogic';
 import {
   registerCustomerWithEmail,
   loginCustomerWithEmail,
-  loginWithGoogleFirebase,
   updateCustomerProfile,
   submitDepositRequest,
   submitWithdrawalRequest,
   submitCreateIdRequest,
   DEFAULT_QR_SVG_DATA_URI,
 } from '../firebase';
+import { SharkXLogo } from './SharkHeader';
 import {
   X,
   Copy,
@@ -45,7 +45,7 @@ import {
 } from 'lucide-react';
 
 /* ============================================================================
- * 1. GOOGLE FIREBASE AUTHENTICATION — EMAIL ID & PASSWORD + GOOGLE SIGN-IN MODAL
+ * 1. AUTHENTICATION MODAL (Signup: 3 fields | Login: 2 fields)
  * ============================================================================ */
 interface AuthModalProps {
   isOpen: boolean;
@@ -61,15 +61,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onSuccess,
 }) => {
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
-  const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [demoLoading, setDemoLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -86,25 +83,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setLoading(true);
     try {
       if (mode === 'signup') {
-        if (!name.trim()) {
-          throw new Error('Please enter your Full Name.');
-        }
         const cleanPhoneDigits = phone.replace(/\D/g, '').slice(-10);
         if (cleanPhoneDigits.length < 10) {
           throw new Error('Please enter a valid 10-digit Mobile Number.');
         }
+        if (!email.trim() || !email.includes('@')) {
+          throw new Error('Please enter a valid Email.');
+        }
         if (password.length < 6) {
           throw new Error('Password must be at least 6 characters.');
         }
-        const derivedEmail =
-          email.trim() && email.includes('@')
-            ? email.trim()
-            : `${cleanPhoneDigits}@sharkexch.in`;
 
         const user = await registerCustomerWithEmail({
-          name: name.trim(),
           phone: `+91 ${cleanPhoneDigits}`,
-          email: derivedEmail,
+          email: email.trim(),
           password,
         });
         onSuccess(
@@ -113,7 +105,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         );
         onClose();
       } else {
-        const loginIdentifier = (email || name).trim();
+        const loginIdentifier = email.trim();
+        if (!loginIdentifier) {
+          throw new Error('Please enter your Email.');
+        }
         const user = await loginCustomerWithEmail(loginIdentifier, password);
         onSuccess(user, `Welcome back, ${user.name}!`);
         onClose();
@@ -125,37 +120,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setError('');
-    setGoogleLoading(true);
-    try {
-      const user = await loginWithGoogleFirebase();
-      onSuccess(
-        user,
-        `🎉 Welcome to SHARK EXCH, ${user.name}! ₹${user.walletBalance.toLocaleString('en-IN')} Balance active.`
-      );
-      onClose();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Google Sign-In failed.');
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
-
-  const handleQuickDemoLogin = async () => {
-    setError('');
-    setDemoLoading(true);
-    try {
-      const user = await loginCustomerWithEmail('aarav.vip@sharkexch.in', 'Shark@2026');
-      onSuccess(user, `Logged in as Demo VIP Customer (${user.name})`);
-      onClose();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Demo login failed.');
-    } finally {
-      setDemoLoading(false);
-    }
-  };
-
   return (
     <div
       role="dialog"
@@ -164,34 +128,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto"
     >
       <div className="w-full max-w-md rounded-3xl bg-[#0c111d] border border-[#facc15]/40 shadow-[0_20px_50px_rgba(0,0,0,0.85)] overflow-hidden text-white">
-        {/* Top Yellow Header Bar (`00:07 - 00:11`) */}
+        {/* Top Yellow Header Bar with SharkX Branding */}
         <div className="bg-[#facc15] px-6 py-4 flex items-center justify-between text-[#090d16]">
-          <div id="auth-modal-title" className="flex flex-col leading-none select-none">
-            <span className="font-shark italic font-black text-xl sm:text-2xl tracking-wider">
-              SHARK
-            </span>
-            <span className="font-shark italic font-black text-xl sm:text-2xl tracking-wider">
-              EXCH
-            </span>
+          <div id="auth-modal-title">
+            <SharkXLogo size="md" darkText />
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="border border-[#090d16]/30 px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider">
-              GOOGLE FIREBASE AUTH
-            </span>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close Auth Modal"
-              className="w-8 h-8 rounded-full bg-[#090d16]/10 hover:bg-[#090d16]/20 text-[#090d16] flex items-center justify-center cursor-pointer transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close Auth Modal"
+            className="w-8 h-8 rounded-full bg-[#090d16]/10 hover:bg-[#090d16]/20 text-[#090d16] flex items-center justify-center cursor-pointer transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         <div className="p-6 space-y-4">
-          {/* 2-Column Tab Switcher (`00:07 - 00:11`) */}
+          {/* 2-Column Tab Switcher */}
           <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-[#090d16] border border-white/10">
             <button
               type="button"
@@ -206,7 +160,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               }`}
             >
               <LogIn className="w-3.5 h-3.5 shrink-0" />
-              <span>Login (Email &amp; Password)</span>
+              <span>Login</span>
             </button>
             <button
               type="button"
@@ -221,20 +175,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               }`}
             >
               <UserPlus className="w-3.5 h-3.5 shrink-0" />
-              <span>Sign Up (New Email ID)</span>
+              <span>Sign Up</span>
             </button>
           </div>
 
-          {/* Heading + Firebase Secured Badge */}
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-xs sm:text-sm font-bold text-slate-200">
               {mode === 'signup'
-                ? 'Register with Email ID & Password'
-                : 'Sign In with Email ID & Password'}
+                ? 'Create Account (Mobile Number, Email, Password)'
+                : 'Login with Email & Password'}
             </h3>
             <span className="inline-flex items-center gap-1 bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[10px] px-2.5 py-1 rounded-lg font-bold shrink-0">
               <ShieldCheck className="w-3 h-3" />
-              <span>Firebase Secured</span>
+              <span>Secured</span>
             </span>
           </div>
 
@@ -249,49 +202,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           <form onSubmit={handleSubmit} className="space-y-3.5">
             {mode === 'signup' && (
-              <>
-                <div>
-                  <label
-                    htmlFor="signup-name"
-                    className="block text-xs font-bold text-slate-300 mb-1"
-                  >
-                    Full Name
-                  </label>
-                  <div className="relative">
-                    <UserIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                    <input
-                      id="signup-name"
-                      type="text"
-                      required
-                      placeholder="Enter your full name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#070a10] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
-                    />
-                  </div>
+              <div>
+                <label
+                  htmlFor="signup-phone"
+                  className="block text-xs font-bold text-slate-300 mb-1"
+                >
+                  Mobile Number
+                </label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  <input
+                    id="signup-phone"
+                    type="tel"
+                    required
+                    placeholder="+91 98765 43210"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#070a10] border border-white/15 text-white text-sm font-mono-tabular focus:outline-none focus:border-[#facc15]"
+                  />
                 </div>
-
-                <div>
-                  <label
-                    htmlFor="signup-phone"
-                    className="block text-xs font-bold text-slate-300 mb-1"
-                  >
-                    Mobile Number
-                  </label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                    <input
-                      id="signup-phone"
-                      type="tel"
-                      required
-                      placeholder="+91 98765 43210"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#070a10] border border-white/15 text-white text-sm font-mono-tabular focus:outline-none focus:border-[#facc15]"
-                    />
-                  </div>
-                </div>
-              </>
+              </div>
             )}
 
             <div>
@@ -299,7 +229,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 htmlFor="auth-email"
                 className="block text-xs font-bold text-slate-300 mb-1"
               >
-                Email ID
+                Email
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
@@ -348,61 +278,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
             <button
               type="submit"
-              disabled={loading || demoLoading || googleLoading}
+              disabled={loading}
               className="w-full py-3.5 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-[#090d16] font-extrabold text-sm tracking-wide shadow-lg cursor-pointer disabled:opacity-60"
             >
               {loading
                 ? 'Please wait...'
                 : mode === 'signup'
-                ? 'Create Account with Email ID & Password'
-                : 'Log In with Email ID & Password'}
+                ? 'Sign Up'
+                : 'Login'}
             </button>
           </form>
 
-          {/* Divider: OR GOOGLE FIREBASE AUTH */}
-          <div className="relative flex items-center justify-center py-0.5">
-            <div className="border-t border-white/10 w-full" />
-            <span className="bg-[#0c111d] px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">
-              OR GOOGLE FIREBASE AUTH
-            </span>
-            <div className="border-t border-white/10 w-full" />
-          </div>
-
-          {/* White Continue with Google Account Button */}
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={loading || googleLoading || demoLoading}
-            className="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-[#090d16] font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow cursor-pointer disabled:opacity-50"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                fill="#4285F4"
-                d="M23.49 12.275c0-.85-.075-1.675-.215-2.475H12v4.685h6.445c-.28 1.495-1.125 2.765-2.395 3.615v3h3.875c2.265-2.085 3.565-5.16 3.565-8.825z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 24c3.24 0 5.955-1.075 7.94-2.91l-3.875-3c-1.075.72-2.45 1.145-4.065 1.145-3.125 0-5.77-2.11-6.715-4.945H1.28v3.095C3.255 21.305 7.31 24 12 24z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.285 14.29c-.24-.72-.375-1.49-.375-2.29s.135-1.57.375-2.29V6.615H1.28C.465 8.24 0 10.065 0 12s.465 3.76 1.28 5.385l4.005-3.095z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 4.75c1.76 0 3.34.605 4.585 1.795l3.435-3.435C17.95 1.185 15.235 0 12 0 7.31 0 3.255 2.695 1.28 6.615l4.005 3.095c.945-2.835 3.59-4.96 6.715-4.96z"
-              />
-            </svg>
-            <span>
-              {googleLoading ? 'Connecting to Google...' : 'Continue with Google Account'}
-            </span>
-          </button>
-
-          {/* Bottom Account Switch Link & 1-Click Demo VIP Login (`00:07 - 00:11`) */}
-          <div className="pt-1 space-y-3 text-center text-xs">
+          <div className="pt-1 text-center text-xs">
             {mode === 'signup' ? (
               <p className="text-slate-400">
-                Already have an Email ID account?{' '}
+                Already have an account?{' '}
                 <button
                   type="button"
                   onClick={() => {
@@ -411,7 +301,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   }}
                   className="font-extrabold text-[#facc15] hover:underline cursor-pointer"
                 >
-                  Log In Here →
+                  Login →
                 </button>
               </p>
             ) : (
@@ -425,25 +315,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   }}
                   className="font-extrabold text-[#facc15] hover:underline cursor-pointer"
                 >
-                  Create New Account →
+                  Sign Up →
                 </button>
               </p>
             )}
-
-            <div className="p-3 rounded-xl bg-[#090d16] border border-white/10 flex items-center justify-between gap-2 text-xs">
-              <span className="text-slate-400">
-                Want to test with pre-funded VIP balance?
-              </span>
-              <button
-                type="button"
-                data-testid="auth-modal-demo-vip-login-btn"
-                onClick={handleQuickDemoLogin}
-                disabled={loading || demoLoading || googleLoading}
-                className="font-extrabold text-emerald-400 hover:text-emerald-300 underline cursor-pointer shrink-0"
-              >
-                {demoLoading ? 'Logging in...' : '1-Click Demo VIP Login'}
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -570,30 +445,9 @@ export const DepositModal: React.FC<DepositModalProps> = ({
           </button>
         </div>
 
-        {/* Scrollable Body */}
+        {/* Scrollable Body (Only QR Code & Bank Account Details + Submission Form) */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-5">
-          {/* Highlighted "₹500 की ID पर ₹500 FREE!" Offer Banner at top of Deposit Modal */}
-          <div
-            data-testid="deposit-modal-mega-offer-banner"
-            className="rounded-2xl overflow-hidden border-2 border-[#facc15] bg-gradient-to-r from-[#20031e] via-[#2b0822] to-[#1c0414] shadow-[0_0_25px_rgba(250,204,21,0.35)] p-2.5 space-y-2"
-          >
-            <img
-              src={OFFICIAL_POSTER_ASSETS.megaOffer500Poster}
-              alt="SHARK EXCHANGE MEGA OFFER: ₹500 की ID पर ₹500 FREE!"
-              referrerPolicy="no-referrer"
-              className="w-full h-auto max-h-44 object-contain rounded-xl mx-auto block"
-            />
-            <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-1 rounded-xl bg-black/75 border border-[#facc15]/50">
-              <span className="font-extrabold text-xs sm:text-sm text-[#facc15]">
-                🔥 MEGA OFFER: ₹500 की ID पर ₹500 FREE!
-              </span>
-              <span className="px-2.5 py-0.5 rounded-lg bg-emerald-500 text-black font-black text-[11px] uppercase">
-                100% Instant Bonus
-              </span>
-            </div>
-          </div>
-
-          {/* Live Firebase Payment Settings: QR Code + UPI ID + Bank Details */}
+          {/* Live Firebase Payment Settings: QR Code + Bank Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Left: Live UPI QR Code & UPI ID */}
             <div className="rounded-2xl bg-[#090d16] border border-white/10 p-4 flex flex-col items-center text-center">
@@ -848,9 +702,6 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
   onSuccess,
 }) => {
   const [amount, setAmount] = useState<string>('1000');
-  const [method, setMethod] = useState<'UPI' | 'BANK'>('UPI');
-  const [upiId, setUpiId] = useState<string>('');
-  const [bankName, setBankName] = useState<string>('HDFC Bank');
   const [accountHolder, setAccountHolder] = useState<string>(
     currentUser?.name || ''
   );
@@ -858,6 +709,12 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
   const [ifsc, setIfsc] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isOpen && currentUser && !accountHolder) {
+      setAccountHolder(currentUser.name || '');
+    }
+  }, [isOpen, currentUser, accountHolder]);
 
   if (!isOpen) return null;
 
@@ -876,8 +733,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
     const check = validateWithdrawalInput({
       amount: numAmount,
       walletBalance,
-      method,
-      upiId,
+      method: 'BANK',
       accountHolder,
       accountNumber,
       ifsc,
@@ -894,15 +750,13 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
       await submitWithdrawalRequest({
         user: currentUser,
         amount: numAmount,
-        method,
-        upiId,
-        bankName,
+        method: 'BANK',
         accountHolder,
         accountNumber,
         ifsc,
       });
       onSuccess(
-        `Withdrawal of ₹${numAmount.toLocaleString('en-IN')} via ${method} sent to Admin Queue!`
+        `Withdrawal of ₹${numAmount.toLocaleString('en-IN')} via Bank Transfer sent to Admin Queue!`
       );
       onClose();
     } catch (err: unknown) {
@@ -924,7 +778,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
           <div className="flex items-center gap-2">
             <ArrowDownCircle className="w-6 h-6 stroke-[2.5]" />
             <h2 id="withdraw-modal-title" className="font-shark italic font-black text-xl sm:text-2xl">
-              WITHDRAW WINNINGS (24/7 PAYOUT)
+              WITHDRAWAL (BANK TRANSFER)
             </h2>
           </div>
           <button
@@ -984,109 +838,64 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
             />
           </div>
 
-          {/* Payout Method Tabs */}
-          <div className="grid grid-cols-2 gap-2 p-1.5 rounded-xl bg-[#090d16] border border-white/10">
-            <button
-              type="button"
-              onClick={() => setMethod('UPI')}
-              className={`py-2 rounded-lg font-bold text-xs cursor-pointer transition-colors ${
-                method === 'UPI'
-                  ? 'bg-[#facc15] text-black'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Instant UPI ID
-            </button>
-            <button
-              type="button"
-              onClick={() => setMethod('BANK')}
-              className={`py-2 rounded-lg font-bold text-xs cursor-pointer transition-colors ${
-                method === 'BANK'
-                  ? 'bg-[#facc15] text-black'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Bank Transfer (IMPS)
-            </button>
-          </div>
-
-          {method === 'UPI' ? (
+          {/* Strictly Bank Details (Account Number, IFSC, Account Holder Name) */}
+          <div className="space-y-3">
             <div>
               <label
-                htmlFor="withdraw-upi-input"
+                htmlFor="withdraw-acc-input"
                 className="block text-xs font-semibold text-slate-300 mb-1"
               >
-                Your Receiving UPI ID *
+                Account Number *
               </label>
               <input
-                id="withdraw-upi-input"
+                id="withdraw-acc-input"
                 type="text"
                 required
-                placeholder="yourname@okaxis / 9876543210@ybl"
-                value={upiId}
-                onChange={(e) => setUpiId(e.target.value)}
+                placeholder="8 to 18 digits"
+                value={accountNumber}
+                onChange={(e) =>
+                  setAccountNumber(e.target.value.replace(/\D/g, ''))
+                }
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white font-mono-tabular text-sm focus:outline-none focus:border-[#facc15]"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="withdraw-ifsc-input"
+                className="block text-xs font-semibold text-slate-300 mb-1"
+              >
+                IFSC *
+              </label>
+              <input
+                id="withdraw-ifsc-input"
+                type="text"
+                required
+                placeholder="e.g. HDFC0001234"
+                value={ifsc}
+                onChange={(e) => setIfsc(e.target.value.toUpperCase())}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white font-mono-tabular text-sm uppercase focus:outline-none focus:border-[#facc15]"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="withdraw-holder-input"
+                className="block text-xs font-semibold text-slate-300 mb-1"
+              >
+                Account Holder Name *
+              </label>
+              <input
+                id="withdraw-holder-input"
+                type="text"
+                required
+                placeholder="As per bank passbook"
+                value={accountHolder}
+                onChange={(e) => setAccountHolder(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
               />
             </div>
-          ) : (
-            <div className="space-y-3">
-              <div>
-                <label
-                  htmlFor="withdraw-holder-input"
-                  className="block text-xs font-semibold text-slate-300 mb-1"
-                >
-                  Account Holder Name *
-                </label>
-                <input
-                  id="withdraw-holder-input"
-                  type="text"
-                  required
-                  placeholder="As per bank passbook"
-                  value={accountHolder}
-                  onChange={(e) => setAccountHolder(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label
-                    htmlFor="withdraw-acc-input"
-                    className="block text-xs font-semibold text-slate-300 mb-1"
-                  >
-                    Bank Account Number *
-                  </label>
-                  <input
-                    id="withdraw-acc-input"
-                    type="text"
-                    required
-                    placeholder="8 to 18 digits"
-                    value={accountNumber}
-                    onChange={(e) =>
-                      setAccountNumber(e.target.value.replace(/\D/g, ''))
-                    }
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white font-mono-tabular text-sm focus:outline-none focus:border-[#facc15]"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="withdraw-ifsc-input"
-                    className="block text-xs font-semibold text-slate-300 mb-1"
-                  >
-                    IFSC Code *
-                  </label>
-                  <input
-                    id="withdraw-ifsc-input"
-                    type="text"
-                    required
-                    placeholder="e.g. HDFC0001234"
-                    value={ifsc}
-                    onChange={(e) => setIfsc(e.target.value.toUpperCase())}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white font-mono-tabular text-sm uppercase focus:outline-none focus:border-[#facc15]"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
+          </div>
 
           <button
             type="submit"
@@ -1095,7 +904,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
           >
             {submitting
               ? 'Processing Withdrawal...'
-              : `Request Instant Withdrawal (₹${Number(amount || 0).toLocaleString('en-IN')})`}
+              : `Submit Bank Withdrawal (₹${Number(amount || 0).toLocaleString('en-IN')})`}
           </button>
         </form>
       </div>
@@ -1105,8 +914,10 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
 
 /* ============================================================================
  * 4. CUSTOMER "CREATE ID" 2-FIELD FORM MODAL (`/idRequests`)
- * Field 1: Preferred Exchange Username
- * Field 2: Payment / Opening ID Refill Amount (₹) + UTR / Screenshot Upload
+ * Strictly 2 fields:
+ *   Field 1: Username
+ *   Field 2: Amount
+ * Enforces wallet balance validation: "Insufficient wallet balance to create ID"
  * ============================================================================ */
 interface CreateIdModalProps {
   isOpen: boolean;
@@ -1122,7 +933,6 @@ export const CreateIdModal: React.FC<CreateIdModalProps> = ({
   isOpen,
   currentUser,
   selectedExchange,
-  paymentSettings,
   onClose,
   onRequireAuth,
   onSuccess,
@@ -1132,10 +942,6 @@ export const CreateIdModal: React.FC<CreateIdModalProps> = ({
   );
   const [preferredUsername, setPreferredUsername] = useState<string>('');
   const [depositAmount, setDepositAmount] = useState<string>('500');
-  const [utr, setUtr] = useState<string>('');
-  const [screenshotUrl, setScreenshotUrl] = useState<string>('');
-  const [screenshotName, setScreenshotName] = useState<string>('');
-  const [copiedUpi, setCopiedUpi] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
@@ -1143,28 +949,14 @@ export const CreateIdModal: React.FC<CreateIdModalProps> = ({
     if (selectedExchange) {
       setPlatform(selectedExchange);
     }
+    if (isOpen) {
+      setError('');
+    }
   }, [selectedExchange, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setScreenshotName(file.name);
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setScreenshotUrl(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleCopyUpi = () => {
-    navigator.clipboard?.writeText(paymentSettings.upiId).catch(() => {});
-    setCopiedUpi(true);
-    setTimeout(() => setCopiedUpi(false), 2000);
-  };
+  const walletBalance = currentUser?.walletBalance ?? 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1173,13 +965,15 @@ export const CreateIdModal: React.FC<CreateIdModalProps> = ({
       onRequireAuth();
       return;
     }
-    if (!preferredUsername.trim() || preferredUsername.trim().length < 3) {
-      setError('Please enter a Preferred Exchange Username (at least 3 characters).');
-      return;
-    }
+
     const numAmount = Number(depositAmount);
-    if (!Number.isFinite(numAmount) || numAmount < 100) {
-      setError('Minimum Opening ID Payment / Refill Amount is ₹100.');
+    const validation = validateCreateIdInput({
+      username: preferredUsername,
+      amount: numAmount,
+      walletBalance,
+    });
+    if (!validation.valid) {
+      setError(validation.error || 'Insufficient wallet balance to create ID');
       return;
     }
 
@@ -1190,19 +984,14 @@ export const CreateIdModal: React.FC<CreateIdModalProps> = ({
         platform,
         preferredUsername,
         depositAmount: numAmount,
-        utr: utr.trim(),
-        screenshotUrl: screenshotUrl || DEFAULT_QR_SVG_DATA_URI,
       });
       setPreferredUsername('');
-      setUtr('');
-      setScreenshotUrl('');
-      setScreenshotName('');
       onSuccess(
-        `Your "${platform}" ID request (Username: ${preferredUsername.trim()}) has been sent to Admin/Staff for instant activation!`
+        `Your "${platform}" ID request (Username: ${preferredUsername.trim()}, Amount: ₹${numAmount.toLocaleString('en-IN')}) has been submitted!`
       );
       onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to submit ID request.');
+      setError(err instanceof Error ? err.message : 'Insufficient wallet balance to create ID');
     } finally {
       setSubmitting(false);
     }
@@ -1215,8 +1004,8 @@ export const CreateIdModal: React.FC<CreateIdModalProps> = ({
       aria-labelledby="create-id-modal-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 overflow-y-auto"
     >
-      <div className="w-full max-w-lg rounded-3xl bg-[#0c111d] border border-[#facc15]/40 shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col">
-        {/* Header */}
+      <div className="w-full max-w-md rounded-3xl bg-[#0c111d] border border-[#facc15]/40 shadow-2xl overflow-hidden my-auto flex flex-col">
+        {/* Header (No "500 ID" promo header) */}
         <div className="bg-[#facc15] px-5 sm:px-6 py-4 flex items-center justify-between text-[#090d16] shrink-0">
           <div className="flex items-center gap-2">
             <KeyRound className="w-5 h-5 stroke-[2.5]" />
@@ -1234,42 +1023,35 @@ export const CreateIdModal: React.FC<CreateIdModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 overflow-y-auto space-y-4">
-          {/* Highlighted "₹500 की ID पर ₹500 FREE!" Offer Banner at top of Create ID Modal */}
-          <div
-            data-testid="create-id-modal-mega-offer-banner"
-            className="rounded-2xl overflow-hidden border-2 border-[#facc15] bg-gradient-to-r from-[#20031e] via-[#2b0822] to-[#1c0414] shadow-[0_0_25px_rgba(250,204,21,0.35)] p-2 space-y-1.5"
-          >
-            <img
-              src={OFFICIAL_POSTER_ASSETS.megaOffer500Poster}
-              alt="SHARK EXCHANGE MEGA OFFER: ₹500 की ID पर ₹500 FREE!"
-              referrerPolicy="no-referrer"
-              className="w-full h-auto max-h-36 object-contain rounded-xl mx-auto block"
-            />
-            <div className="flex flex-wrap items-center justify-between gap-2 px-2.5 py-1 rounded-xl bg-black/75 border border-[#facc15]/50">
-              <span className="font-extrabold text-xs text-[#facc15]">
-                🔥 ₹500 की ID पर ₹500 FREE! (Pay ₹500 ➔ Get ₹1,000 ID)
-              </span>
-              <span className="px-2 py-0.5 rounded bg-emerald-500 text-black font-black text-[10px] uppercase">
-                100% Bonus
-              </span>
-            </div>
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
+          {/* Wallet Balance Indicator */}
+          <div className="rounded-2xl bg-[#090d16] border border-white/10 px-4 py-3 flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-400">
+              Available Wallet Balance
+            </span>
+            <span
+              data-testid="create-id-modal-wallet-balance"
+              className="font-mono-tabular font-extrabold text-base text-[#facc15]"
+            >
+              ₹{walletBalance.toLocaleString('en-IN')}
+            </span>
           </div>
 
           {error && (
             <div
               role="alert"
-              className="p-3 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-xs font-medium"
+              data-testid="create-id-error-alert"
+              className="p-3 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-xs font-bold"
             >
               {error}
             </div>
           )}
 
-          {/* Selected Exchange Banner / Switcher */}
+          {/* Selected Exchange Platform Switcher */}
           <div className="rounded-2xl bg-[#090d16] border border-[#facc15]/30 p-3.5">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Selected Exchange Platform
+                Exchange Platform
               </span>
               <span className="text-xs font-mono-tabular font-extrabold text-[#facc15]">
                 {platform}
@@ -1293,129 +1075,43 @@ export const CreateIdModal: React.FC<CreateIdModalProps> = ({
             </div>
           </div>
 
-          {/* FIELD 1: Preferred Exchange Username */}
+          {/* FIELD 1: Username */}
           <div>
             <label
               htmlFor="preferred-username"
               className="block text-xs font-bold text-[#facc15] uppercase tracking-wider mb-1.5"
             >
-              1. Preferred Exchange Username *
+              Username *
             </label>
             <input
               id="preferred-username"
               type="text"
               required
-              placeholder="Enter desired username (e.g. shark_king99)"
+              placeholder="Enter desired username"
               value={preferredUsername}
               onChange={(e) => setPreferredUsername(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
             />
           </div>
 
-          {/* FIELD 2: Payment / Opening ID Refill Amount (₹) + QR/UPI & UTR/Screenshot */}
-          <div className="rounded-2xl bg-[#090d16] border border-white/10 p-4 space-y-3.5">
-            <div>
-              <label
-                htmlFor="id-deposit-amount"
-                className="block text-xs font-bold text-[#facc15] uppercase tracking-wider mb-1.5"
-              >
-                2. Payment / Opening ID Refill Amount (₹) *
-              </label>
-              <input
-                id="id-deposit-amount"
-                type="number"
-                min={100}
-                required
-                value={depositAmount}
-                onChange={(e) => setDepositAmount(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#0c111d] border border-white/15 text-[#facc15] font-mono-tabular font-bold text-base focus:outline-none focus:border-[#facc15]"
-              />
-            </div>
-
-            {/* Compact Live QR & UPI Strip for Payment */}
-            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-[#0c111d] border border-white/10">
-              <div className="w-16 h-16 rounded-xl bg-white p-1 shrink-0 flex items-center justify-center overflow-hidden">
-                <img
-                  src={paymentSettings.qrCodeUrl || DEFAULT_QR_SVG_DATA_URI}
-                  alt="UPI QR"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-contain"
-                />
-              </div>
-              <div className="min-w-0 flex-1 space-y-1">
-                <span className="block text-[10px] text-slate-400 uppercase font-semibold">
-                  Pay via Official UPI ID / QR
-                </span>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-mono-tabular text-xs font-bold text-white truncate">
-                    {paymentSettings.upiId}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleCopyUpi}
-                    className="px-2.5 py-1 rounded-lg bg-[#facc15] text-black font-bold text-[11px] flex items-center gap-1 shrink-0 cursor-pointer"
-                  >
-                    {copiedUpi ? (
-                      <>
-                        <Check className="w-3 h-3" />
-                        <span>Copied</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3 h-3" />
-                        <span>Copy UPI</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Payment UTR & Screenshot Upload */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label
-                  htmlFor="create-id-utr"
-                  className="block text-[11px] font-semibold text-slate-300 mb-1"
-                >
-                  Payment 12-Digit UTR No.
-                </label>
-                <input
-                  id="create-id-utr"
-                  type="text"
-                  maxLength={12}
-                  placeholder="12-digit UTR number"
-                  value={utr}
-                  onChange={(e) => setUtr(e.target.value.replace(/\D/g, ''))}
-                  className="w-full px-3 py-2 rounded-xl bg-[#0c111d] border border-white/15 text-white font-mono-tabular text-xs focus:outline-none focus:border-[#facc15]"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="create-id-screenshot"
-                  className="block text-[11px] font-semibold text-slate-300 mb-1"
-                >
-                  Payment Screenshot
-                </label>
-                <label
-                  htmlFor="create-id-screenshot"
-                  className="flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl bg-[#0c111d] border border-dashed border-white/25 hover:border-[#facc15] text-xs text-slate-300 cursor-pointer"
-                >
-                  <Upload className="w-3.5 h-3.5 text-[#facc15] shrink-0" />
-                  <span className="truncate">
-                    {screenshotName || 'Upload Receipt'}
-                  </span>
-                </label>
-                <input
-                  id="create-id-screenshot"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleScreenshotChange}
-                  className="hidden"
-                />
-              </div>
-            </div>
+          {/* FIELD 2: Amount */}
+          <div>
+            <label
+              htmlFor="id-deposit-amount"
+              className="block text-xs font-bold text-[#facc15] uppercase tracking-wider mb-1.5"
+            >
+              Amount *
+            </label>
+            <input
+              id="id-deposit-amount"
+              type="number"
+              min={1}
+              required
+              placeholder="Enter amount"
+              value={depositAmount}
+              onChange={(e) => setDepositAmount(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 text-[#facc15] font-mono-tabular font-bold text-base focus:outline-none focus:border-[#facc15]"
+            />
           </div>
 
           <button
@@ -1423,9 +1119,7 @@ export const CreateIdModal: React.FC<CreateIdModalProps> = ({
             disabled={submitting}
             className="w-full py-3.5 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-sm tracking-wide shadow-lg cursor-pointer"
           >
-            {submitting
-              ? 'Sending ID Request to Admin...'
-              : `Submit Create ID Request (${platform})`}
+            {submitting ? 'Creating ID...' : 'Create ID'}
           </button>
         </form>
       </div>
@@ -1463,7 +1157,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   onLogout,
   onSuccess,
 }) => {
-  const [activeTab, setActiveTab] = useState<'profile' | 'ids' | 'transactions'>('profile');
+  const [activeTab, setActiveTab] = useState<'transactions' | 'ids' | 'profile'>('transactions');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -1534,10 +1228,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 id="user-profile-modal-title"
                 className="font-shark italic font-black text-xl tracking-wide leading-none"
               >
-                MY VIP PROFILE &amp; ACCOUNT
+                ACCOUNT STATEMENT
               </h2>
               <p className="text-[11px] font-bold opacity-85 mt-0.5">
-                SHARK EXCH · Official Verified Member
+                SharkX · Transactions, Exchange IDs &amp; Profile
               </p>
             </div>
           </div>
@@ -1607,7 +1301,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               className="py-2 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <ArrowDownCircle className="w-3.5 h-3.5" />
-              <span>Withdraw</span>
+              <span>Withdrawal</span>
             </button>
             <button
               type="button"
@@ -1627,14 +1321,14 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         <div className="grid grid-cols-3 p-2 gap-1.5 bg-[#090d16] border-b border-white/10 shrink-0">
           <button
             type="button"
-            onClick={() => setActiveTab('profile')}
+            onClick={() => setActiveTab('transactions')}
             className={`py-2 px-2 rounded-xl font-bold text-xs cursor-pointer transition-colors ${
-              activeTab === 'profile'
+              activeTab === 'transactions'
                 ? 'bg-[#facc15] text-black'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Profile Details
+            Account Statement ({myDeposits.length + myWithdrawals.length + myIdRequests.length})
           </button>
           <button
             type="button"
@@ -1649,14 +1343,14 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('transactions')}
+            onClick={() => setActiveTab('profile')}
             className={`py-2 px-2 rounded-xl font-bold text-xs cursor-pointer transition-colors ${
-              activeTab === 'transactions'
+              activeTab === 'profile'
                 ? 'bg-[#facc15] text-black'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            History ({myDeposits.length + myWithdrawals.length})
+            Profile Details
           </button>
         </div>
 
@@ -1905,12 +1599,40 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
           {activeTab === 'transactions' && (
             <div className="space-y-2.5">
-              {myDeposits.length === 0 && myWithdrawals.length === 0 ? (
+              {myDeposits.length === 0 &&
+              myWithdrawals.length === 0 &&
+              myIdRequests.length === 0 ? (
                 <p className="text-xs text-slate-400 text-center py-8">
-                  No deposits or withdrawals recorded yet.
+                  No transactions recorded in your Account Statement yet.
                 </p>
               ) : (
                 <>
+                  {myIdRequests.map((req, idx) => (
+                    <div
+                      key={`stmt-id-${req.id || idx}-${idx}`}
+                      className="p-3 rounded-xl bg-[#090d16] border border-[#facc15]/30 flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <span className="font-bold text-[#facc15]">
+                          Create ID ({req.platform}) -₹{req.depositAmount.toLocaleString('en-IN')}
+                        </span>
+                        <span className="block text-[10px] text-slate-400 font-mono-tabular">
+                          Username: {req.preferredUsername}
+                        </span>
+                      </div>
+                      <span
+                        className={`font-bold ${
+                          req.status === 'Created'
+                            ? 'text-emerald-400'
+                            : req.status === 'Pending'
+                            ? 'text-amber-400'
+                            : 'text-red-400'
+                        }`}
+                      >
+                        {req.status}
+                      </span>
+                    </div>
+                  ))}
                   {myDeposits.map((dep, idx) => (
                     <div
                       key={`prof-dep-${dep.id || idx}-${idx}`}
@@ -1944,10 +1666,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     >
                       <div>
                         <span className="font-bold text-amber-300">
-                          Withdraw -₹{wdr.amount.toLocaleString('en-IN')}
+                          Withdrawal -₹{wdr.amount.toLocaleString('en-IN')}
                         </span>
                         <span className="block text-[10px] text-slate-400 font-mono-tabular">
-                          {wdr.method === 'UPI' ? wdr.upiId : wdr.accountNumber}
+                          {wdr.accountNumber ? `A/C: ${wdr.accountNumber} (${wdr.ifsc || ''})` : wdr.upiId}
                         </span>
                       </div>
                       <span

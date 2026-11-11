@@ -112,33 +112,23 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
 
   return (
     <>
-      {/* FLOATING OFFICIAL WHATSAPP LOGO TRIGGER BUTTON (Opens In-App Live Chat — No External Number) */}
-      <div className="fixed bottom-16 md:bottom-6 right-4 z-40 flex flex-col items-end gap-2">
+      {/* FLOATING COMPACT WHATSAPP LOGO TRIGGER BUTTON (Opens In-App Live Chat — No External Number) */}
+      <div className="fixed bottom-20 md:bottom-6 right-3.5 z-40 flex flex-col items-end">
         {!isOpen && (
           <button
             type="button"
             onClick={() => onOpenChange(true)}
             data-testid="whatsapp-live-chat-trigger"
-            aria-label="Open Official In-App Live Chat Support"
-            className="group relative flex items-center gap-2.5 pl-3.5 pr-4 py-2.5 rounded-full bg-[#25D366] hover:bg-[#1ebe5d] text-white font-extrabold text-xs sm:text-sm shadow-[0_8px_30px_rgba(37,211,102,0.55)] border-2 border-white/90 transition-transform active:scale-95 cursor-pointer"
+            aria-label="WhatsApp Live Support"
+            title="Live Support"
+            className="group relative w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-[#25D366] hover:bg-[#1ebe5d] text-white shadow-[0_4px_16px_rgba(37,211,102,0.5)] border border-white/80 transition-transform active:scale-95 cursor-pointer"
           >
-            <span className="relative flex items-center justify-center">
-              <OfficialWhatsAppLogoSvg className="w-6 h-6 sm:w-7 sm:h-7 text-white drop-shadow" />
-              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-white animate-ping" />
-            </span>
-            <div className="text-left leading-tight">
-              <span className="block text-[10px] uppercase tracking-wider text-emerald-950 font-black">
-                24/7 Instant Help
-              </span>
-              <span className="block text-xs sm:text-sm font-black text-white drop-shadow-sm">
-                Live Support Chat
-              </span>
-            </div>
+            <OfficialWhatsAppLogoSvg className="w-6 h-6 text-white drop-shadow-xs" />
 
             {unreadCount > 0 && (
               <span
                 data-testid="customer-chat-unread-badge"
-                className="ml-1 px-2 py-0.5 rounded-full bg-red-600 text-white font-mono-tabular font-black text-xs border border-white shadow"
+                className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-red-600 text-white font-mono-tabular font-black text-[10px] border border-white shadow"
               >
                 {unreadCount}
               </span>
