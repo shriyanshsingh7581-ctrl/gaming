@@ -278,6 +278,7 @@ export default function App() {
         <PreLoginLandingPage
           banners={banners}
           promoVideoUrl={paymentSettings.promoVideoUrl}
+          authPosterUrl={paymentSettings.authPosterUrl}
           onOpenSignUpModal={() => handleOpenAuth('signup')}
           onOpenLoginModal={() => handleOpenAuth('login')}
           onAuthSuccess={(user, msg) => {
@@ -397,29 +398,25 @@ export default function App() {
               Featured Games
             </p>
             <div className="space-y-1 select-none">
-              <button
-                type="button"
-                onClick={() => setActiveGame('aviatrix')}
-                className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 font-semibold text-xs flex items-center justify-between cursor-pointer"
+              <div
+                className="w-full py-2 px-3 rounded-xl text-slate-200 font-semibold text-xs flex items-center justify-between cursor-default"
               >
                 <span className="flex items-center gap-2">
                   <Rocket className="w-4 h-4 text-sky-400" />
                   <span>Aviatrix</span>
                 </span>
                 <span className="font-mono-tabular text-[10px] text-sky-400">10,000x</span>
-              </button>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => setActiveGame('mines')}
-                className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 font-semibold text-xs flex items-center justify-between cursor-pointer"
+              <div
+                className="w-full py-2 px-3 rounded-xl text-slate-200 font-semibold text-xs flex items-center justify-between cursor-default"
               >
                 <span className="flex items-center gap-2">
                   <Bomb className="w-4 h-4 text-red-400" />
                   <span>MINES</span>
                 </span>
                 <span className="font-mono-tabular text-[10px] text-red-400">97% RTP</span>
-              </button>
+              </div>
             </div>
           </div>
         </aside>
@@ -429,6 +426,7 @@ export default function App() {
           <BannerAndGames
             banners={banners}
             promoVideoUrl={paymentSettings.promoVideoUrl}
+            homePosterUrl={paymentSettings.homePosterUrl}
             currentUser={currentUser}
             activeIdCount={myIdRequests.filter((r) => r.status === 'Created').length}
             onOpenCreateId={() => handleOpenCreateIdForExchange(OFFICIAL_EXCHANGE_PLATFORMS[0].name)}

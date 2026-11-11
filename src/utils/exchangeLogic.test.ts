@@ -474,6 +474,8 @@ test('Cloudinary config constants, green promo strip text, and Create ID wallet 
   const {
     CLOUDINARY_CLOUD_NAME,
     CLOUDINARY_UPLOAD_PRESET,
+    CLOUDINARY_VIDEO_UPLOAD_URL,
+    CLOUDINARY_IMAGE_UPLOAD_URL,
     PROMO_GREEN_STRIP_TEXT,
     INSUFFICIENT_BALANCE_CREATE_ID_ERROR,
     validateCreateIdInput,
@@ -482,6 +484,18 @@ test('Cloudinary config constants, green promo strip text, and Create ID wallet 
 
   assert.equal(CLOUDINARY_CLOUD_NAME, 'dxeuzdwkz');
   assert.equal(CLOUDINARY_UPLOAD_PRESET, 'Sharkexchange');
+  assert.equal(
+    CLOUDINARY_VIDEO_UPLOAD_URL,
+    'https://api.cloudinary.com/v1_1/dxeuzdwkz/video/upload'
+  );
+  assert.equal(
+    CLOUDINARY_IMAGE_UPLOAD_URL,
+    'https://api.cloudinary.com/v1_1/dxeuzdwkz/image/upload'
+  );
+  assert.equal(
+    OFFICIAL_POSTER_ASSETS.permanentThreeGirlsPoster,
+    '/assets/aistudio/file_00000000efc4821190c85e045f25eb1f_3e6a5a0f.png'
+  );
   assert.equal(PROMO_GREEN_STRIP_TEXT, 'Pay 500 and get 1000 instant bonus');
 
   const insufficientZero = validateCreateIdInput({
@@ -509,6 +523,7 @@ test('Cloudinary config constants, green promo strip text, and Create ID wallet 
   assert.equal(validReq.valid, true);
   assert.equal(calculateWalletAfterCreateIdRequest(1200, 500), 700);
 });
+
 
 
 

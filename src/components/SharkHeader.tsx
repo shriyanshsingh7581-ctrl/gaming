@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserProfile } from '../utils/exchangeLogic';
-import { LogOut } from 'lucide-react';
+import { LogOut, User } from 'lucide-react';
 
 export interface SharkHeaderProps {
   currentUser: UserProfile | null;
@@ -18,12 +18,12 @@ export interface SharkHeaderProps {
 /**
  * Official Stacked White & Yellow "SHARK / - EXCHANGE -" Logo
  * Matches the user's attached reference image (`Screenshot_20261111_203249_Chrome_b91a2995.png`)
- * for both the top black header bar and the center wallet card.
+ * for both the top header bar and the center wallet card.
  */
 export const SharkXLogo: React.FC<{
   size?: 'sm' | 'md' | 'lg';
   darkText?: boolean;
-}> = ({ size = 'md', darkText = false }) => {
+}> = ({ size = 'sm', darkText = false }) => {
   const sharkTextClass =
     size === 'lg'
       ? 'text-2xl sm:text-3xl tracking-[0.14em]'
@@ -64,65 +64,87 @@ export const SharkXLogo: React.FC<{
 };
 
 /**
- * Minimalist Shark Exchange Header & Reference-Matched Golden-Yellow Wallet Section:
- * - Top Black Header Bar (`#070a10`):
- *   - Left: White & Yellow stacked "SHARK / - EXCHANGE -" logo.
- *   - Right: Only the Log Out button when logged in (wallet balance removed from top bar so balance appears in only one place).
- * - Golden-Yellow (`#f6bd20`) Wallet Section matching the exact overlapping 3-card layout:
- *   1. Left Dark Wing Card (`#1b1b1b`, tucked behind center card): "Deposit" + bold white double-up chevrons
- *   2. Center Elevated Dark Card (`#212121`, taller with deep shadow): White & Yellow "SHARK / - EXCHANGE -" logo + "WALLET BALANCE" + stacked white coins + balance
- *   3. Right Dark Wing Card (`#1b1b1b`, tucked behind center card): "Withdraw" + bold white double-down chevrons
+ * Full-Height Golden-Yellow (`#f6bd20`) Header & Wallet Showcase Section:
+ * - Stretches the golden-yellow background continuously from the very top edge of the page
+ *   (covering the top Logo, Username/Profile badge, and Log Out button) all the way down
+ *   behind the 3 interlocking Wallet cards.
+ * - Wallet Balance is displayed in ONLY one place (the center elevated dark wallet card).
  */
 export const SharkHeader: React.FC<SharkHeaderProps> = ({
   currentUser,
+  onOpenProfile,
   onLogout,
   onOpenDeposit,
   onOpenWithdraw,
 }) => {
   return (
-    <div className="w-full select-none">
-      {/* 1. MINIMALIST TOP BLACK HEADER BAR (Logo on left, only Log Out button on right) */}
-      <header className="bg-[#070a10] border-b border-white/10 px-3.5 sm:px-6 py-2 flex items-center justify-between gap-2">
-        <a href="#top" className="inline-flex items-center">
+    <div
+      data-testid="shark-yellow-top-wrapper"
+      className="w-full select-none relative overflow-hidden bg-[#f6bd20] shadow-md"
+    >
+      {/* Subtle decorative background card watermarks across the full yellow backdrop */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-8 bottom-2 w-28 h-20 rounded-2xl border-2 border-black/[0.06] bg-black/[0.03] rotate-12"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/4 top-2 w-24 h-24 rounded-2xl border-2 border-black/[0.05] bg-black/[0.02] -rotate-12"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-6 bottom-4 w-28 h-20 rounded-2xl border-2 border-black/[0.06] bg-black/[0.03] -rotate-12"
+      />
+
+      {/* 1. TOP HEADER BAR INSIDE THE GOLDEN-YELLOW BACKGROUND (Logo on left, Profile/Username + Log Out on right) */}
+      <header
+        data-testid="shark-yellow-header-bar"
+        className="relative z-20 px-3 sm:px-6 pt-3 pb-2 flex items-center justify-between gap-2"
+      >
+        <a
+          href="#top"
+          className="inline-flex items-center px-2.5 py-1.5 rounded-xl bg-[#1b1b1b] shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
+        >
           <SharkXLogo size="sm" />
         </a>
 
-        <div className="flex items-center gap-2">
-          {currentUser && (
+        {currentUser && (
+          <div className="flex items-center gap-2">
+            {/* Profile / Username pill (No wallet balance here — balance is only in the center wallet card) */}
+            <button
+              type="button"
+              data-testid="header-profile-btn"
+              onClick={onOpenProfile}
+              title="Profile & Account Statement"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1b1b1b] hover:bg-[#262626] text-white text-xs font-bold shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-colors cursor-pointer"
+            >
+              <User className="w-3.5 h-3.5 text-[#f6bd20] shrink-0" />
+              <span className="max-w-[110px] sm:max-w-[160px] truncate">
+                {currentUser.name}
+              </span>
+            </button>
+
+            {/* Log Out Button */}
             <button
               type="button"
               data-testid="header-logout-btn"
               onClick={onLogout}
               title="Log Out"
               aria-label="Log Out"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 border border-white/15 text-slate-200 hover:text-red-300 text-xs font-bold transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1b1b1b] hover:bg-[#2b1616] text-white hover:text-red-300 text-xs font-bold shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-colors cursor-pointer"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-3.5 h-3.5 text-[#f6bd20]" />
               <span>Log Out</span>
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </header>
 
       {/* 2. REFERENCE-MATCHED GOLDEN-YELLOW WALLET BANNER */}
       <section
         aria-label="Shark Exchange Wallet and Quick Actions"
-        className="relative overflow-hidden bg-[#f6bd20] px-3 sm:px-6 py-5 sm:py-7 shadow-md"
+        className="relative z-10 px-3 sm:px-6 pt-3 pb-6 sm:pb-8"
       >
-        {/* Subtle decorative background card watermarks matching reference */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -left-8 bottom-2 w-28 h-20 rounded-2xl border-2 border-black/[0.05] bg-black/[0.03] rotate-12"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute left-1/4 -top-6 w-24 h-24 rounded-2xl border-2 border-black/[0.04] bg-black/[0.02] -rotate-12"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-6 bottom-4 w-28 h-20 rounded-2xl border-2 border-black/[0.05] bg-black/[0.03] -rotate-12"
-        />
-
         {/* Interlocking 3-Card Wallet Container */}
         <div className="relative z-10 max-w-md sm:max-w-lg mx-auto flex items-center justify-center">
           {/* LEFT WING CARD: Deposit */}
@@ -224,3 +246,4 @@ export const SharkHeader: React.FC<SharkHeaderProps> = ({
     </div>
   );
 };
+

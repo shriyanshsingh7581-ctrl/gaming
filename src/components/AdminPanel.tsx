@@ -18,6 +18,9 @@ import {
   OFFICIAL_EXCHANGE_PLATFORMS,
   OFFICIAL_POSTER_ASSETS,
   CELEBRITY_BANNER_ASSETS,
+  DEFAULT_CLOUDINARY_PROMO_VIDEO_URL,
+  CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_UPLOAD_PRESET,
 } from '../utils/exchangeLogic';
 import {
   ALL_200_EXCHANGE_GAMES,
@@ -44,6 +47,9 @@ import {
   saveRuntimeFirebaseConfig,
   clearRuntimeFirebaseConfig,
   DEFAULT_QR_SVG_DATA_URI,
+  uploadPromoVideoToCloudinary,
+  uploadImageToCloudinary,
+  adminSaveMediaSettings,
 } from '../firebase';
 import { OfficialWhatsAppLogoSvg } from './LiveChatWidget';
 import {
@@ -223,6 +229,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   }, [banners]);
 
+  const [promoVideoUrlInput, setPromoVideoUrlInput] = useState<string>(
+    paymentSettings.promoVideoUrl || DEFAULT_CLOUDINARY_PROMO_VIDEO_URL
+  );
+  const [authPosterUrlInput, setAuthPosterUrlInput] = useState<string>(
+    paymentSettings.authPosterUrl || ''
+  );
+  const [homePosterUrlInput, setHomePosterUrlInput] = useState<string>(
+    paymentSettings.homePosterUrl || OFFICIAL_POSTER_ASSETS.permanentThreeGirlsPoster
+  );
+  const [uploadingMediaField, setUploadingMediaField] = useState<
+    null | 'video' | 'authPoster' | 'homePoster'
+  >(null);
+
   useEffect(() => {
     setUpiId(paymentSettings.upiId);
     setMerchantName(paymentSettings.merchantName);
@@ -231,7 +250,83 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setAccountHolder(paymentSettings.accountHolder);
     setAccountNumber(paymentSettings.accountNumber);
     setIfsc(paymentSettings.ifsc);
+    setPromoVideoUrlInput(
+      paymentSettings.promoVideoUrl || DEFAULT_CLOUDINARY_PROMO_VIDEO_URL
+    );
+    setAuthPosterUrlInput(paymentSettings.authPosterUrl || '');
+    setHomePosterUrlInput(
+      paymentSettings.homePosterUrl || OFFICIAL_POSTER_ASSETS.permanentThreeGirlsPoster
+    );
   }, [paymentSettings]);
+
+  const handleCloudinaryVideoUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingMediaField('video');
+    try {
+      const url = await uploadPromoVideoToCloudinary(file);
+      setPromoVideoUrlInput(url);
+      onNotify(
+        `✅ Login/Signup Loop Video uploaded to Cloudinary (${CLOUDINARY_CLOUD_NAME}/${CLOUDINARY_UPLOAD_PRESET}) & live!`
+      );
+    } catch (err: unknown) {
+      onNotify(
+        err instanceof Error ? err.message : 'Cloudinary video upload failed.'
+      );
+    } finally {
+      setUploadingMediaField(null);
+      e.target.value = '';
+    }
+  };
+
+  const handleCloudinaryPosterUpload = async (
+    targetField: 'homePosterUrl' | 'authPosterUrl',
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingMediaField(
+      targetField === 'homePosterUrl' ? 'homePoster' : 'authPoster'
+    );
+    try {
+      const url = await uploadImageToCloudinary(file, targetField);
+      if (targetField === 'homePosterUrl') {
+        setHomePosterUrlInput(url);
+        onNotify(
+          `✅ Home Screen Poster uploaded to Cloudinary (${CLOUDINARY_CLOUD_NAME}/${CLOUDINARY_UPLOAD_PRESET}) & live!`
+        );
+      } else {
+        setAuthPosterUrlInput(url);
+        onNotify(
+          `✅ Login/Signup Screen Poster uploaded to Cloudinary (${CLOUDINARY_CLOUD_NAME}/${CLOUDINARY_UPLOAD_PRESET}) & live!`
+        );
+      }
+    } catch (err: unknown) {
+      onNotify(
+        err instanceof Error ? err.message : 'Cloudinary poster upload failed.'
+      );
+    } finally {
+      setUploadingMediaField(null);
+      e.target.value = '';
+    }
+  };
+
+  const handleSaveCloudinaryMediaSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await adminSaveMediaSettings({
+      promoVideoUrl:
+        promoVideoUrlInput.trim() || DEFAULT_CLOUDINARY_PROMO_VIDEO_URL,
+      authPosterUrl: authPosterUrlInput.trim(),
+      homePosterUrl:
+        homePosterUrlInput.trim() ||
+        OFFICIAL_POSTER_ASSETS.permanentThreeGirlsPoster,
+    });
+    onNotify(
+      '✅ Saved Login/Signup Loop Video, Login/Signup Poster & Home Screen Poster!'
+    );
+  };
 
   // Tab 1: Search & Balance Adjust State
   const [customerSearch, setCustomerSearch] = useState<string>('');
@@ -981,6 +1076,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('payment')}
+            data-testid="tab-payment-and-posters"
             className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition-colors ${
               activeTab === 'payment'
                 ? 'bg-[#facc15] text-black'
@@ -989,7 +1085,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           >
             <QrCode className="w-4 h-4" />
             <span>
-              4. Change QR Code &amp; Bank Details {isStaff ? '🔒' : ''}
+              4. Posters, Video, QR &amp; Bank {isStaff ? '🔒' : ''}
             </span>
           </button>
 
@@ -1671,167 +1767,279 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
             </form>
 
-            {/* Master Admin 5 Promotional Posters Editor (Pre-Login Mega Offer + 4 Post-Login Dashboard Posters) */}
+            {/* ====================================================================
+             * CLOUDINARY POSTERS & LOOP VIDEO MANAGER (Cloud: dxeuzdwkz | Preset: Sharkexchange)
+             * - 1. Home Screen Poster (Post-Login Permanent Poster — No Video on Home Screen)
+             * - 2. Login & Signup Screen Loop Video (Audio Permanently ON)
+             * - 3. Login & Signup Screen Poster (Photo)
+             * ==================================================================== */}
             {isMasterAdmin && (
               <form
-                onSubmit={handleSaveFrontBanner}
-                className="pt-6 border-t border-white/10 space-y-4"
+                onSubmit={handleSaveCloudinaryMediaSettings}
+                data-testid="admin-cloudinary-media-manager"
+                className="pt-6 border-t border-white/10 space-y-5"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <h3 className="text-base font-bold text-[#facc15]">
-                      🎬 Promotional Posters &amp; Mega Offer Editor (`/banners` — 5 Posters)
+                    <h3 className="text-base sm:text-lg font-extrabold text-[#facc15]">
+                      🎬 Posters &amp; Loop Video Manager (Cloudinary: {CLOUDINARY_CLOUD_NAME} / {CLOUDINARY_UPLOAD_PRESET})
                     </h3>
-                    <p className="text-xs text-slate-400">
-                      Upload or update the Pre-Login Front Page Mega Offer Poster and the 4 Post-Login Dashboard Posters anytime.
+                    <p className="text-xs text-slate-300 mt-0.5">
+                      Manage the Home Screen Poster (no video on Home screen), Login &amp; Signup Screen Loop Video (with permanent audio ON), and Login &amp; Signup Screen Poster.
                     </p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Pre-Login Poster 0: Mega Offer ₹500 पर ₹500 FREE */}
-                  <div className="p-3.5 rounded-2xl bg-[#090d16] border border-[#facc15]/40 space-y-2.5">
-                    <label className="block text-xs font-bold text-[#facc15]">
-                      1. Front Page (Pre-Login) Poster: &quot;₹500 की ID पर ₹500 FREE!&quot;
-                    </label>
-                    <img
-                      src={bannerHeroImageUrl}
-                      alt="Front Page Mega Offer Preview"
-                      className="w-full h-28 rounded-xl object-contain bg-black border border-white/15"
-                    />
-                    <div className="flex flex-wrap items-center gap-2">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                  {/* CARD 1: HOME SCREEN PERMANENT POSTER (NO VIDEO ON HOME SCREEN) */}
+                  <div className="p-4 rounded-2xl bg-[#090d16] border-2 border-[#facc15]/50 space-y-3 flex flex-col justify-between">
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-extrabold text-[#facc15] uppercase">
+                          1. Home Screen Poster (Post-Login)
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
+                          Poster Only · Full View
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        Displayed permanently on the Home Screen after login (no video on Home Screen).
+                      </p>
+
+                      <div className="rounded-xl overflow-hidden border border-white/15 bg-black">
+                        <img
+                          src={
+                            homePosterUrlInput ||
+                            OFFICIAL_POSTER_ASSETS.permanentThreeGirlsPoster
+                          }
+                          alt="Home Screen Poster Preview"
+                          className="w-full h-36 object-contain block"
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="admin-home-poster-url"
+                          className="block text-[11px] font-semibold text-slate-300 mb-1"
+                        >
+                          Home Screen Poster Image URL
+                        </label>
+                        <input
+                          id="admin-home-poster-url"
+                          data-testid="admin-home-poster-url-input"
+                          type="text"
+                          value={homePosterUrlInput}
+                          onChange={(e) => setHomePosterUrlInput(e.target.value)}
+                          placeholder="https://res.cloudinary.com/dxeuzdwkz/image/upload/..."
+                          className="w-full px-3 py-2 rounded-xl bg-[#0c111d] border border-white/15 text-xs text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-2">
                       <label
-                        htmlFor="admin-banner-photo-upload"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white cursor-pointer"
+                        htmlFor="admin-home-poster-file"
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-xs cursor-pointer"
                       >
-                        <Upload className="w-3.5 h-3.5 text-[#facc15]" />
-                        <span>Upload Front Poster</span>
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>
+                          {uploadingMediaField === 'homePoster'
+                            ? 'Uploading to Cloudinary...'
+                            : 'Upload Home Poster'}
+                        </span>
                       </label>
                       <input
-                        id="admin-banner-photo-upload"
+                        id="admin-home-poster-file"
+                        data-testid="admin-home-poster-file-input"
                         type="file"
                         accept="image/*"
-                        onChange={(e) => handlePosterUploadForSlot(0, e)}
+                        onChange={(e) =>
+                          void handleCloudinaryPosterUpload('homePosterUrl', e)
+                        }
                         className="hidden"
                       />
                       <button
                         type="button"
                         onClick={() =>
-                          setBannerHeroImageUrl(
-                            OFFICIAL_POSTER_ASSETS.megaOffer500Poster
+                          setHomePosterUrlInput(
+                            OFFICIAL_POSTER_ASSETS.permanentThreeGirlsPoster
                           )
                         }
-                        className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/15 text-[11px] text-amber-300 cursor-pointer"
+                        className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-[11px] font-bold text-slate-200 cursor-pointer"
                       >
-                        Reset Default Mega Offer Poster
+                        Reset Default
                       </button>
                     </div>
                   </div>
 
-                  {/* Offer Headline & Sub-headline */}
-                  <div className="p-3.5 rounded-2xl bg-[#090d16] border border-white/10 space-y-2.5">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">
-                        Main Offer Headline
-                      </label>
-                      <input
-                        type="text"
-                        value={bannerHeadline}
-                        onChange={(e) => setBannerHeadline(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-[#0c111d] border border-white/15 text-xs text-[#facc15] font-bold"
-                      />
+                  {/* CARD 2: LOGIN & SIGNUP SCREEN LOOP VIDEO (PERMANENT AUDIO ON) */}
+                  <div className="p-4 rounded-2xl bg-[#090d16] border-2 border-emerald-500/50 space-y-3 flex flex-col justify-between">
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-extrabold text-emerald-400 uppercase">
+                          2. Login &amp; Signup Video (Loop)
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
+                          🔊 Audio ON · Loop
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        Plays in a continuous loop with audio permanently ON on the Login &amp; Signup Screen.
+                      </p>
+
+                      <div className="rounded-xl overflow-hidden border border-white/15 bg-black">
+                        <video
+                          key={promoVideoUrlInput}
+                          src={
+                            promoVideoUrlInput ||
+                            DEFAULT_CLOUDINARY_PROMO_VIDEO_URL
+                          }
+                          className="w-full h-36 object-contain bg-black block"
+                          controls
+                          muted
+                          loop
+                          playsInline
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="admin-login-video-url"
+                          className="block text-[11px] font-semibold text-slate-300 mb-1"
+                        >
+                          Login &amp; Signup Video URL (Cloudinary)
+                        </label>
+                        <input
+                          id="admin-login-video-url"
+                          data-testid="admin-login-video-url-input"
+                          type="text"
+                          value={promoVideoUrlInput}
+                          onChange={(e) => setPromoVideoUrlInput(e.target.value)}
+                          placeholder="https://res.cloudinary.com/dxeuzdwkz/video/upload/..."
+                          className="w-full px-3 py-2 rounded-xl bg-[#0c111d] border border-white/15 text-xs text-white"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">
-                        Sub-Headline Text
+
+                    <div className="flex flex-wrap items-center gap-2 pt-2">
+                      <label
+                        htmlFor="admin-login-video-file"
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs cursor-pointer"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>
+                          {uploadingMediaField === 'video'
+                            ? 'Uploading Video...'
+                            : 'Upload Loop Video'}
+                        </span>
                       </label>
                       <input
-                        type="text"
-                        value={bannerSubtitle}
-                        onChange={(e) => setBannerSubtitle(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-[#0c111d] border border-white/15 text-xs text-white"
+                        id="admin-login-video-file"
+                        data-testid="admin-login-video-file-input"
+                        type="file"
+                        accept="video/*"
+                        onChange={(e) => void handleCloudinaryVideoUpload(e)}
+                        className="hidden"
                       />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPromoVideoUrlInput(DEFAULT_CLOUDINARY_PROMO_VIDEO_URL)
+                        }
+                        className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-[11px] font-bold text-slate-200 cursor-pointer"
+                      >
+                        Reset Default
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* CARD 3: LOGIN & SIGNUP SCREEN POSTER (SEPARATE PHOTO OPTION) */}
+                  <div className="p-4 rounded-2xl bg-[#090d16] border-2 border-sky-500/50 space-y-3 flex flex-col justify-between">
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-extrabold text-sky-400 uppercase">
+                          3. Login &amp; Signup Screen Poster
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 text-[10px] font-bold">
+                          Pre-Login Photo
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        Separate poster option for the Login &amp; Signup Screen (uploaded via Cloudinary).
+                      </p>
+
+                      <div className="rounded-xl overflow-hidden border border-white/15 bg-black flex items-center justify-center h-36">
+                        {authPosterUrlInput ? (
+                          <img
+                            src={authPosterUrlInput}
+                            alt="Login Screen Poster Preview"
+                            className="w-full h-full object-contain block"
+                          />
+                        ) : (
+                          <span className="text-[11px] text-slate-500 px-3 text-center">
+                            No custom Login/Signup poster set (optional)
+                          </span>
+                        )}
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="admin-auth-poster-url"
+                          className="block text-[11px] font-semibold text-slate-300 mb-1"
+                        >
+                          Login &amp; Signup Poster Image URL
+                        </label>
+                        <input
+                          id="admin-auth-poster-url"
+                          data-testid="admin-auth-poster-url-input"
+                          type="text"
+                          value={authPosterUrlInput}
+                          onChange={(e) => setAuthPosterUrlInput(e.target.value)}
+                          placeholder="https://res.cloudinary.com/dxeuzdwkz/image/upload/..."
+                          className="w-full px-3 py-2 rounded-xl bg-[#0c111d] border border-white/15 text-xs text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-2">
+                      <label
+                        htmlFor="admin-auth-poster-file"
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-sky-400 hover:bg-sky-300 text-black font-extrabold text-xs cursor-pointer"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>
+                          {uploadingMediaField === 'authPoster'
+                            ? 'Uploading to Cloudinary...'
+                            : 'Upload Login Poster'}
+                        </span>
+                      </label>
+                      <input
+                        id="admin-auth-poster-file"
+                        data-testid="admin-auth-poster-file-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) =>
+                          void handleCloudinaryPosterUpload('authPosterUrl', e)
+                        }
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setAuthPosterUrlInput('')}
+                        className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-[11px] font-bold text-slate-200 cursor-pointer"
+                      >
+                        Clear
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                {/* 4 Post-Login Wallet Dashboard Posters */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {[
-                    {
-                      slot: 1 as const,
-                      label: 'Dashboard Poster 1: Sexy VIP LIVE LOUNGE',
-                      url: postLoginPoster1Url,
-                      resetUrl: OFFICIAL_POSTER_ASSETS.sexyVipLoungePoster,
-                    },
-                    {
-                      slot: 2 as const,
-                      label: 'Dashboard Poster 2: PLAY • BET • WIN',
-                      url: postLoginPoster2Url,
-                      resetUrl: OFFICIAL_POSTER_ASSETS.playBetWinPoster,
-                    },
-                    {
-                      slot: 3 as const,
-                      label: 'Dashboard Poster 3: Game. Win. Repeat.',
-                      url: postLoginPoster3Url,
-                      resetUrl: OFFICIAL_POSTER_ASSETS.gameWinRepeatPoster,
-                    },
-                    {
-                      slot: 4 as const,
-                      label: 'Dashboard Poster 4: DIVE INTO REAL ACTION',
-                      url: postLoginPoster4Url,
-                      resetUrl: OFFICIAL_POSTER_ASSETS.diveIntoActionPoster,
-                    },
-                  ].map((item) => (
-                    <div
-                      key={item.slot}
-                      className="p-3 rounded-2xl bg-[#090d16] border border-white/10 space-y-2"
-                    >
-                      <span className="block text-[11px] font-bold text-slate-200 truncate">
-                        {item.label}
-                      </span>
-                      <img
-                        src={item.url}
-                        alt={item.label}
-                        className="w-full h-24 rounded-lg object-contain bg-black border border-white/10"
-                      />
-                      <div className="flex items-center justify-between gap-1.5">
-                        <label
-                          htmlFor={`admin-postlogin-poster-${item.slot}`}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-[11px] font-bold text-white cursor-pointer"
-                        >
-                          <Upload className="w-3 h-3 text-[#facc15]" />
-                          <span>Upload</span>
-                        </label>
-                        <input
-                          id={`admin-postlogin-poster-${item.slot}`}
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handlePosterUploadForSlot(item.slot, e)}
-                          className="hidden"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (item.slot === 1) setPostLoginPoster1Url(item.resetUrl);
-                            if (item.slot === 2) setPostLoginPoster2Url(item.resetUrl);
-                            if (item.slot === 3) setPostLoginPoster3Url(item.resetUrl);
-                            if (item.slot === 4) setPostLoginPoster4Url(item.resetUrl);
-                          }}
-                          className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] text-slate-300 cursor-pointer"
-                        >
-                          Reset
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-xs cursor-pointer"
+                  data-testid="admin-save-media-settings-btn"
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-xs sm:text-sm cursor-pointer shadow-lg"
                 >
-                  💾 Save All 5 Promotional Posters (`/banners`)
+                  💾 Save Home Poster, Login Loop Video &amp; Login Poster
                 </button>
               </form>
             )}

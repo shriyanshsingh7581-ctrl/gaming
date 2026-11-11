@@ -56,6 +56,7 @@ import {
   validateCreateIdInput,
   DEFAULT_CLOUDINARY_PROMO_VIDEO_URL,
   CLOUDINARY_VIDEO_UPLOAD_URL,
+  CLOUDINARY_IMAGE_UPLOAD_URL,
   CLOUDINARY_UPLOAD_PRESET,
   CELEBRITY_BANNER_ASSETS,
   OFFICIAL_POSTER_ASSETS,
@@ -313,6 +314,8 @@ export const INITIAL_PAYMENT_SETTINGS: PaymentSettings = {
   minDeposit: 500,
   minWithdrawal: 500,
   promoVideoUrl: DEFAULT_CLOUDINARY_PROMO_VIDEO_URL,
+  authPosterUrl: '',
+  homePosterUrl: OFFICIAL_POSTER_ASSETS.permanentThreeGirlsPoster,
   updatedAt: new Date().toISOString(),
 };
 
@@ -624,7 +627,18 @@ function loadHybridStore(): HybridDatabaseSchema {
           deposits: parsed.deposits || INITIAL_SEED_DB.deposits,
           withdrawals: parsed.withdrawals || INITIAL_SEED_DB.withdrawals,
           idRequests: parsed.idRequests || INITIAL_SEED_DB.idRequests,
-          paymentSettings: parsed.paymentSettings || INITIAL_PAYMENT_SETTINGS,
+          paymentSettings: {
+            ...INITIAL_PAYMENT_SETTINGS,
+            ...(parsed.paymentSettings || {}),
+            homePosterUrl:
+              parsed.paymentSettings?.homePosterUrl &&
+              parsed.paymentSettings.homePosterUrl !==
+                '/assets/aistudio/file_00000000adf0821190c8b112caeef003_9e263999.png' &&
+              parsed.paymentSettings.homePosterUrl !==
+                '/assets/aistudio/IMG-20261111-WA0117_9f537b0a.jpg'
+                ? parsed.paymentSettings.homePosterUrl
+                : OFFICIAL_POSTER_ASSETS.permanentThreeGirlsPoster,
+          },
           banners: normalizeBannersStore(parsed.banners),
           staff: normalizeStaffStore(parsed.staff),
           chats: parsed.chats || INITIAL_CHATS,
@@ -1554,6 +1568,80 @@ export async function uploadPromoVideoToCloudinary(file: File): Promise<string> 
 }
 
 /**
+ * Upload Poster / Photo to Cloudinary (`cloudName: dxeuzdwkz`, `uploadPreset: Sharkexchange`)
+ * and optionally persist it in `paymentSettings.homePosterUrl` or `paymentSettings.authPosterUrl`.
+ */
+export async function uploadImageToCloudinary(
+  file: File,
+  targetField?: 'homePosterUrl' | 'authPosterUrl'
+): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+  const response = await fetch(CLOUDINARY_IMAGE_UPLOAD_URL, {
+    method: 'POST',
+    body: formData,
+  });
+  const data = await response.json();
+  if (!response.ok || !data.secure_url) {
+    throw new Error(
+      data?.error?.message || 'Failed to upload image to Cloudinary (Sharkexchange).'
+    );
+  }
+
+  const secureUrl: string = data.secure_url;
+  if (targetField) {
+    const store = loadHybridStore();
+    store.paymentSettings = {
+      ...store.paymentSettings,
+      [targetField]: secureUrl,
+      updatedAt: new Date().toISOString(),
+    };
+    saveHybridStore(store);
+
+    if (isLiveFirebaseConnected && firebaseDb) {
+      try {
+        await set(ref(firebaseDb, 'paymentSettings'), store.paymentSettings);
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  return secureUrl;
+}
+
+/**
+ * Admin Action: Save Login/Signup Video, Login/Signup Poster, and Home Screen Poster
+ */
+export async function adminSaveMediaSettings(params: {
+  promoVideoUrl?: string;
+  authPosterUrl?: string;
+  homePosterUrl?: string;
+}): Promise<PaymentSettings> {
+  const store = loadHybridStore();
+  const updated: PaymentSettings = {
+    ...store.paymentSettings,
+    ...(params.promoVideoUrl !== undefined ? { promoVideoUrl: params.promoVideoUrl } : {}),
+    ...(params.authPosterUrl !== undefined ? { authPosterUrl: params.authPosterUrl } : {}),
+    ...(params.homePosterUrl !== undefined ? { homePosterUrl: params.homePosterUrl } : {}),
+    updatedAt: new Date().toISOString(),
+  };
+  store.paymentSettings = updated;
+  saveHybridStore(store);
+
+  if (isLiveFirebaseConnected && firebaseDb) {
+    try {
+      await set(ref(firebaseDb, 'paymentSettings'), updated);
+    } catch {
+      // ignore
+    }
+  }
+  return updated;
+}
+
+/**
  * Admin Action: Add or Deduct Customer Wallet Balance (`/users/{uid}/walletBalance`)
  */
 export async function adminAdjustUserBalance(uid: string, deltaAmount: number): Promise<number> {
@@ -1755,6 +1843,7 @@ export async function adminSavePaymentSettings(
 ): Promise<PaymentSettings> {
   const store = loadHybridStore();
   const updated: PaymentSettings = {
+    ...store.paymentSettings,
     ...nextSettings,
     updatedAt: new Date().toISOString(),
   };

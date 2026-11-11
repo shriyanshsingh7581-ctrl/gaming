@@ -103,12 +103,15 @@ export interface PaymentSettings {
   minDeposit: number;
   minWithdrawal: number;
   promoVideoUrl?: string;
+  authPosterUrl?: string;
+  homePosterUrl?: string;
   updatedAt: string;
 }
 
 export const CLOUDINARY_CLOUD_NAME = 'dxeuzdwkz';
 export const CLOUDINARY_UPLOAD_PRESET = 'Sharkexchange';
 export const CLOUDINARY_VIDEO_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`;
+export const CLOUDINARY_IMAGE_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 export const DEFAULT_CLOUDINARY_PROMO_VIDEO_URL =
   'https://res.cloudinary.com/dxeuzdwkz/video/upload/v1794402121/ihegf7oimbdgdq9zmlsb.mp4';
 export const PROMO_GREEN_STRIP_TEXT = 'Pay 500 and get 1000 instant bonus';

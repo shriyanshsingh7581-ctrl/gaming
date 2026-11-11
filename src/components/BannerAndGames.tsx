@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   BannerSlide,
   UserProfile,
@@ -29,16 +29,73 @@ export type GameCategoryType =
   | 'casino';
 
 /**
- * Reusable Cloudinary Single Video Player + Bold Green Strip Component:
- * - Replaces top banner sliders with a single video player hosted/streamed via Cloudinary
- *   (Cloud Name: `dxeuzdwkz`, Upload Preset: `Sharkexchange`).
+ * Reusable Cloudinary Single Video Player + Bold Green Strip Component (Used on Login & Signup Screen):
+ * - Streams video via Cloudinary (Cloud Name: `dxeuzdwkz`, Upload Preset: `Sharkexchange`).
+ * - Plays continuously in a loop (`loop`) with Audio Permanently ON (`muted={false}`, `volume = 1.0`).
  * - Under the video, displays a single-line, bold green strip (zoomed/prominent, no line-break)
  *   with the exact text: "Pay 500 and get 1000 instant bonus"
  */
 export const CloudinaryPromoVideoSection: React.FC<{
   videoUrl?: string;
-}> = ({ videoUrl }) => {
+  posterUrl?: string;
+}> = ({ videoUrl, posterUrl }) => {
   const activeVideoUrl = videoUrl || DEFAULT_CLOUDINARY_PROMO_VIDEO_URL;
+  const activePosterUrl = posterUrl || OFFICIAL_POSTER_ASSETS.megaOffer500Poster;
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid) return;
+
+    const ensureAudioAndPlay = async () => {
+      try {
+        vid.muted = false;
+        vid.volume = 1.0;
+        vid.loop = true;
+        await vid.play();
+      } catch {
+        // If browser autoplay policy requires user interaction before unmuted playback,
+        // start playback and immediately unmute on first touch/click/key anywhere.
+        try {
+          vid.muted = true;
+          await vid.play();
+        } catch {
+          // ignore
+        }
+      }
+    };
+
+    void ensureAudioAndPlay();
+
+    const forceUnmuteOnInteraction = () => {
+      if (!videoRef.current) return;
+      videoRef.current.muted = false;
+      videoRef.current.volume = 1.0;
+      videoRef.current.loop = true;
+      void videoRef.current.play().catch(() => {});
+    };
+
+    const handleVolumeChange = () => {
+      if (!videoRef.current) return;
+      if (videoRef.current.volume < 1) {
+        videoRef.current.volume = 1.0;
+      }
+    };
+
+    window.addEventListener('pointerdown', forceUnmuteOnInteraction, { passive: true });
+    window.addEventListener('touchstart', forceUnmuteOnInteraction, { passive: true });
+    window.addEventListener('click', forceUnmuteOnInteraction, { passive: true });
+    window.addEventListener('keydown', forceUnmuteOnInteraction, { passive: true });
+    vid.addEventListener('volumechange', handleVolumeChange);
+
+    return () => {
+      window.removeEventListener('pointerdown', forceUnmuteOnInteraction);
+      window.removeEventListener('touchstart', forceUnmuteOnInteraction);
+      window.removeEventListener('click', forceUnmuteOnInteraction);
+      window.removeEventListener('keydown', forceUnmuteOnInteraction);
+      vid.removeEventListener('volumechange', handleVolumeChange);
+    };
+  }, [activeVideoUrl]);
 
   return (
     <section
@@ -50,14 +107,14 @@ export const CloudinaryPromoVideoSection: React.FC<{
     >
       <div className="relative w-full bg-black">
         <video
+          ref={videoRef}
           key={activeVideoUrl}
           data-testid="cloudinary-promo-video"
           src={activeVideoUrl}
-          poster={OFFICIAL_POSTER_ASSETS.megaOffer500Poster}
-          className="w-full max-h-[260px] sm:max-h-[340px] object-cover block"
+          poster={activePosterUrl}
+          className="w-full max-h-[260px] sm:max-h-[340px] object-contain bg-black block"
           controls
           autoPlay
-          muted
           loop
           playsInline
         />
@@ -79,6 +136,7 @@ export const CloudinaryPromoVideoSection: React.FC<{
 interface PreLoginLandingPageProps {
   banners: BannerSlide[];
   promoVideoUrl?: string;
+  authPosterUrl?: string;
   onOpenSignUpModal: () => void;
   onOpenLoginModal: () => void;
   onOpenPromoAd?: () => void;
@@ -86,17 +144,19 @@ interface PreLoginLandingPageProps {
 }
 
 /**
- * PRE-LOGIN LANDING & AUTH PAGE:
- * - Minimalist Top Header with SharkX branding ("Shark" large prominent, "X" smaller royal/classic)
- *   and Login / Signup buttons.
- * - Single Cloudinary Video Player (`dxeuzdwkz` / `Sharkexchange`) + single-line bold green strip:
- *   "Pay 500 and get 1000 instant bonus"
+ * PRE-LOGIN LANDING & AUTH PAGE (Login & Signup Screen):
+ * - Minimalist Top Header with White & Yellow "SHARK / - EXCHANGE -" logo.
+ * - Single Cloudinary Video Player (`dxeuzdwkz` / `Sharkexchange`) looping with Audio Permanently ON
+ *   + single-line bold green strip: "Pay 500 and get 1000 instant bonus"
+ * - Separate Login & Signup Screen Poster (`authPosterUrl`) when configured by Admin.
  * - Clean Authentication Card:
  *   - No "Continue with Google" or "Demo Account" options.
  *   - Signup Form: strictly 3 fields (Mobile Number, Email, Password).
  *   - Login Form: strictly 2 fields (Email, Password).
  */
 export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
+  promoVideoUrl,
+  authPosterUrl,
   onAuthSuccess,
 }) => {
   const [authTab, setAuthTab] = useState<'signup' | 'login'>('signup');
@@ -157,19 +217,27 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
 
       {/* Main Pre-Login Front Page Container */}
       <main className="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 pt-4 space-y-5">
-        {/* 1. SINGLE PERMANENT FULL-VIEW THREE-GIRLS POSTER (First & Only Poster) */}
-        <section
-          aria-label="Featured VIP Lounge Poster"
-          data-testid="prelogin-fixed-large-banner"
-          className="relative w-full rounded-xl overflow-hidden border border-[#f6bd20]/60 bg-[#090d16] shadow-[0_10px_28px_rgba(0,0,0,0.75)] select-none"
-        >
-          <img
-            src={OFFICIAL_POSTER_ASSETS.permanentThreeGirlsPoster}
-            alt="Shark Exchange VIP Live Lounge"
-            referrerPolicy="no-referrer"
-            className="w-full h-auto object-contain block"
-          />
-        </section>
+        {/* 1. CLOUDINARY LOOP VIDEO (AUDIO PERMANENTLY ON) + BOLD GREEN STRIP */}
+        <CloudinaryPromoVideoSection
+          videoUrl={promoVideoUrl}
+          posterUrl={authPosterUrl}
+        />
+
+        {/* 1B. OPTIONAL DEDICATED LOGIN/SIGNUP SCREEN POSTER (Uploaded via Admin Panel) */}
+        {authPosterUrl && (
+          <section
+            aria-label="Login and Signup Screen Poster"
+            data-testid="prelogin-auth-poster-banner"
+            className="relative w-full rounded-xl overflow-hidden border border-[#f6bd20]/60 bg-[#090d16] shadow-[0_10px_28px_rgba(0,0,0,0.75)] select-none"
+          >
+            <img
+              src={authPosterUrl}
+              alt="Shark Exchange Login Poster"
+              referrerPolicy="no-referrer"
+              className="w-full h-auto object-contain block"
+            />
+          </section>
+        )}
 
         {/* 2. SIGNUP / LOGIN TAB BUTTONS */}
         <div
@@ -314,6 +382,7 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
 interface BannerAndGamesProps {
   banners: BannerSlide[];
   promoVideoUrl?: string;
+  homePosterUrl?: string;
   currentUser?: UserProfile | null;
   activeIdCount?: number;
   onOpenCreateId: () => void;
@@ -326,56 +395,57 @@ interface BannerAndGamesProps {
 }
 
 /**
- * POST-LOGIN HOMEPAGE TOP SECTION:
- * - Single Permanent Full-View Three-Girls VIP Lounge Poster (`permanentThreeGirlsPoster`) right in 1st position
- *   (full poster visible on mobile screens without any cropping).
+ * POST-LOGIN HOMEPAGE TOP SECTION (Home Screen):
+ * - NO video on Home Screen.
+ * - Single Permanent Full-View Home Screen Poster (`homePosterUrl || permanentThreeGirlsPoster`) right in 1st position
+ *   (full poster visible on mobile screens without any cropping, changeable via Admin Panel Cloudinary upload).
  * - 3-Card Action Row (`Create IDs`, `Aviatrix`, `MINES`).
  */
 export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
-  onOpenCreateId,
-  onSelectGame,
+  homePosterUrl,
 }) => {
+  const activeHomePoster =
+    homePosterUrl || OFFICIAL_POSTER_ASSETS.permanentThreeGirlsPoster;
+
   return (
     <div className="space-y-3.5">
-      {/* 1. SINGLE PERMANENT FULL-VIEW THREE-GIRLS VIP LOUNGE POSTER (First & Only Poster) */}
+      {/* 1. SINGLE PERMANENT FULL-VIEW HOME SCREEN POSTER (First & Only Poster — No Video on Home Screen) */}
       <section
         aria-label="Featured VIP Lounge Poster"
         data-testid="postlogin-fixed-large-banner"
         className="relative w-full rounded-xl overflow-hidden border border-[#f6bd20]/60 bg-[#090d16] shadow-[0_10px_28px_rgba(0,0,0,0.75)] select-none"
       >
         <img
-          src={OFFICIAL_POSTER_ASSETS.permanentThreeGirlsPoster}
+          src={activeHomePoster}
           alt="Shark Exchange VIP Live Lounge"
           data-testid="fixed-reference-banner-img"
           referrerPolicy="no-referrer"
-          onClick={onOpenCreateId}
-          className="w-full h-auto object-contain block cursor-pointer"
+          className="w-full h-auto object-contain block"
         />
       </section>
 
-      {/* 3. PRIMARY ACTION & GAMES ROW: [Create IDs | Aviatrix | MINES] */}
-      <section aria-label="Create IDs and Featured Games">
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-4 items-stretch">
-          {/* 1. Left Bright Yellow Pill/Card Button: "Create IDs" */}
+      {/* 2. DUMMY BUTTON GROUP: [Create IDs | Aviatrix | MINES] (Non-interactive display group — opens nothing on click) */}
+      <section
+        aria-label="Create IDs and Featured Games Dummy Group"
+        data-testid="dummy-action-games-group"
+      >
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-4 items-stretch select-none">
+          {/* 1. Left Bright Yellow Dummy Button: "Create IDs" */}
           <button
             type="button"
-            data-testid="row-create-ids-active-btn"
-            onClick={onOpenCreateId}
-            className="h-[74px] sm:h-[96px] rounded-2xl bg-[#facc15] hover:bg-[#eab308] text-[#090d16] font-extrabold text-sm sm:text-xl md:text-2xl tracking-tight shadow-[0_6px_20px_rgba(250,204,21,0.3)] flex items-center justify-center px-2 transition-transform active:scale-95 cursor-pointer border-2 border-yellow-300"
+            data-testid="row-create-ids-dummy-btn"
+            onClick={(e) => e.preventDefault()}
+            className="h-[74px] sm:h-[96px] rounded-2xl bg-[#facc15] text-[#090d16] font-extrabold text-sm sm:text-xl md:text-2xl tracking-tight shadow-[0_6px_20px_rgba(250,204,21,0.3)] flex items-center justify-center px-2 border-2 border-yellow-300 cursor-default"
           >
             Create IDs
           </button>
 
-          {/* 2. Middle Feature Game Card: "Aviatrix" */}
-          <div
+          {/* 2. Middle Dummy Card: "Aviatrix" */}
+          <button
+            type="button"
             data-testid="dummy-card-aviatrix"
-            role="button"
-            tabIndex={0}
-            onClick={() => onSelectGame?.('aviatrix')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') onSelectGame?.('aviatrix');
-            }}
-            className="relative h-[74px] sm:h-[96px] rounded-2xl overflow-hidden border-2 border-indigo-500/40 hover:border-[#facc15] shadow-lg bg-gradient-to-r from-[#12073b] via-[#1d1160] to-[#0a2463] flex items-center justify-between px-3 sm:px-5 select-none cursor-pointer transition-transform active:scale-98"
+            onClick={(e) => e.preventDefault()}
+            className="relative h-[74px] sm:h-[96px] rounded-2xl overflow-hidden border-2 border-indigo-500/40 shadow-lg bg-gradient-to-r from-[#12073b] via-[#1d1160] to-[#0a2463] flex items-center justify-between px-3 sm:px-5 select-none cursor-default"
           >
             <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_80%_30%,#38bdf8_0%,transparent_55%)] pointer-events-none" />
             <span className="relative z-10 font-shark italic font-black text-base sm:text-2xl md:text-3xl text-white tracking-wide drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
@@ -397,18 +467,14 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
               <path d="M32 24 L56 16 L64 19 L42 27 Z" fill="#0284c7" />
               <ellipse cx="52" cy="20" rx="7" ry="3" fill="#fef08a" />
             </svg>
-          </div>
+          </button>
 
-          {/* 3. Right Feature Game Card: "MINES" */}
-          <div
+          {/* 3. Right Dummy Card: "MINES" */}
+          <button
+            type="button"
             data-testid="dummy-card-mines"
-            role="button"
-            tabIndex={0}
-            onClick={() => onSelectGame?.('mines')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') onSelectGame?.('mines');
-            }}
-            className="relative h-[74px] sm:h-[96px] rounded-2xl overflow-hidden border-2 border-red-500/40 hover:border-[#facc15] shadow-lg bg-gradient-to-r from-[#7f1d1d] via-[#dc2626] to-[#991b1b] flex items-center justify-between px-3 sm:px-5 select-none cursor-pointer transition-transform active:scale-98"
+            onClick={(e) => e.preventDefault()}
+            className="relative h-[74px] sm:h-[96px] rounded-2xl overflow-hidden border-2 border-red-500/40 shadow-lg bg-gradient-to-r from-[#7f1d1d] via-[#dc2626] to-[#991b1b] flex items-center justify-between px-3 sm:px-5 select-none cursor-default"
           >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,#facc15_0%,transparent_60%)] opacity-35 pointer-events-none" />
             <span className="relative z-10 font-shark font-black text-base sm:text-2xl md:text-3xl text-[#111827] bg-gradient-to-b from-yellow-200 to-amber-400 bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-wider">
@@ -433,10 +499,11 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
               <circle cx="42" cy="12" r="4.5" fill="#facc15" />
               <circle cx="42" cy="12" r="2" fill="#ffffff" />
             </svg>
-          </div>
+          </button>
         </div>
       </section>
     </div>
   );
 };
+
 
