@@ -16,43 +16,48 @@ export interface SharkHeaderProps {
 }
 
 /**
- * Simple, Clean & Premium Full-Name "Shark Exchange" Brand Wordmark
+ * Official Stacked White & Yellow "SHARK / - EXCHANGE -" Logo
+ * Matches the user's attached reference image (`Screenshot_20261111_203249_Chrome_b91a2995.png`)
+ * for both the top black header bar and the center wallet card.
  */
 export const SharkXLogo: React.FC<{
   size?: 'sm' | 'md' | 'lg';
   darkText?: boolean;
 }> = ({ size = 'md', darkText = false }) => {
-  const sharkSize =
+  const sharkTextClass =
     size === 'lg'
-      ? 'text-2xl sm:text-4xl'
+      ? 'text-2xl sm:text-3xl tracking-[0.14em]'
       : size === 'sm'
-      ? 'text-base sm:text-xl'
-      : 'text-xl sm:text-2xl';
-  const exchangeSize =
+      ? 'text-sm sm:text-base tracking-[0.14em]'
+      : 'text-lg sm:text-xl tracking-[0.14em]';
+
+  const barClass =
     size === 'lg'
-      ? 'text-lg sm:text-2xl'
+      ? 'mt-1.5 min-w-[136px] sm:min-w-[156px] py-0.5 px-2.5 text-[8.5px] sm:text-[10px] tracking-[0.18em]'
       : size === 'sm'
-      ? 'text-sm sm:text-base'
-      : 'text-base sm:text-xl';
+      ? 'mt-0.5 min-w-[88px] sm:min-w-[102px] py-[1px] px-1.5 text-[6.5px] sm:text-[7.5px] tracking-[0.16em]'
+      : 'mt-1 min-w-[110px] sm:min-w-[126px] py-0.5 px-2 text-[7.5px] sm:text-[9px] tracking-[0.17em]';
 
   return (
     <span
       data-testid="sharkx-branding"
-      className="inline-flex items-baseline gap-1.5 select-none leading-none"
+      className="inline-flex flex-col items-center select-none leading-none"
     >
       <span
-        className={`font-extrabold tracking-wider uppercase ${sharkSize} ${
+        className={`font-extrabold uppercase leading-none ${sharkTextClass} ${
           darkText ? 'text-[#141414]' : 'text-white'
         }`}
       >
-        Shark
+        SHARK
       </span>
       <span
-        className={`font-bold tracking-wider uppercase ${exchangeSize} ${
-          darkText ? 'text-[#141414]/85' : 'text-[#f6bd20]'
+        className={`block font-extrabold uppercase leading-tight whitespace-nowrap text-center ${barClass} ${
+          darkText
+            ? 'bg-[#141414] text-[#f6bd20]'
+            : 'bg-[#f6bd20] text-[#181818]'
         }`}
       >
-        Exchange
+        - EXCHANGE -
       </span>
     </span>
   );
@@ -60,77 +65,41 @@ export const SharkXLogo: React.FC<{
 
 /**
  * Minimalist Shark Exchange Header & Reference-Matched Golden-Yellow Wallet Section:
- * - Minimalist top bar (`#070a10`) with clean, simple, premium "Shark Exchange" full name.
- * - Immediately hides Login and Signup buttons once `currentUser` is logged in.
+ * - Top Black Header Bar (`#070a10`):
+ *   - Left: White & Yellow stacked "SHARK / - EXCHANGE -" logo.
+ *   - Right: Only the Log Out button when logged in (wallet balance removed from top bar so balance appears in only one place).
  * - Golden-Yellow (`#f6bd20`) Wallet Section matching the exact overlapping 3-card layout:
  *   1. Left Dark Wing Card (`#1b1b1b`, tucked behind center card): "Deposit" + bold white double-up chevrons
- *   2. Center Elevated Dark Card (`#212121`, taller with deep shadow): Simple & premium full-name "SHARK / - EXCHANGE -" badge + "WALLET BALANCE" + stacked white coins + clean balance
+ *   2. Center Elevated Dark Card (`#212121`, taller with deep shadow): White & Yellow "SHARK / - EXCHANGE -" logo + "WALLET BALANCE" + stacked white coins + balance
  *   3. Right Dark Wing Card (`#1b1b1b`, tucked behind center card): "Withdraw" + bold white double-down chevrons
  */
 export const SharkHeader: React.FC<SharkHeaderProps> = ({
   currentUser,
-  onOpenAuth,
-  onOpenProfile,
   onLogout,
   onOpenDeposit,
   onOpenWithdraw,
 }) => {
   return (
     <div className="w-full select-none">
-      {/* 1. MINIMALIST TOP HEADER BAR */}
-      <header className="bg-[#070a10] border-b border-white/10 px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2">
+      {/* 1. MINIMALIST TOP BLACK HEADER BAR (Logo on left, only Log Out button on right) */}
+      <header className="bg-[#070a10] border-b border-white/10 px-3.5 sm:px-6 py-2 flex items-center justify-between gap-2">
         <a href="#top" className="inline-flex items-center">
           <SharkXLogo size="sm" />
         </a>
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {currentUser ? (
-            <>
-              <button
-                type="button"
-                data-testid="header-user-profile-btn"
-                onClick={onOpenProfile}
-                className="flex items-center gap-1.5 bg-[#111726] hover:bg-[#192238] border border-[#f6bd20]/40 rounded-lg px-2.5 py-1 transition-colors cursor-pointer"
-              >
-                <span className="text-xs font-semibold text-white truncate max-w-[110px] sm:max-w-[160px]">
-                  {currentUser.name}
-                </span>
-                <span className="text-white/30">·</span>
-                <span className="font-mono-tabular text-xs font-bold text-[#f6bd20]">
-                  ₹{currentUser.walletBalance.toLocaleString('en-IN')}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={onLogout}
-                title="Log Out"
-                aria-label="Log Out"
-                className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 border border-white/10 text-slate-300 hover:text-red-300 transition-colors cursor-pointer"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                data-testid="header-login-btn"
-                onClick={() => onOpenAuth('login')}
-                className="px-3 sm:px-3.5 py-1 rounded-lg bg-[#f6bd20] hover:bg-[#eab308] text-black font-bold text-xs tracking-wide transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
-              >
-                Login
-              </button>
-
-              <button
-                type="button"
-                data-testid="header-signup-btn"
-                onClick={() => onOpenAuth('signup')}
-                className="px-3 sm:px-3.5 py-1 rounded-lg bg-[#10b981] hover:bg-emerald-400 text-white font-bold text-xs tracking-wide transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
-              >
-                Signup
-              </button>
-            </>
+        <div className="flex items-center gap-2">
+          {currentUser && (
+            <button
+              type="button"
+              data-testid="header-logout-btn"
+              onClick={onLogout}
+              title="Log Out"
+              aria-label="Log Out"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 border border-white/15 text-slate-200 hover:text-red-300 text-xs font-bold transition-colors cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Log Out</span>
+            </button>
           )}
         </div>
       </header>
@@ -180,19 +149,10 @@ export const SharkHeader: React.FC<SharkHeaderProps> = ({
             </div>
           </button>
 
-          {/* CENTER ELEVATED WALLET CARD */}
+          {/* CENTER ELEVATED WALLET CARD (Single Place for Wallet Balance) */}
           <div className="relative z-20 w-[46%] sm:w-[236px] min-h-[188px] sm:min-h-[220px] bg-[#212121] text-white rounded-[24px] sm:rounded-[30px] py-5 sm:py-6 px-3 sm:px-5 flex flex-col items-center justify-between shadow-[0_14px_34px_rgba(0,0,0,0.58)]">
-            {/* Simple & Premium Full Exchange Brand Emblem: SHARK / - EXCHANGE - */}
-            <div className="flex flex-col items-center w-full">
-              <span className="text-2xl sm:text-3xl font-extrabold text-white tracking-[0.14em] uppercase leading-none">
-                SHARK
-              </span>
-              <div className="mt-1.5 w-full max-w-[136px] sm:max-w-[156px] bg-[#f6bd20] text-[#181818] py-0.5 px-2 text-center">
-                <span className="block text-[8.5px] sm:text-[10px] font-extrabold tracking-[0.18em] uppercase leading-tight whitespace-nowrap">
-                  - EXCHANGE -
-                </span>
-              </div>
-            </div>
+            {/* Official Stacked White & Yellow Emblem: SHARK / - EXCHANGE - */}
+            <SharkXLogo size="lg" />
 
             {/* Wallet Balance Label + Stacked Coins & Amount */}
             <div className="mt-4 sm:mt-5 flex flex-col items-center">

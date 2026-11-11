@@ -97,9 +97,6 @@ interface PreLoginLandingPageProps {
  *   - Login Form: strictly 2 fields (Email, Password).
  */
 export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
-  promoVideoUrl,
-  onOpenSignUpModal,
-  onOpenLoginModal,
   onAuthSuccess,
 }) => {
   const [authTab, setAuthTab] = useState<'signup' | 'login'>('signup');
@@ -153,40 +150,26 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
       data-testid="page-1-prelogin-landing"
       className="min-h-screen bg-[#070a10] text-white flex flex-col pb-12"
     >
-      {/* Minimalist Top Header Bar (SharkX + Login / Signup buttons) */}
-      <header className="bg-[#070a10] border-b border-white/10 px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2">
+      {/* Minimalist Top Black Header Bar with White & Yellow SHARK / - EXCHANGE - Logo */}
+      <header className="bg-[#070a10] border-b border-white/10 px-3.5 sm:px-6 py-2.5 flex items-center justify-between gap-2">
         <SharkXLogo size="sm" />
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            data-testid="prelogin-header-login-btn"
-            onClick={() => {
-              setAuthTab('login');
-              onOpenLoginModal();
-            }}
-            className="px-3.5 py-1.5 rounded-lg bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold text-xs sm:text-sm tracking-wide cursor-pointer"
-          >
-            Login
-          </button>
-          <button
-            type="button"
-            data-testid="prelogin-header-signup-btn"
-            onClick={() => {
-              setAuthTab('signup');
-              onOpenSignUpModal();
-            }}
-            className="px-3.5 py-1.5 rounded-lg bg-[#10b981] hover:bg-emerald-400 text-white font-extrabold text-xs sm:text-sm tracking-wide cursor-pointer"
-          >
-            Signup
-          </button>
-        </div>
       </header>
 
       {/* Main Pre-Login Front Page Container */}
       <main className="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 pt-4 space-y-5">
-        {/* 1. CLOUDINARY VIDEO PLAYER + SINGLE-LINE BOLD GREEN STRIP */}
-        <CloudinaryPromoVideoSection videoUrl={promoVideoUrl} />
+        {/* 1. SINGLE PERMANENT FULL-VIEW THREE-GIRLS POSTER (First & Only Poster) */}
+        <section
+          aria-label="Featured VIP Lounge Poster"
+          data-testid="prelogin-fixed-large-banner"
+          className="relative w-full rounded-xl overflow-hidden border border-[#f6bd20]/60 bg-[#090d16] shadow-[0_10px_28px_rgba(0,0,0,0.75)] select-none"
+        >
+          <img
+            src={OFFICIAL_POSTER_ASSETS.permanentThreeGirlsPoster}
+            alt="Shark Exchange VIP Live Lounge"
+            referrerPolicy="no-referrer"
+            className="w-full h-auto object-contain block"
+          />
+        </section>
 
         {/* 2. SIGNUP / LOGIN TAB BUTTONS */}
         <div
@@ -344,35 +327,29 @@ interface BannerAndGamesProps {
 
 /**
  * POST-LOGIN HOMEPAGE TOP SECTION:
- * - Single Cloudinary Video Player (`dxeuzdwkz` / `Sharkexchange`) + single-line bold green strip:
- *   "Pay 500 and get 1000 instant bonus"
- * - Permanent Large Three-Girls VIP Lounge Poster (`permanentThreeGirlsPoster`), with no sub-posters below
- * - 3-Card Action Row (`Create IDs`, `Aviatrix`, `MINES`) — Spin the Wheel and the 3 secondary
- *   green-marked cards (`Cricket Live`, `Color Prediction`, `Live Casino`) are removed.
+ * - Single Permanent Full-View Three-Girls VIP Lounge Poster (`permanentThreeGirlsPoster`) right in 1st position
+ *   (full poster visible on mobile screens without any cropping).
+ * - 3-Card Action Row (`Create IDs`, `Aviatrix`, `MINES`).
  */
 export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
-  promoVideoUrl,
   onOpenCreateId,
   onSelectGame,
 }) => {
   return (
     <div className="space-y-3.5">
-      {/* 1. CLOUDINARY VIDEO PLAYER + BOLD GREEN STRIP */}
-      <CloudinaryPromoVideoSection videoUrl={promoVideoUrl} />
-
-      {/* 2. PERMANENT LARGE THREE-GIRLS VIP LOUNGE POSTER (No sub-posters below) */}
+      {/* 1. SINGLE PERMANENT FULL-VIEW THREE-GIRLS VIP LOUNGE POSTER (First & Only Poster) */}
       <section
         aria-label="Featured VIP Lounge Poster"
         data-testid="postlogin-fixed-large-banner"
-        className="relative rounded-3xl overflow-hidden border-2 border-[#f6bd20]/60 bg-[#090d16] shadow-[0_14px_38px_rgba(0,0,0,0.75)] select-none"
+        className="relative w-full rounded-xl overflow-hidden border border-[#f6bd20]/60 bg-[#090d16] shadow-[0_10px_28px_rgba(0,0,0,0.75)] select-none"
       >
         <img
           src={OFFICIAL_POSTER_ASSETS.permanentThreeGirlsPoster}
-          alt="SharkX VIP Live Lounge"
+          alt="Shark Exchange VIP Live Lounge"
           data-testid="fixed-reference-banner-img"
           referrerPolicy="no-referrer"
           onClick={onOpenCreateId}
-          className="w-full min-h-[215px] sm:min-h-[340px] max-h-[420px] object-cover block cursor-pointer"
+          className="w-full h-auto object-contain block cursor-pointer"
         />
       </section>
 

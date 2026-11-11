@@ -182,7 +182,7 @@ export const OFFICIAL_POSTER_ASSETS = {
     '/assets/aistudio/file_00000000d1648211a99db1a387660195_c953ab80.png',
   /** Post-Login Poster 1: "Sexy VIP LIVE LOUNGE — SHARKVIP #PLAYSAFE" */
   sexyVipLoungePoster:
-    '/assets/aistudio/file_00000000adf0821190c8b112caeef003_9e263999.png',
+    '/assets/aistudio/file_00000000efc4821190c85e045f25eb1f_3e6a5a0f.png',
   /** Post-Login Poster 2: "SHARK EXCHANGE — Ultimate Gaming Destination: PLAY • BET • WIN" */
   playBetWinPoster:
     '/assets/aistudio/file_00000000c7fc8211822ea0f4978f40de_8e80d27b.png',
@@ -194,7 +194,7 @@ export const OFFICIAL_POSTER_ASSETS = {
     '/assets/aistudio/file_00000000ab348211b4927714b776e20e_d079797d.png',
   /** Permanent Large Three-Girls VIP Lounge Homepage Banner */
   permanentThreeGirlsPoster:
-    '/assets/aistudio/file_00000000adf0821190c8b112caeef003_9e263999.png',
+    '/assets/aistudio/file_00000000efc4821190c85e045f25eb1f_3e6a5a0f.png',
 } as const;
 
 export const PUBLIC_HOMEPAGE_SLIDER_INTERVAL_MS = 10000;
