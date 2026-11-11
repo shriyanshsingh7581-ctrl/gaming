@@ -192,8 +192,9 @@ export const OFFICIAL_POSTER_ASSETS = {
   /** Post-Login Poster 4: "SHARK EXCHANGE — DIVE INTO REAL GAMING ACTION" */
   diveIntoActionPoster:
     '/assets/aistudio/file_00000000ab348211b4927714b776e20e_d079797d.png',
-  /** Fixed Large Homepage Cricket/VIP Banner Reference Image */
-  fixedCricketBanner: '/assets/aistudio/IMG-20261111-WA0117_9f537b0a.jpg',
+  /** Permanent Large Three-Girls VIP Lounge Homepage Banner */
+  permanentThreeGirlsPoster:
+    '/assets/aistudio/file_00000000adf0821190c8b112caeef003_9e263999.png',
 } as const;
 
 export const PUBLIC_HOMEPAGE_SLIDER_INTERVAL_MS = 10000;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserProfile } from '../utils/exchangeLogic';
-import { LogOut, PlusCircle } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 
 export interface SharkHeaderProps {
   currentUser: UserProfile | null;
@@ -15,22 +15,25 @@ export interface SharkHeaderProps {
   onQuickNavigate?: (section: string) => void;
 }
 
+/**
+ * Simple, Clean & Premium SharkX Wordmark
+ */
 export const SharkXLogo: React.FC<{
   size?: 'sm' | 'md' | 'lg';
   darkText?: boolean;
 }> = ({ size = 'md', darkText = false }) => {
   const sharkSize =
     size === 'lg'
-      ? 'text-3xl sm:text-5xl md:text-6xl'
+      ? 'text-3xl sm:text-4xl'
       : size === 'sm'
-      ? 'text-xl sm:text-2xl'
-      : 'text-2xl sm:text-3xl';
+      ? 'text-lg sm:text-xl'
+      : 'text-xl sm:text-2xl';
   const xSize =
     size === 'lg'
-      ? 'text-lg sm:text-2xl md:text-3xl'
+      ? 'text-2xl sm:text-3xl'
       : size === 'sm'
-      ? 'text-xs sm:text-sm'
-      : 'text-sm sm:text-base';
+      ? 'text-base sm:text-lg'
+      : 'text-lg sm:text-xl';
 
   return (
     <span
@@ -38,17 +41,15 @@ export const SharkXLogo: React.FC<{
       className="inline-flex items-baseline gap-0.5 select-none leading-none"
     >
       <span
-        className={`font-shark font-black tracking-tight ${sharkSize} ${
-          darkText ? 'text-[#090d16]' : 'text-white'
+        className={`font-extrabold tracking-wider uppercase ${sharkSize} ${
+          darkText ? 'text-[#141414]' : 'text-white'
         }`}
       >
-        Shark
+        SHARK
       </span>
       <span
-        className={`font-serif italic font-bold tracking-widest uppercase px-1 py-0.5 rounded border ${xSize} ${
-          darkText
-            ? 'text-[#090d16] border-[#090d16]/50 bg-black/10'
-            : 'text-[#facc15] border-[#facc15]/60 bg-[#facc15]/10 shadow-[0_0_10px_rgba(250,204,21,0.25)]'
+        className={`font-black tracking-wider uppercase ${xSize} ${
+          darkText ? 'text-[#141414]' : 'text-[#f6bd20]'
         }`}
       >
         X
@@ -58,13 +59,13 @@ export const SharkXLogo: React.FC<{
 };
 
 /**
- * Minimalist SharkX Header & Golden-Yellow Wallet Section:
- * - Minimalist top bar (`#070a10`) with "SharkX" branding ("Shark" large prominent, "X" smaller royal/classic),
+ * Minimalist SharkX Header & Reference-Matched Golden-Yellow Wallet Section:
+ * - Minimalist top bar (`#070a10`) with clean, simple, premium "SHARKX" branding,
  *   compact username + wallet balance, and Login / Signup buttons.
- * - Golden-Yellow (#facc15) Header Banner with 3 rounded Black (#090d16) cards:
- *   1. Left Vertical Black Card: "Deposit" + bold double upward white chevrons (⏫)
- *   2. Center Large Black Card: "SharkX" branding + "WALLET BALANCE" + stacked coins + live balance
- *   3. Right Vertical Black Card: "Withdraw" + bold double downward white chevrons (⏬)
+ * - Golden-Yellow (`#f6bd20`) Wallet Section matching the exact overlapping 3-card layout:
+ *   1. Left Dark Wing Card (`#1c1c1c`, tucked behind center card): "Deposit" + bold white double-up chevrons
+ *   2. Center Elevated Dark Card (`#212121`, taller with deep shadow): Simple & premium "SHARKX / - EXCH -" badge + "WALLET BALANCE" + stacked white coins + clean balance
+ *   3. Right Dark Wing Card (`#1c1c1c`, tucked behind center card): "Withdraw" + bold white double-down chevrons
  */
 export const SharkHeader: React.FC<SharkHeaderProps> = ({
   currentUser,
@@ -88,13 +89,13 @@ export const SharkHeader: React.FC<SharkHeaderProps> = ({
               type="button"
               data-testid="header-user-profile-btn"
               onClick={onOpenProfile}
-              className="flex items-center gap-1.5 bg-[#111726] hover:bg-[#192238] border border-[#facc15]/40 rounded-lg px-2.5 py-1 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 bg-[#111726] hover:bg-[#192238] border border-[#f6bd20]/40 rounded-lg px-2.5 py-1 transition-colors cursor-pointer"
             >
-              <span className="text-xs font-bold text-white truncate max-w-[90px] sm:max-w-[140px]">
+              <span className="text-xs font-semibold text-white truncate max-w-[85px] sm:max-w-[140px]">
                 {currentUser.name}
               </span>
               <span className="text-white/30">·</span>
-              <span className="font-mono-tabular text-xs font-extrabold text-[#facc15]">
+              <span className="font-mono-tabular text-xs font-bold text-[#f6bd20]">
                 ₹{currentUser.walletBalance.toLocaleString('en-IN')}
               </span>
             </button>
@@ -104,7 +105,7 @@ export const SharkHeader: React.FC<SharkHeaderProps> = ({
             type="button"
             data-testid="header-login-btn"
             onClick={() => onOpenAuth('login')}
-            className="px-2.5 sm:px-3.5 py-1 rounded-lg bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold text-xs tracking-wide transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
+            className="px-2.5 sm:px-3.5 py-1 rounded-lg bg-[#f6bd20] hover:bg-[#eab308] text-black font-bold text-xs tracking-wide transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
           >
             Login
           </button>
@@ -113,7 +114,7 @@ export const SharkHeader: React.FC<SharkHeaderProps> = ({
             type="button"
             data-testid="header-signup-btn"
             onClick={() => onOpenAuth('signup')}
-            className="px-2.5 sm:px-3.5 py-1 rounded-lg bg-[#10b981] hover:bg-emerald-400 text-white font-extrabold text-xs tracking-wide transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
+            className="px-2.5 sm:px-3.5 py-1 rounded-lg bg-[#10b981] hover:bg-emerald-400 text-white font-bold text-xs tracking-wide transition-transform active:scale-95 cursor-pointer whitespace-nowrap"
           >
             Signup
           </button>
@@ -132,114 +133,132 @@ export const SharkHeader: React.FC<SharkHeaderProps> = ({
         </div>
       </header>
 
-      {/* 2. VIBRANT GOLDEN-YELLOW (#facc15) HERO WALLET SECTION */}
+      {/* 2. REFERENCE-MATCHED GOLDEN-YELLOW WALLET BANNER */}
       <section
         aria-label="SharkX Wallet and Quick Actions"
-        className="shark-gold-header relative px-3 sm:px-6 py-4 sm:py-5 border-b-4 border-[#090d16] shadow-lg"
+        className="relative overflow-hidden bg-[#f6bd20] px-3 sm:px-6 py-5 sm:py-7 shadow-md"
       >
-        <div className="max-w-4xl mx-auto grid grid-cols-[92px_1fr_92px] sm:grid-cols-[140px_1fr_140px] gap-2.5 sm:gap-5 items-center">
-          {/* LEFT VERTICAL BLACK CARD BUTTON: Deposit ⏫ */}
+        {/* Subtle decorative background card watermarks matching reference */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -left-8 bottom-2 w-28 h-20 rounded-2xl border-2 border-black/[0.05] bg-black/[0.03] rotate-12"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute left-1/4 -top-6 w-24 h-24 rounded-2xl border-2 border-black/[0.04] bg-black/[0.02] -rotate-12"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-6 bottom-4 w-28 h-20 rounded-2xl border-2 border-black/[0.05] bg-black/[0.03] -rotate-12"
+        />
+
+        {/* Interlocking 3-Card Wallet Container */}
+        <div className="relative z-10 max-w-md sm:max-w-lg mx-auto flex items-center justify-center">
+          {/* LEFT WING CARD: Deposit */}
           <button
             type="button"
             onClick={onOpenDeposit}
             aria-label="Deposit Funds"
-            className="group bg-[#090d16] hover:bg-[#111726] text-white rounded-[20px] sm:rounded-[26px] py-3.5 sm:py-4 px-2 flex flex-col items-center justify-center shadow-[0_10px_25px_rgba(0,0,0,0.45)] border border-white/10 transition-all duration-150 active:scale-95 cursor-pointer"
+            className="group relative z-10 w-[29%] sm:w-[140px] h-[134px] sm:h-[162px] -mr-2.5 bg-[#1b1b1b] hover:bg-[#242424] text-white rounded-l-[22px] sm:rounded-l-[26px] rounded-r-none pr-2 pl-2 flex flex-col items-center justify-center shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition-all duration-150 active:scale-95 cursor-pointer"
           >
-            <span className="text-xs sm:text-lg font-semibold tracking-wide text-white group-hover:text-[#facc15] transition-colors">
+            <span className="text-[13px] sm:text-base font-normal tracking-wide text-white/95 group-hover:text-[#f6bd20] transition-colors">
               Deposit
             </span>
 
-            <div className="mt-1.5 sm:mt-2 transform group-hover:-translate-y-1 transition-transform duration-150">
+            <div className="mt-2.5 sm:mt-3 transform group-hover:-translate-y-0.5 transition-transform duration-150">
               <svg
                 viewBox="0 0 64 64"
-                className="w-10 h-10 sm:w-14 sm:h-14 text-white"
+                className="w-11 h-11 sm:w-14 sm:h-14 text-white"
                 fill="currentColor"
                 aria-hidden="true"
               >
-                <path d="M32 8L8 26v13l24-18 24 18V26L32 8z" />
-                <path d="M32 31L8 49v13l24-18 24 18V49L32 31z" />
+                <path d="M32 10L10 27v12l22-17 22 17V27L32 10z" />
+                <path d="M32 31L10 48v12l22-17 22 17V48L32 31z" />
               </svg>
             </div>
           </button>
 
-          {/* CENTER LARGE BLACK CARD: SharkX + WALLET BALANCE */}
-          <div className="bg-[#090d16] text-white rounded-[24px] sm:rounded-[32px] py-4 sm:py-5 px-3 sm:px-6 flex flex-col items-center justify-center shadow-[0_14px_32px_rgba(0,0,0,0.55)] border border-white/10 relative overflow-hidden">
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+          {/* CENTER ELEVATED WALLET CARD */}
+          <div className="relative z-20 w-[46%] sm:w-[230px] min-h-[188px] sm:min-h-[220px] bg-[#212121] text-white rounded-[24px] sm:rounded-[30px] py-5 sm:py-6 px-3 sm:px-5 flex flex-col items-center justify-between shadow-[0_14px_34px_rgba(0,0,0,0.58)]">
+            {/* Simple & Premium Exchange Brand Emblem */}
+            <div className="flex flex-col items-center">
+              <div className="flex items-baseline leading-none tracking-wider">
+                <span className="text-2xl sm:text-3xl font-extrabold text-white tracking-widest">
+                  SHARK
+                </span>
+                <span className="text-xl sm:text-2xl font-black text-[#f6bd20] ml-0.5">
+                  X
+                </span>
+              </div>
+              <div className="mt-1.5 w-full min-w-[104px] sm:min-w-[126px] bg-[#f6bd20] text-[#181818] py-0.5 px-3 text-center">
+                <span className="block text-[9px] sm:text-[10px] font-extrabold tracking-[0.28em] uppercase leading-tight">
+                  - E X C H -
+                </span>
+              </div>
+            </div>
 
-            {/* SharkX Wordmark: "Shark" large prominent, "X" smaller royal/classic */}
-            <SharkXLogo size="lg" />
+            {/* Wallet Balance Label + Stacked Coins & Amount */}
+            <div className="mt-4 sm:mt-5 flex flex-col items-center">
+              <p className="text-[11px] sm:text-[13px] font-normal tracking-[0.06em] text-white/95 uppercase">
+                WALLET BALANCE
+              </p>
 
-            {/* Subtitle: WALLET BALANCE */}
-            <p className="mt-2.5 sm:mt-3 text-[10px] sm:text-xs font-semibold tracking-[0.16em] text-white/90 uppercase">
-              WALLET BALANCE
-            </p>
+              <div className="mt-2 flex items-center justify-center gap-2">
+                <svg
+                  viewBox="0 0 44 40"
+                  className="w-6 h-6 sm:w-8 sm:h-8 text-white shrink-0"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <ellipse cx="26" cy="9" rx="11" ry="4" />
+                  <path d="M15 12.5c0 2.2 4.9 4 11 4s11-1.8 11-4v3.3c0 2.2-4.9 4-11 4s-11-1.8-11-4v-3.3z" />
+                  <path d="M15 18.8c0 2.2 4.9 4 11 4s11-1.8 11-4v3.3c0 2.2-4.9 4-11 4s-11-1.8-11-4v-3.3z" />
+                  <path d="M15 25c0 2.2 4.9 4 11 4s11-1.8 11-4v3.3c0 2.2-4.9 4-11 4s-11-1.8-11-4V25z" />
+                  <ellipse cx="14" cy="19" rx="9" ry="3.3" stroke="#212121" strokeWidth="1.4" />
+                  <path
+                    d="M5 22c0 1.8 4 3.3 9 3.3s9-1.5 9-3.3v2.8c0 1.8-4 3.3-9 3.3s-9-1.5-9-3.3V22z"
+                    stroke="#212121"
+                    strokeWidth="1"
+                  />
+                  <path
+                    d="M5 27.2c0 1.8 4 3.3 9 3.3s9-1.5 9-3.3V30c0 1.8-4 3.3-9 3.3s-9-1.5-9-3.3v-2.8z"
+                    stroke="#212121"
+                    strokeWidth="1"
+                  />
+                </svg>
 
-            {/* Stacked Coin Icon + Compact Clean Balance Counter */}
-            <div className="mt-1 sm:mt-1.5 flex items-center justify-center gap-2">
-              <svg
-                viewBox="0 0 44 40"
-                className="w-6 h-6 sm:w-8 sm:h-8 text-white shrink-0"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <ellipse cx="26" cy="9" rx="12" ry="4.2" />
-                <path d="M14 12.5c0 2.3 5.4 4.2 12 4.2s12-1.9 12-4.2v3.5c0 2.3-5.4 4.2-12 4.2s-12-1.9-12-4.2v-3.5z" />
-                <path d="M14 19c0 2.3 5.4 4.2 12 4.2s12-1.9 12-4.2v3.5c0 2.3-5.4 4.2-12 4.2s-12-1.9-12-4.2V19z" />
-                <path d="M14 25.5c0 2.3 5.4 4.2 12 4.2s12-1.9 12-4.2V29c0 2.3-5.4 4.2-12 4.2s-12-1.9-12-4.2v-3.5z" />
-                <ellipse cx="14" cy="19" rx="9.5" ry="3.5" stroke="#090d16" strokeWidth="1.5" />
-                <path
-                  d="M4.5 22c0 1.9 4.3 3.5 9.5 3.5s9.5-1.6 9.5-3.5v3c0 1.9-4.3 3.5-9.5 3.5s-9.5-1.6-9.5-3.5v-3z"
-                  stroke="#090d16"
-                  strokeWidth="1"
-                />
-                <path
-                  d="M4.5 27.5c0 1.9 4.3 3.5 9.5 3.5s9.5-1.6 9.5-3.5v3c0 1.9-4.3 3.5-9.5 3.5s-9.5-1.6-9.5-3.5v-3z"
-                  stroke="#090d16"
-                  strokeWidth="1"
-                />
-              </svg>
-
-              <span
-                data-testid="wallet-balance-value"
-                className="font-mono-tabular font-bold text-xl sm:text-3xl text-white tracking-tight"
-              >
-                {currentUser
-                  ? currentUser.walletBalance.toLocaleString('en-IN')
-                  : '0'}
-              </span>
-
-              <button
-                type="button"
-                onClick={onOpenDeposit}
-                title="Add Funds to Wallet"
-                aria-label="Quick Add Funds"
-                className="ml-0.5 text-[#facc15] hover:text-yellow-300 transition-colors cursor-pointer"
-              >
-                <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
+                <span
+                  data-testid="wallet-balance-value"
+                  className="font-mono-tabular font-normal text-2xl sm:text-3xl text-white tracking-wide"
+                >
+                  {currentUser
+                    ? currentUser.walletBalance.toLocaleString('en-IN')
+                    : '0'}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* RIGHT VERTICAL BLACK CARD BUTTON: Withdraw ⏬ */}
+          {/* RIGHT WING CARD: Withdraw */}
           <button
             type="button"
             onClick={onOpenWithdraw}
             aria-label="Withdraw Funds"
-            className="group bg-[#090d16] hover:bg-[#111726] text-white rounded-[20px] sm:rounded-[26px] py-3.5 sm:py-4 px-2 flex flex-col items-center justify-center shadow-[0_10px_25px_rgba(0,0,0,0.45)] border border-white/10 transition-all duration-150 active:scale-95 cursor-pointer"
+            className="group relative z-10 w-[29%] sm:w-[140px] h-[134px] sm:h-[162px] -ml-2.5 bg-[#1b1b1b] hover:bg-[#242424] text-white rounded-r-[22px] sm:rounded-r-[26px] rounded-l-none pl-2 pr-2 flex flex-col items-center justify-center shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition-all duration-150 active:scale-95 cursor-pointer"
           >
-            <span className="text-xs sm:text-lg font-semibold tracking-wide text-white group-hover:text-[#facc15] transition-colors">
+            <span className="text-[13px] sm:text-base font-normal tracking-wide text-white/95 group-hover:text-[#f6bd20] transition-colors">
               Withdraw
             </span>
 
-            <div className="mt-1.5 sm:mt-2 transform group-hover:translate-y-1 transition-transform duration-150">
+            <div className="mt-2.5 sm:mt-3 transform group-hover:translate-y-0.5 transition-transform duration-150">
               <svg
                 viewBox="0 0 64 64"
-                className="w-10 h-10 sm:w-14 sm:h-14 text-white"
+                className="w-11 h-11 sm:w-14 sm:h-14 text-white"
                 fill="currentColor"
                 aria-hidden="true"
               >
-                <path d="M8 10v13l24 18 24-18V10L32 28 8 10z" />
-                <path d="M8 33v13l24 18 24-18V33L32 51 8 33z" />
+                <path d="M10 12v12l22 17 22-17V12L32 29 10 12z" />
+                <path d="M10 33v12l22 17 22-17V33L32 50 10 33z" />
               </svg>
             </div>
           </button>
@@ -248,4 +267,3 @@ export const SharkHeader: React.FC<SharkHeaderProps> = ({
     </div>
   );
 };
-

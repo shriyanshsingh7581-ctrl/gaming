@@ -346,7 +346,7 @@ interface BannerAndGamesProps {
  * POST-LOGIN HOMEPAGE TOP SECTION:
  * - Single Cloudinary Video Player (`dxeuzdwkz` / `Sharkexchange`) + single-line bold green strip:
  *   "Pay 500 and get 1000 instant bonus"
- * - Single Fixed Large Banner matching the provided reference image (`fixedCricketBanner`)
+ * - Permanent Large Three-Girls VIP Lounge Poster (`permanentThreeGirlsPoster`), with no sub-posters below
  * - 3-Card Action Row (`Create IDs`, `Aviatrix`, `MINES`) — Spin the Wheel and the 3 secondary
  *   green-marked cards (`Cricket Live`, `Color Prediction`, `Live Casino`) are removed.
  */
@@ -360,19 +360,19 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
       {/* 1. CLOUDINARY VIDEO PLAYER + BOLD GREEN STRIP */}
       <CloudinaryPromoVideoSection videoUrl={promoVideoUrl} />
 
-      {/* 2. SINGLE FIXED LARGE BANNER MATCHING REFERENCE IMAGE */}
+      {/* 2. PERMANENT LARGE THREE-GIRLS VIP LOUNGE POSTER (No sub-posters below) */}
       <section
-        aria-label="Featured Cricket Banner"
+        aria-label="Featured VIP Lounge Poster"
         data-testid="postlogin-fixed-large-banner"
-        className="relative rounded-3xl overflow-hidden border-2 border-[#facc15]/60 bg-black shadow-[0_12px_34px_rgba(0,0,0,0.7)] select-none"
+        className="relative rounded-3xl overflow-hidden border-2 border-[#f6bd20]/60 bg-[#090d16] shadow-[0_14px_38px_rgba(0,0,0,0.75)] select-none"
       >
         <img
-          src={OFFICIAL_POSTER_ASSETS.fixedCricketBanner}
-          alt="SharkX Featured Cricket Banner"
+          src={OFFICIAL_POSTER_ASSETS.permanentThreeGirlsPoster}
+          alt="SharkX VIP Live Lounge"
           data-testid="fixed-reference-banner-img"
           referrerPolicy="no-referrer"
           onClick={onOpenCreateId}
-          className="w-full max-h-[340px] object-contain mx-auto block cursor-pointer"
+          className="w-full min-h-[215px] sm:min-h-[340px] max-h-[420px] object-cover block cursor-pointer"
         />
       </section>
 

@@ -614,7 +614,7 @@ export default function App() {
       <nav
         aria-label="Bottom Navigation"
         data-testid="bottom-navigation-bar"
-        className="fixed bottom-0 left-0 right-0 z-[60] h-16 bg-[#090d16]/95 backdrop-blur-md border-t border-white/10 grid grid-cols-5 items-center px-1 max-w-5xl mx-auto"
+        className="fixed bottom-0 left-0 right-0 z-[60] h-16 bg-[#090d16]/95 backdrop-blur-md border-t border-white/10 flex items-center justify-between px-3 sm:px-8 max-w-5xl mx-auto"
       >
         {/* 1. Create ID */}
         <button
@@ -704,7 +704,7 @@ export default function App() {
           className="flex flex-col items-center justify-center py-1 text-slate-300 hover:text-white cursor-pointer"
         >
           <FileText className="w-4 h-4 text-[#facc15]" />
-          <span className="text-[9px] sm:text-xs font-bold mt-0.5 whitespace-nowrap tracking-tight">
+          <span className="text-[9.5px] sm:text-xs font-bold mt-0.5 whitespace-nowrap tracking-tight">
             Account Statement
           </span>
         </button>
