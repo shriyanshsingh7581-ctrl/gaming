@@ -31,68 +31,108 @@ export type GameCategoryType =
 /**
  * Reusable Cloudinary Single Video Player + Bold Green Strip Component (Used on Login & Signup Screen):
  * - Streams video via Cloudinary (Cloud Name: `dxeuzdwkz`, Upload Preset: `Sharkexchange`).
- * - Plays continuously in a loop (`loop`) with Audio Permanently ON (`muted={false}`, `volume = 1.0`).
+ * - NO poster attribute (`poster` is permanently removed so no poster flashes before or during video playback).
+ * - Plays continuously in a loop (`loop`) with Audio Automatically ON (`muted = false`, `volume = 1.0`).
+ * - Never pauses when tapped; if cold-start browser policy requires a user activation gesture,
+ *   unmutes seamlessly on the very first `click` / `touchend` / `pointerup` / `keydown` (capture phase)
+ *   without ever pausing the video.
  * - Under the video, displays a single-line, bold green strip (zoomed/prominent, no line-break)
  *   with the exact text: "Pay 500 and get 1000 instant bonus"
  */
 export const CloudinaryPromoVideoSection: React.FC<{
   videoUrl?: string;
-  posterUrl?: string;
-}> = ({ videoUrl, posterUrl }) => {
+}> = ({ videoUrl }) => {
   const activeVideoUrl = videoUrl || DEFAULT_CLOUDINARY_PROMO_VIDEO_URL;
-  const activePosterUrl = posterUrl || OFFICIAL_POSTER_ASSETS.megaOffer500Poster;
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
 
-    const ensureAudioAndPlay = async () => {
+    const tryPlayWithSound = async () => {
+      if (!videoRef.current) return;
+      const v = videoRef.current;
+      v.loop = true;
+      v.defaultMuted = false;
+      v.volume = 1.0;
+
       try {
-        vid.muted = false;
-        vid.volume = 1.0;
-        vid.loop = true;
-        await vid.play();
+        v.muted = false;
+        await v.play();
       } catch {
-        // If browser autoplay policy requires user interaction before unmuted playback,
-        // start playback and immediately unmute on first touch/click/key anywhere.
+        // Browser cold-start policy blocked unmuted autoplay before first gesture:
+        // start video playback immediately and unmute on the first valid user activation event
+        // (click / touchend / pointerup / keydown — never touchstart/pointerdown which causes Chromium to pause).
         try {
-          vid.muted = true;
-          await vid.play();
+          v.muted = true;
+          await v.play();
         } catch {
           // ignore
         }
       }
     };
 
-    void ensureAudioAndPlay();
+    void tryPlayWithSound();
 
-    const forceUnmuteOnInteraction = () => {
-      if (!videoRef.current) return;
-      videoRef.current.muted = false;
-      videoRef.current.volume = 1.0;
-      videoRef.current.loop = true;
-      void videoRef.current.play().catch(() => {});
-    };
-
-    const handleVolumeChange = () => {
-      if (!videoRef.current) return;
-      if (videoRef.current.volume < 1) {
-        videoRef.current.volume = 1.0;
+    // Unlock audio on valid Chromium User Activation events in capture phase
+    const unlockAudioOnActivation = () => {
+      const v = videoRef.current;
+      if (!v) return;
+      v.defaultMuted = false;
+      v.muted = false;
+      v.volume = 1.0;
+      v.loop = true;
+      if (v.paused) {
+        void v.play().catch(() => {});
       }
     };
 
-    window.addEventListener('pointerdown', forceUnmuteOnInteraction, { passive: true });
-    window.addEventListener('touchstart', forceUnmuteOnInteraction, { passive: true });
-    window.addEventListener('click', forceUnmuteOnInteraction, { passive: true });
-    window.addEventListener('keydown', forceUnmuteOnInteraction, { passive: true });
+    const handleVolumeChange = () => {
+      const v = videoRef.current;
+      if (!v) return;
+      if (v.volume < 1) {
+        v.volume = 1.0;
+      }
+    };
+
+    document.addEventListener('click', unlockAudioOnActivation, {
+      capture: true,
+      passive: true,
+    });
+    document.addEventListener('touchend', unlockAudioOnActivation, {
+      capture: true,
+      passive: true,
+    });
+    document.addEventListener('pointerup', unlockAudioOnActivation, {
+      capture: true,
+      passive: true,
+    });
+    document.addEventListener('mouseup', unlockAudioOnActivation, {
+      capture: true,
+      passive: true,
+    });
+    document.addEventListener('keydown', unlockAudioOnActivation, {
+      capture: true,
+      passive: true,
+    });
     vid.addEventListener('volumechange', handleVolumeChange);
 
     return () => {
-      window.removeEventListener('pointerdown', forceUnmuteOnInteraction);
-      window.removeEventListener('touchstart', forceUnmuteOnInteraction);
-      window.removeEventListener('click', forceUnmuteOnInteraction);
-      window.removeEventListener('keydown', forceUnmuteOnInteraction);
+      document.removeEventListener('click', unlockAudioOnActivation, {
+        capture: true,
+      });
+      document.removeEventListener('touchend', unlockAudioOnActivation, {
+        capture: true,
+      });
+      document.removeEventListener('pointerup', unlockAudioOnActivation, {
+        capture: true,
+      });
+      document.removeEventListener('mouseup', unlockAudioOnActivation, {
+        capture: true,
+      });
+      document.removeEventListener('keydown', unlockAudioOnActivation, {
+        capture: true,
+      });
       vid.removeEventListener('volumechange', handleVolumeChange);
     };
   }, [activeVideoUrl]);
@@ -105,18 +145,40 @@ export const CloudinaryPromoVideoSection: React.FC<{
       data-cloudinary-upload-preset={CLOUDINARY_UPLOAD_PRESET}
       className="rounded-2xl overflow-hidden border-2 border-[#facc15]/70 bg-[#050811] shadow-[0_10px_30px_rgba(0,0,0,0.65)]"
     >
-      <div className="relative w-full bg-black">
+      <div
+        className="relative w-full bg-black cursor-pointer"
+        onClick={() => {
+          const v = videoRef.current;
+          if (!v) return;
+          v.defaultMuted = false;
+          v.muted = false;
+          v.volume = 1.0;
+          v.loop = true;
+          void v.play().catch(() => {});
+        }}
+      >
         <video
           ref={videoRef}
           key={activeVideoUrl}
           data-testid="cloudinary-promo-video"
           src={activeVideoUrl}
-          poster={activePosterUrl}
+          preload="auto"
           className="w-full max-h-[260px] sm:max-h-[340px] object-contain bg-black block"
-          controls
           autoPlay
           loop
           playsInline
+          onLoadedMetadata={(e) => {
+            const v = e.currentTarget;
+            v.defaultMuted = false;
+            v.volume = 1.0;
+            v.loop = true;
+          }}
+          onPause={(e) => {
+            const v = e.currentTarget;
+            if (!v.ended) {
+              void v.play().catch(() => {});
+            }
+          }}
         />
       </div>
 
@@ -147,8 +209,8 @@ interface PreLoginLandingPageProps {
  * PRE-LOGIN LANDING & AUTH PAGE (Login & Signup Screen):
  * - Minimalist Top Header with White & Yellow "SHARK / - EXCHANGE -" logo.
  * - Single Cloudinary Video Player (`dxeuzdwkz` / `Sharkexchange`) looping with Audio Permanently ON
+ *   (NO poster image before or below the video — only the Admin Panel video is shown)
  *   + single-line bold green strip: "Pay 500 and get 1000 instant bonus"
- * - Separate Login & Signup Screen Poster (`authPosterUrl`) when configured by Admin.
  * - Clean Authentication Card:
  *   - No "Continue with Google" or "Demo Account" options.
  *   - Signup Form: strictly 3 fields (Mobile Number, Email, Password).
@@ -156,7 +218,6 @@ interface PreLoginLandingPageProps {
  */
 export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
   promoVideoUrl,
-  authPosterUrl,
   onAuthSuccess,
 }) => {
   const [authTab, setAuthTab] = useState<'signup' | 'login'>('signup');
@@ -217,27 +278,9 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
 
       {/* Main Pre-Login Front Page Container */}
       <main className="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 pt-4 space-y-5">
-        {/* 1. CLOUDINARY LOOP VIDEO (AUDIO PERMANENTLY ON) + BOLD GREEN STRIP */}
-        <CloudinaryPromoVideoSection
-          videoUrl={promoVideoUrl}
-          posterUrl={authPosterUrl}
-        />
+        {/* 1. CLOUDINARY LOOP VIDEO ONLY (NO POSTER, AUDIO AUTOMATICALLY ON) + BOLD GREEN STRIP */}
+        <CloudinaryPromoVideoSection videoUrl={promoVideoUrl} />
 
-        {/* 1B. OPTIONAL DEDICATED LOGIN/SIGNUP SCREEN POSTER (Uploaded via Admin Panel) */}
-        {authPosterUrl && (
-          <section
-            aria-label="Login and Signup Screen Poster"
-            data-testid="prelogin-auth-poster-banner"
-            className="relative w-full rounded-xl overflow-hidden border border-[#f6bd20]/60 bg-[#090d16] shadow-[0_10px_28px_rgba(0,0,0,0.75)] select-none"
-          >
-            <img
-              src={authPosterUrl}
-              alt="Shark Exchange Login Poster"
-              referrerPolicy="no-referrer"
-              className="w-full h-auto object-contain block"
-            />
-          </section>
-        )}
 
         {/* 2. SIGNUP / LOGIN TAB BUTTONS */}
         <div

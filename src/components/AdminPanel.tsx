@@ -318,13 +318,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     await adminSaveMediaSettings({
       promoVideoUrl:
         promoVideoUrlInput.trim() || DEFAULT_CLOUDINARY_PROMO_VIDEO_URL,
-      authPosterUrl: authPosterUrlInput.trim(),
+      authPosterUrl: '',
       homePosterUrl:
         homePosterUrlInput.trim() ||
         OFFICIAL_POSTER_ASSETS.permanentThreeGirlsPoster,
     });
     onNotify(
-      '✅ Saved Login/Signup Loop Video, Login/Signup Poster & Home Screen Poster!'
+      '✅ Saved Home Screen Poster & Login/Signup Loop Video!'
     );
   };
 
@@ -1782,15 +1782,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h3 className="text-base sm:text-lg font-extrabold text-[#facc15]">
-                      🎬 Posters &amp; Loop Video Manager (Cloudinary: {CLOUDINARY_CLOUD_NAME} / {CLOUDINARY_UPLOAD_PRESET})
+                      🎬 Home Poster &amp; Login Loop Video Manager (Cloudinary: {CLOUDINARY_CLOUD_NAME} / {CLOUDINARY_UPLOAD_PRESET})
                     </h3>
                     <p className="text-xs text-slate-300 mt-0.5">
-                      Manage the Home Screen Poster (no video on Home screen), Login &amp; Signup Screen Loop Video (with permanent audio ON), and Login &amp; Signup Screen Poster.
+                      Manage the Home Screen Poster (no video on Home screen) and Login &amp; Signup Screen Loop Video (video only with automatic audio ON, no poster on Login/Signup screen).
                     </p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                   {/* CARD 1: HOME SCREEN PERMANENT POSTER (NO VIDEO ON HOME SCREEN) */}
                   <div className="p-4 rounded-2xl bg-[#090d16] border-2 border-[#facc15]/50 space-y-3 flex flex-col justify-between">
                     <div className="space-y-2.5">
@@ -1872,7 +1872,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     </div>
                   </div>
 
-                  {/* CARD 2: LOGIN & SIGNUP SCREEN LOOP VIDEO (PERMANENT AUDIO ON) */}
+                  {/* CARD 2: LOGIN & SIGNUP SCREEN LOOP VIDEO (AUTOMATIC AUDIO ON, NO POSTER) */}
                   <div className="p-4 rounded-2xl bg-[#090d16] border-2 border-emerald-500/50 space-y-3 flex flex-col justify-between">
                     <div className="space-y-2.5">
                       <div className="flex items-center justify-between gap-2">
@@ -1880,11 +1880,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           2. Login &amp; Signup Video (Loop)
                         </span>
                         <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
-                          🔊 Audio ON · Loop
+                          🔊 Auto Audio ON · Video Only
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-400">
-                        Plays in a continuous loop with audio permanently ON on the Login &amp; Signup Screen.
+                        Only this video is displayed on the Login &amp; Signup Screen (no poster) — plays in a continuous loop with automatic audio ON.
                       </p>
 
                       <div className="rounded-xl overflow-hidden border border-white/15 bg-black">
@@ -1952,86 +1952,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       </button>
                     </div>
                   </div>
-
-                  {/* CARD 3: LOGIN & SIGNUP SCREEN POSTER (SEPARATE PHOTO OPTION) */}
-                  <div className="p-4 rounded-2xl bg-[#090d16] border-2 border-sky-500/50 space-y-3 flex flex-col justify-between">
-                    <div className="space-y-2.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-extrabold text-sky-400 uppercase">
-                          3. Login &amp; Signup Screen Poster
-                        </span>
-                        <span className="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 text-[10px] font-bold">
-                          Pre-Login Photo
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-400">
-                        Separate poster option for the Login &amp; Signup Screen (uploaded via Cloudinary).
-                      </p>
-
-                      <div className="rounded-xl overflow-hidden border border-white/15 bg-black flex items-center justify-center h-36">
-                        {authPosterUrlInput ? (
-                          <img
-                            src={authPosterUrlInput}
-                            alt="Login Screen Poster Preview"
-                            className="w-full h-full object-contain block"
-                          />
-                        ) : (
-                          <span className="text-[11px] text-slate-500 px-3 text-center">
-                            No custom Login/Signup poster set (optional)
-                          </span>
-                        )}
-                      </div>
-
-                      <div>
-                        <label
-                          htmlFor="admin-auth-poster-url"
-                          className="block text-[11px] font-semibold text-slate-300 mb-1"
-                        >
-                          Login &amp; Signup Poster Image URL
-                        </label>
-                        <input
-                          id="admin-auth-poster-url"
-                          data-testid="admin-auth-poster-url-input"
-                          type="text"
-                          value={authPosterUrlInput}
-                          onChange={(e) => setAuthPosterUrlInput(e.target.value)}
-                          placeholder="https://res.cloudinary.com/dxeuzdwkz/image/upload/..."
-                          className="w-full px-3 py-2 rounded-xl bg-[#0c111d] border border-white/15 text-xs text-white"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2 pt-2">
-                      <label
-                        htmlFor="admin-auth-poster-file"
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-sky-400 hover:bg-sky-300 text-black font-extrabold text-xs cursor-pointer"
-                      >
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>
-                          {uploadingMediaField === 'authPoster'
-                            ? 'Uploading to Cloudinary...'
-                            : 'Upload Login Poster'}
-                        </span>
-                      </label>
-                      <input
-                        id="admin-auth-poster-file"
-                        data-testid="admin-auth-poster-file-input"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) =>
-                          void handleCloudinaryPosterUpload('authPosterUrl', e)
-                        }
-                        className="hidden"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setAuthPosterUrlInput('')}
-                        className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-[11px] font-bold text-slate-200 cursor-pointer"
-                      >
-                        Clear
-                      </button>
-                    </div>
-                  </div>
                 </div>
 
                 <button
@@ -2039,7 +1959,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   data-testid="admin-save-media-settings-btn"
                   className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-xs sm:text-sm cursor-pointer shadow-lg"
                 >
-                  💾 Save Home Poster, Login Loop Video &amp; Login Poster
+                  💾 Save Home Screen Poster &amp; Login Loop Video
                 </button>
               </form>
             )}
