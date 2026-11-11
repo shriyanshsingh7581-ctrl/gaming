@@ -58,6 +58,7 @@ import {
   CLOUDINARY_VIDEO_UPLOAD_URL,
   CLOUDINARY_IMAGE_UPLOAD_URL,
   CLOUDINARY_UPLOAD_PRESET,
+  toPlayableCloudinaryVideoUrl,
   CELEBRITY_BANNER_ASSETS,
   OFFICIAL_POSTER_ASSETS,
   SpinRecord,
@@ -630,6 +631,12 @@ function loadHybridStore(): HybridDatabaseSchema {
           paymentSettings: {
             ...INITIAL_PAYMENT_SETTINGS,
             ...(parsed.paymentSettings || {}),
+            promoVideoUrl:
+              parsed.paymentSettings?.promoVideoUrl &&
+              !String(parsed.paymentSettings.promoVideoUrl).includes('h0w6fc2fpwp2ff95d5d4') &&
+              !String(parsed.paymentSettings.promoVideoUrl).includes('ihegf7oimbdgdq9zmlsb')
+                ? toPlayableCloudinaryVideoUrl(parsed.paymentSettings.promoVideoUrl)
+                : DEFAULT_CLOUDINARY_PROMO_VIDEO_URL,
             homePosterUrl:
               parsed.paymentSettings?.homePosterUrl &&
               parsed.paymentSettings.homePosterUrl !==
@@ -687,7 +694,32 @@ if (typeof window !== 'undefined') {
   });
 }
 
+async function syncStateToServerLiveStore(
+  nextStore: HybridDatabaseSchema
+): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    await fetch('/api/exchange/live-store', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        users: nextStore.users,
+        deposits: nextStore.deposits,
+        withdrawals: nextStore.withdrawals,
+        idRequests: nextStore.idRequests,
+        paymentSettings: nextStore.paymentSettings,
+        banners: nextStore.banners,
+        staff: nextStore.staff,
+        chats: nextStore.chats,
+      }),
+    });
+  } catch {
+    // ignore network error
+  }
+}
+
 async function syncStateToCloudMirror(nextStore: HybridDatabaseSchema): Promise<void> {
+  void syncStateToServerLiveStore(nextStore);
   if (!firestoreDb) return;
   try {
     await setDoc(doc(firestoreDb, CLOUD_MIRROR_COLLECTION, CLOUD_MIRROR_DOC_ID), {
@@ -851,10 +883,95 @@ export function subscribeToRealtimeData(callback: ListenerCallback): () => void 
     }
   }
 
+  // 3. Cross-Tab / Cross-Iframe / Cross-Device Express Server Live Store Sync (`/api/exchange/live-store`)
+  let serverPollTimer: ReturnType<typeof setInterval> | null = null;
+  const pullFromServerLiveStore = async () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const res = await fetch('/api/exchange/live-store');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data?.hasStore || !data?.store) {
+        // Seed the server with initial local store if server is empty
+        void syncStateToServerLiveStore(loadHybridStore());
+        return;
+      }
+      const srv = data.store;
+      const current = loadHybridStore();
+      const srvPs = (srv.paymentSettings || {}) as Partial<PaymentSettings>;
+
+      const candidateVideoUrl =
+        srvPs.promoVideoUrl &&
+        !String(srvPs.promoVideoUrl).includes('h0w6fc2fpwp2ff95d5d4') &&
+        !String(srvPs.promoVideoUrl).includes('ihegf7oimbdgdq9zmlsb')
+          ? srvPs.promoVideoUrl
+          : current.paymentSettings.promoVideoUrl;
+      const nextPromoVideoUrl = toPlayableCloudinaryVideoUrl(
+        candidateVideoUrl || DEFAULT_CLOUDINARY_PROMO_VIDEO_URL
+      );
+      const nextHomePosterUrl =
+        srvPs.homePosterUrl || current.paymentSettings.homePosterUrl;
+
+      const mergedPaymentSettings: PaymentSettings = {
+        ...current.paymentSettings,
+        ...srvPs,
+        promoVideoUrl: nextPromoVideoUrl,
+        homePosterUrl: nextHomePosterUrl,
+      };
+
+      const merged: HybridDatabaseSchema = {
+        users: {
+          ...current.users,
+          ...((srv.users as Record<string, UserProfile>) || {}),
+        },
+        deposits: {
+          ...current.deposits,
+          ...((srv.deposits as Record<string, DepositRecord>) || {}),
+        },
+        withdrawals: {
+          ...current.withdrawals,
+          ...((srv.withdrawals as Record<string, WithdrawalRecord>) || {}),
+        },
+        idRequests: {
+          ...current.idRequests,
+          ...((srv.idRequests as Record<string, IdRequestRecord>) || {}),
+        },
+        paymentSettings: mergedPaymentSettings,
+        banners: normalizeBannersStore(
+          (srv.banners as BannerSlide[]) || current.banners
+        ),
+        staff: normalizeStaffStore(
+          (srv.staff as Record<string, StaffMember>) || current.staff
+        ),
+        chats: {
+          ...current.chats,
+          ...((srv.chats as Record<string, ChatThread>) || {}),
+        },
+        spinsByUser: current.spinsByUser || {},
+        spinHistory: current.spinHistory || {},
+        prizeInventory: current.prizeInventory || INITIAL_PRIZE_INVENTORY,
+      };
+
+      localStorage.setItem(STORAGE_DB_KEY, JSON.stringify(merged));
+      dbListeners.forEach((cb) => cb(merged));
+      notifyAuthListeners();
+    } catch {
+      // ignore offline or transient errors
+    }
+  };
+
+  if (typeof window !== 'undefined') {
+    void pullFromServerLiveStore();
+    serverPollTimer = setInterval(() => {
+      void pullFromServerLiveStore();
+    }, 2000);
+  }
+
   return () => {
     dbListeners.delete(callback);
     if (unsubRtdb) unsubRtdb();
     if (unsubFirestore) unsubFirestore();
+    if (serverPollTimer) clearInterval(serverPollTimer);
   };
 }
 
@@ -1527,34 +1644,84 @@ export async function submitCreateIdRequest(params: {
   return record;
 }
 
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+      } else {
+        reject(new Error('Failed to read file.'));
+      }
+    };
+    reader.onerror = () => reject(new Error('Failed to read file.'));
+    reader.readAsDataURL(file);
+  });
+}
+
 /**
  * Upload Promotional Video to Cloudinary (`cloudName: dxeuzdwkz`, `uploadPreset: Sharkexchange`)
- * and persist the live stream URL in `paymentSettings.promoVideoUrl`.
+ * with automatic MP4 normalization and server-side persistence (`/api/exchange/media-settings`)
+ * so the video immediately displays on the Login & Signup Screen across all tabs and devices.
  */
 export async function uploadPromoVideoToCloudinary(file: File): Promise<string> {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  let finalVideoUrl = '';
 
-  const response = await fetch(CLOUDINARY_VIDEO_UPLOAD_URL, {
-    method: 'POST',
-    body: formData,
-  });
-  const data = await response.json();
-  if (!response.ok || !data.secure_url) {
-    throw new Error(
-      data?.error?.message || 'Failed to upload video to Cloudinary (Sharkexchange).'
-    );
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+    const response = await fetch(CLOUDINARY_VIDEO_UPLOAD_URL, {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await response.json();
+    if (response.ok && data?.secure_url) {
+      finalVideoUrl = toPlayableCloudinaryVideoUrl(String(data.secure_url));
+    } else {
+      throw new Error(
+        data?.error?.message ||
+          'Failed to upload video to Cloudinary (Sharkexchange).'
+      );
+    }
+  } catch (cloudinaryErr) {
+    // Fallback to direct Express server upload (`/api/exchange/upload-media`) so the Admin's upload never fails
+    const base64Data = await fileToDataUrl(file);
+    const srvRes = await fetch('/api/exchange/upload-media', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileName: file.name || 'promo-video.mp4',
+        base64Data,
+        targetField: 'promoVideoUrl',
+      }),
+    });
+    const srvData = await srvRes.json();
+    if (srvRes.ok && srvData?.url) {
+      finalVideoUrl = String(srvData.url);
+    } else {
+      throw cloudinaryErr;
+    }
   }
 
-  const secureUrl: string = data.secure_url;
   const store = loadHybridStore();
   store.paymentSettings = {
     ...store.paymentSettings,
-    promoVideoUrl: secureUrl,
+    promoVideoUrl: finalVideoUrl,
     updatedAt: new Date().toISOString(),
   };
   saveHybridStore(store);
+
+  try {
+    await fetch('/api/exchange/media-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ promoVideoUrl: finalVideoUrl }),
+    });
+  } catch {
+    // ignore
+  }
 
   if (isLiveFirebaseConnected && firebaseDb) {
     try {
@@ -1564,33 +1731,56 @@ export async function uploadPromoVideoToCloudinary(file: File): Promise<string> 
     }
   }
 
-  return secureUrl;
+  return finalVideoUrl;
 }
 
 /**
  * Upload Poster / Photo to Cloudinary (`cloudName: dxeuzdwkz`, `uploadPreset: Sharkexchange`)
- * and optionally persist it in `paymentSettings.homePosterUrl` or `paymentSettings.authPosterUrl`.
+ * and persist it in `paymentSettings.homePosterUrl` or `paymentSettings.authPosterUrl` + server store.
  */
 export async function uploadImageToCloudinary(
   file: File,
   targetField?: 'homePosterUrl' | 'authPosterUrl'
 ): Promise<string> {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  let secureUrl = '';
 
-  const response = await fetch(CLOUDINARY_IMAGE_UPLOAD_URL, {
-    method: 'POST',
-    body: formData,
-  });
-  const data = await response.json();
-  if (!response.ok || !data.secure_url) {
-    throw new Error(
-      data?.error?.message || 'Failed to upload image to Cloudinary (Sharkexchange).'
-    );
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+    const response = await fetch(CLOUDINARY_IMAGE_UPLOAD_URL, {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await response.json();
+    if (response.ok && data?.secure_url) {
+      secureUrl = String(data.secure_url);
+    } else {
+      throw new Error(
+        data?.error?.message ||
+          'Failed to upload image to Cloudinary (Sharkexchange).'
+      );
+    }
+  } catch (cloudinaryErr) {
+    const base64Data = await fileToDataUrl(file);
+    const srvRes = await fetch('/api/exchange/upload-media', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileName: file.name || 'poster.png',
+        base64Data,
+        targetField,
+      }),
+    });
+    const srvData = await srvRes.json();
+    if (srvRes.ok && srvData?.url) {
+      secureUrl = String(srvData.url);
+    } else {
+      throw cloudinaryErr;
+    }
   }
 
-  const secureUrl: string = data.secure_url;
   if (targetField) {
     const store = loadHybridStore();
     store.paymentSettings = {
@@ -1599,6 +1789,16 @@ export async function uploadImageToCloudinary(
       updatedAt: new Date().toISOString(),
     };
     saveHybridStore(store);
+
+    try {
+      await fetch('/api/exchange/media-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [targetField]: secureUrl }),
+      });
+    } catch {
+      // ignore
+    }
 
     if (isLiveFirebaseConnected && firebaseDb) {
       try {
@@ -1621,15 +1821,40 @@ export async function adminSaveMediaSettings(params: {
   homePosterUrl?: string;
 }): Promise<PaymentSettings> {
   const store = loadHybridStore();
+  const normalizedVideoUrl =
+    params.promoVideoUrl !== undefined
+      ? toPlayableCloudinaryVideoUrl(params.promoVideoUrl)
+      : store.paymentSettings.promoVideoUrl;
+
   const updated: PaymentSettings = {
     ...store.paymentSettings,
-    ...(params.promoVideoUrl !== undefined ? { promoVideoUrl: params.promoVideoUrl } : {}),
-    ...(params.authPosterUrl !== undefined ? { authPosterUrl: params.authPosterUrl } : {}),
-    ...(params.homePosterUrl !== undefined ? { homePosterUrl: params.homePosterUrl } : {}),
+    ...(normalizedVideoUrl !== undefined
+      ? { promoVideoUrl: normalizedVideoUrl }
+      : {}),
+    ...(params.authPosterUrl !== undefined
+      ? { authPosterUrl: params.authPosterUrl }
+      : {}),
+    ...(params.homePosterUrl !== undefined
+      ? { homePosterUrl: params.homePosterUrl }
+      : {}),
     updatedAt: new Date().toISOString(),
   };
   store.paymentSettings = updated;
   saveHybridStore(store);
+
+  try {
+    await fetch('/api/exchange/media-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        promoVideoUrl: updated.promoVideoUrl,
+        authPosterUrl: updated.authPosterUrl,
+        homePosterUrl: updated.homePosterUrl,
+      }),
+    });
+  } catch {
+    // ignore
+  }
 
   if (isLiveFirebaseConnected && firebaseDb) {
     try {

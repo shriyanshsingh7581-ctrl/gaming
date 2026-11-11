@@ -1,0 +1,212 @@
+{
+  "users": {
+    "usr_demo_aarav": {
+      "uid": "usr_demo_aarav",
+      "name": "Aarav Singhania",
+      "email": "aarav.vip@sharkexch.in",
+      "phone": "+91 98201 44510",
+      "password": "Shark@2026",
+      "walletBalance": 14500,
+      "status": "Active",
+      "createdAt": "2026-11-01T14:20:00.000Z"
+    },
+    "usr_demo_kabir": {
+      "uid": "usr_demo_kabir",
+      "name": "Kabir Malhotra",
+      "email": "kabir.m@gmail.com",
+      "phone": "+91 97112 88390",
+      "password": "Kabir#990",
+      "walletBalance": 4200,
+      "status": "Active",
+      "createdAt": "2026-11-02T09:15:00.000Z"
+    },
+    "usr_demo_rohan": {
+      "uid": "usr_demo_rohan",
+      "name": "Rohan Deshmukh",
+      "email": "rohan.d@yahoo.com",
+      "phone": "+91 99304 11208",
+      "password": "Rohan$777",
+      "walletBalance": 850,
+      "status": "Blocked",
+      "createdAt": "2026-11-02T18:40:00.000Z"
+    }
+  },
+  "deposits": {
+    "dep_demo_101": {
+      "id": "dep_demo_101",
+      "uid": "usr_demo_kabir",
+      "userName": "Kabir Malhotra",
+      "userEmail": "kabir.m@gmail.com",
+      "amount": 5000,
+      "utr": "430719283746",
+      "screenshotUrl": "data:image/svg+xml;utf8,%0A%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20260%20260%22%20width%3D%22260%22%20height%3D%22260%22%3E%0A%20%20%3Crect%20width%3D%22260%22%20height%3D%22260%22%20rx%3D%2216%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%3Crect%20x%3D%2216%22%20y%3D%2216%22%20width%3D%22228%22%20height%3D%22228%22%20rx%3D%228%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23090d16%22%20stroke-width%3D%224%22%2F%3E%0A%20%20%3C!--%20Top-Left%20Finder%20Pattern%20--%3E%0A%20%20%3Crect%20x%3D%2228%22%20y%3D%2228%22%20width%3D%2256%22%20height%3D%2256%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3Crect%20x%3D%2236%22%20y%3D%2236%22%20width%3D%2240%22%20height%3D%2240%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%3Crect%20x%3D%2244%22%20y%3D%2244%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3C!--%20Top-Right%20Finder%20Pattern%20--%3E%0A%20%20%3Crect%20x%3D%22176%22%20y%3D%2228%22%20width%3D%2256%22%20height%3D%2256%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3Crect%20x%3D%22184%22%20y%3D%2236%22%20width%3D%2240%22%20height%3D%2240%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%3Crect%20x%3D%22192%22%20y%3D%2244%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3C!--%20Bottom-Left%20Finder%20Pattern%20--%3E%0A%20%20%3Crect%20x%3D%2228%22%20y%3D%22176%22%20width%3D%2256%22%20height%3D%2256%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3Crect%20x%3D%2236%22%20y%3D%22184%22%20width%3D%2240%22%20height%3D%2240%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%3Crect%20x%3D%2244%22%20y%3D%22192%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3C!--%20Data%20Matrix%20Blocks%20--%3E%0A%20%20%3Cg%20fill%3D%22%23090d16%22%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%2228%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22120%22%20y%3D%2228%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22156%22%20y%3D%2228%22%20width%3D%228%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%2252%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22132%22%20y%3D%2248%22%20width%3D%2212%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%2272%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22116%22%20y%3D%2272%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22148%22%20y%3D%2272%22%20width%3D%2216%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2228%22%20y%3D%2296%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2264%22%20y%3D%2296%22%20width%3D%2220%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2228%22%20y%3D%22120%22%20width%3D%2212%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2252%22%20y%3D%22116%22%20width%3D%2216%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2276%22%20y%3D%22128%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2228%22%20y%3D%22152%22%20width%3D%2236%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22168%22%20y%3D%2296%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22204%22%20y%3D%2296%22%20width%3D%2228%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22176%22%20y%3D%22120%22%20width%3D%2216%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22204%22%20y%3D%22116%22%20width%3D%2212%22%20height%3D%2228%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22220%22%20y%3D%22132%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22168%22%20y%3D%22152%22%20width%3D%2228%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22208%22%20y%3D%22152%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%22168%22%20width%3D%2216%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22124%22%20y%3D%22168%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%22196%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22132%22%20y%3D%22192%22%20width%3D%2216%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%22216%22%20width%3D%2236%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22156%22%20y%3D%22180%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22192%22%20y%3D%22176%22%20width%3D%2216%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22216%22%20y%3D%22180%22%20width%3D%2216%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22164%22%20y%3D%22208%22%20width%3D%2224%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22200%22%20y%3D%22212%22%20width%3D%2232%22%20height%3D%2220%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3C!--%20Center%20Brand%20Badge%20--%3E%0A%20%20%3Crect%20x%3D%2292%22%20y%3D%2292%22%20width%3D%2276%22%20height%3D%2276%22%20rx%3D%2214%22%20fill%3D%22%23090d16%22%20stroke%3D%22%23facc15%22%20stroke-width%3D%224%22%2F%3E%0A%20%20%3Ctext%20x%3D%22130%22%20y%3D%22125%22%20text-anchor%3D%22middle%22%20fill%3D%22%23ffffff%22%20font-family%3D%22Arial%20Black%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-style%3D%22italic%22%20font-size%3D%2214%22%3ESHARK%3C%2Ftext%3E%0A%20%20%3Ctext%20x%3D%22130%22%20y%3D%22145%22%20text-anchor%3D%22middle%22%20fill%3D%22%23facc15%22%20font-family%3D%22Arial%20Black%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-style%3D%22italic%22%20font-size%3D%2214%22%3EEXCH%3C%2Ftext%3E%0A%3C%2Fsvg%3E%0A",
+      "status": "Pending",
+      "createdAt": "2026-11-03T08:45:00.000Z"
+    },
+    "dep_demo_102": {
+      "id": "dep_demo_102",
+      "uid": "usr_demo_aarav",
+      "userName": "Aarav Singhania",
+      "userEmail": "aarav.vip@sharkexch.in",
+      "amount": 10000,
+      "utr": "430711998822",
+      "screenshotUrl": "data:image/svg+xml;utf8,%0A%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20260%20260%22%20width%3D%22260%22%20height%3D%22260%22%3E%0A%20%20%3Crect%20width%3D%22260%22%20height%3D%22260%22%20rx%3D%2216%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%3Crect%20x%3D%2216%22%20y%3D%2216%22%20width%3D%22228%22%20height%3D%22228%22%20rx%3D%228%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23090d16%22%20stroke-width%3D%224%22%2F%3E%0A%20%20%3C!--%20Top-Left%20Finder%20Pattern%20--%3E%0A%20%20%3Crect%20x%3D%2228%22%20y%3D%2228%22%20width%3D%2256%22%20height%3D%2256%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3Crect%20x%3D%2236%22%20y%3D%2236%22%20width%3D%2240%22%20height%3D%2240%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%3Crect%20x%3D%2244%22%20y%3D%2244%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3C!--%20Top-Right%20Finder%20Pattern%20--%3E%0A%20%20%3Crect%20x%3D%22176%22%20y%3D%2228%22%20width%3D%2256%22%20height%3D%2256%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3Crect%20x%3D%22184%22%20y%3D%2236%22%20width%3D%2240%22%20height%3D%2240%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%3Crect%20x%3D%22192%22%20y%3D%2244%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3C!--%20Bottom-Left%20Finder%20Pattern%20--%3E%0A%20%20%3Crect%20x%3D%2228%22%20y%3D%22176%22%20width%3D%2256%22%20height%3D%2256%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3Crect%20x%3D%2236%22%20y%3D%22184%22%20width%3D%2240%22%20height%3D%2240%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%3Crect%20x%3D%2244%22%20y%3D%22192%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3C!--%20Data%20Matrix%20Blocks%20--%3E%0A%20%20%3Cg%20fill%3D%22%23090d16%22%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%2228%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22120%22%20y%3D%2228%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22156%22%20y%3D%2228%22%20width%3D%228%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%2252%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22132%22%20y%3D%2248%22%20width%3D%2212%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%2272%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22116%22%20y%3D%2272%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22148%22%20y%3D%2272%22%20width%3D%2216%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2228%22%20y%3D%2296%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2264%22%20y%3D%2296%22%20width%3D%2220%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2228%22%20y%3D%22120%22%20width%3D%2212%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2252%22%20y%3D%22116%22%20width%3D%2216%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2276%22%20y%3D%22128%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2228%22%20y%3D%22152%22%20width%3D%2236%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22168%22%20y%3D%2296%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22204%22%20y%3D%2296%22%20width%3D%2228%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22176%22%20y%3D%22120%22%20width%3D%2216%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22204%22%20y%3D%22116%22%20width%3D%2212%22%20height%3D%2228%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22220%22%20y%3D%22132%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22168%22%20y%3D%22152%22%20width%3D%2228%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22208%22%20y%3D%22152%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%22168%22%20width%3D%2216%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22124%22%20y%3D%22168%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%22196%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22132%22%20y%3D%22192%22%20width%3D%2216%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%22216%22%20width%3D%2236%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22156%22%20y%3D%22180%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22192%22%20y%3D%22176%22%20width%3D%2216%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22216%22%20y%3D%22180%22%20width%3D%2216%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22164%22%20y%3D%22208%22%20width%3D%2224%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22200%22%20y%3D%22212%22%20width%3D%2232%22%20height%3D%2220%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3C!--%20Center%20Brand%20Badge%20--%3E%0A%20%20%3Crect%20x%3D%2292%22%20y%3D%2292%22%20width%3D%2276%22%20height%3D%2276%22%20rx%3D%2214%22%20fill%3D%22%23090d16%22%20stroke%3D%22%23facc15%22%20stroke-width%3D%224%22%2F%3E%0A%20%20%3Ctext%20x%3D%22130%22%20y%3D%22125%22%20text-anchor%3D%22middle%22%20fill%3D%22%23ffffff%22%20font-family%3D%22Arial%20Black%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-style%3D%22italic%22%20font-size%3D%2214%22%3ESHARK%3C%2Ftext%3E%0A%20%20%3Ctext%20x%3D%22130%22%20y%3D%22145%22%20text-anchor%3D%22middle%22%20fill%3D%22%23facc15%22%20font-family%3D%22Arial%20Black%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-style%3D%22italic%22%20font-size%3D%2214%22%3EEXCH%3C%2Ftext%3E%0A%3C%2Fsvg%3E%0A",
+      "status": "Approved",
+      "createdAt": "2026-11-03T07:10:00.000Z"
+    }
+  },
+  "withdrawals": {
+    "wdr_demo_201": {
+      "id": "wdr_demo_201",
+      "uid": "usr_demo_aarav",
+      "userName": "Aarav Singhania",
+      "userEmail": "aarav.vip@sharkexch.in",
+      "userPhone": "+91 98201 44510",
+      "amount": 2500,
+      "method": "UPI",
+      "upiId": "aarav.singhania@okicici",
+      "status": "Pending",
+      "createdAt": "2026-11-03T08:55:00.000Z"
+    },
+    "wdr_demo_202": {
+      "id": "wdr_demo_202",
+      "uid": "usr_demo_kabir",
+      "userName": "Kabir Malhotra",
+      "userEmail": "kabir.m@gmail.com",
+      "userPhone": "+91 97112 88390",
+      "amount": 1800,
+      "method": "BANK",
+      "bankName": "ICICI Bank",
+      "accountHolder": "Kabir Malhotra",
+      "accountNumber": "004101552981",
+      "ifsc": "ICIC0000041",
+      "status": "Approved",
+      "createdAt": "2026-11-02T21:30:00.000Z"
+    }
+  },
+  "idRequests": {
+    "idreq_demo_301": {
+      "id": "idreq_demo_301",
+      "uid": "usr_demo_aarav",
+      "userName": "Aarav Singhania",
+      "userEmail": "aarav.vip@sharkexch.in",
+      "userPhone": "+91 98201 44510",
+      "platform": "Dexch99.now",
+      "preferredUsername": "aarav_shark99",
+      "depositAmount": 2000,
+      "utr": "430799881122",
+      "screenshotUrl": "data:image/svg+xml;utf8,%0A%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20260%20260%22%20width%3D%22260%22%20height%3D%22260%22%3E%0A%20%20%3Crect%20width%3D%22260%22%20height%3D%22260%22%20rx%3D%2216%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%3Crect%20x%3D%2216%22%20y%3D%2216%22%20width%3D%22228%22%20height%3D%22228%22%20rx%3D%228%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23090d16%22%20stroke-width%3D%224%22%2F%3E%0A%20%20%3C!--%20Top-Left%20Finder%20Pattern%20--%3E%0A%20%20%3Crect%20x%3D%2228%22%20y%3D%2228%22%20width%3D%2256%22%20height%3D%2256%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3Crect%20x%3D%2236%22%20y%3D%2236%22%20width%3D%2240%22%20height%3D%2240%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%3Crect%20x%3D%2244%22%20y%3D%2244%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3C!--%20Top-Right%20Finder%20Pattern%20--%3E%0A%20%20%3Crect%20x%3D%22176%22%20y%3D%2228%22%20width%3D%2256%22%20height%3D%2256%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3Crect%20x%3D%22184%22%20y%3D%2236%22%20width%3D%2240%22%20height%3D%2240%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%3Crect%20x%3D%22192%22%20y%3D%2244%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3C!--%20Bottom-Left%20Finder%20Pattern%20--%3E%0A%20%20%3Crect%20x%3D%2228%22%20y%3D%22176%22%20width%3D%2256%22%20height%3D%2256%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3Crect%20x%3D%2236%22%20y%3D%22184%22%20width%3D%2240%22%20height%3D%2240%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%3Crect%20x%3D%2244%22%20y%3D%22192%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3C!--%20Data%20Matrix%20Blocks%20--%3E%0A%20%20%3Cg%20fill%3D%22%23090d16%22%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%2228%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22120%22%20y%3D%2228%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22156%22%20y%3D%2228%22%20width%3D%228%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%2252%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22132%22%20y%3D%2248%22%20width%3D%2212%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%2272%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22116%22%20y%3D%2272%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22148%22%20y%3D%2272%22%20width%3D%2216%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2228%22%20y%3D%2296%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2264%22%20y%3D%2296%22%20width%3D%2220%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2228%22%20y%3D%22120%22%20width%3D%2212%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2252%22%20y%3D%22116%22%20width%3D%2216%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2276%22%20y%3D%22128%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2228%22%20y%3D%22152%22%20width%3D%2236%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22168%22%20y%3D%2296%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22204%22%20y%3D%2296%22%20width%3D%2228%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22176%22%20y%3D%22120%22%20width%3D%2216%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22204%22%20y%3D%22116%22%20width%3D%2212%22%20height%3D%2228%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22220%22%20y%3D%22132%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22168%22%20y%3D%22152%22%20width%3D%2228%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22208%22%20y%3D%22152%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%22168%22%20width%3D%2216%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22124%22%20y%3D%22168%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%22196%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22132%22%20y%3D%22192%22%20width%3D%2216%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%22216%22%20width%3D%2236%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22156%22%20y%3D%22180%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22192%22%20y%3D%22176%22%20width%3D%2216%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22216%22%20y%3D%22180%22%20width%3D%2216%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22164%22%20y%3D%22208%22%20width%3D%2224%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22200%22%20y%3D%22212%22%20width%3D%2232%22%20height%3D%2220%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3C!--%20Center%20Brand%20Badge%20--%3E%0A%20%20%3Crect%20x%3D%2292%22%20y%3D%2292%22%20width%3D%2276%22%20height%3D%2276%22%20rx%3D%2214%22%20fill%3D%22%23090d16%22%20stroke%3D%22%23facc15%22%20stroke-width%3D%224%22%2F%3E%0A%20%20%3Ctext%20x%3D%22130%22%20y%3D%22125%22%20text-anchor%3D%22middle%22%20fill%3D%22%23ffffff%22%20font-family%3D%22Arial%20Black%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-style%3D%22italic%22%20font-size%3D%2214%22%3ESHARK%3C%2Ftext%3E%0A%20%20%3Ctext%20x%3D%22130%22%20y%3D%22145%22%20text-anchor%3D%22middle%22%20fill%3D%22%23facc15%22%20font-family%3D%22Arial%20Black%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-style%3D%22italic%22%20font-size%3D%2214%22%3EEXCH%3C%2Ftext%3E%0A%3C%2Fsvg%3E%0A",
+      "status": "Created",
+      "assignedId": "DEX99_AARAV",
+      "assignedPassword": "Vip#8821",
+      "createdAt": "2026-11-02T16:00:00.000Z"
+    }
+  },
+  "paymentSettings": {
+    "upiId": "sharkexch.official@okaxis",
+    "merchantName": "SHARK EXCH GAMING PVT LTD",
+    "qrCodeUrl": "data:image/svg+xml;utf8,%0A%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20260%20260%22%20width%3D%22260%22%20height%3D%22260%22%3E%0A%20%20%3Crect%20width%3D%22260%22%20height%3D%22260%22%20rx%3D%2216%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%3Crect%20x%3D%2216%22%20y%3D%2216%22%20width%3D%22228%22%20height%3D%22228%22%20rx%3D%228%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23090d16%22%20stroke-width%3D%224%22%2F%3E%0A%20%20%3C!--%20Top-Left%20Finder%20Pattern%20--%3E%0A%20%20%3Crect%20x%3D%2228%22%20y%3D%2228%22%20width%3D%2256%22%20height%3D%2256%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3Crect%20x%3D%2236%22%20y%3D%2236%22%20width%3D%2240%22%20height%3D%2240%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%3Crect%20x%3D%2244%22%20y%3D%2244%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3C!--%20Top-Right%20Finder%20Pattern%20--%3E%0A%20%20%3Crect%20x%3D%22176%22%20y%3D%2228%22%20width%3D%2256%22%20height%3D%2256%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3Crect%20x%3D%22184%22%20y%3D%2236%22%20width%3D%2240%22%20height%3D%2240%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%3Crect%20x%3D%22192%22%20y%3D%2244%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3C!--%20Bottom-Left%20Finder%20Pattern%20--%3E%0A%20%20%3Crect%20x%3D%2228%22%20y%3D%22176%22%20width%3D%2256%22%20height%3D%2256%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3Crect%20x%3D%2236%22%20y%3D%22184%22%20width%3D%2240%22%20height%3D%2240%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%3Crect%20x%3D%2244%22%20y%3D%22192%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23090d16%22%2F%3E%0A%20%20%3C!--%20Data%20Matrix%20Blocks%20--%3E%0A%20%20%3Cg%20fill%3D%22%23090d16%22%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%2228%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22120%22%20y%3D%2228%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22156%22%20y%3D%2228%22%20width%3D%228%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%2252%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22132%22%20y%3D%2248%22%20width%3D%2212%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%2272%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22116%22%20y%3D%2272%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22148%22%20y%3D%2272%22%20width%3D%2216%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2228%22%20y%3D%2296%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2264%22%20y%3D%2296%22%20width%3D%2220%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2228%22%20y%3D%22120%22%20width%3D%2212%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2252%22%20y%3D%22116%22%20width%3D%2216%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2276%22%20y%3D%22128%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2228%22%20y%3D%22152%22%20width%3D%2236%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22168%22%20y%3D%2296%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22204%22%20y%3D%2296%22%20width%3D%2228%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22176%22%20y%3D%22120%22%20width%3D%2216%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22204%22%20y%3D%22116%22%20width%3D%2212%22%20height%3D%2228%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22220%22%20y%3D%22132%22%20width%3D%2212%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22168%22%20y%3D%22152%22%20width%3D%2228%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22208%22%20y%3D%22152%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%22168%22%20width%3D%2216%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22124%22%20y%3D%22168%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%22196%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22132%22%20y%3D%22192%22%20width%3D%2216%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%22216%22%20width%3D%2236%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22156%22%20y%3D%22180%22%20width%3D%2224%22%20height%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22192%22%20y%3D%22176%22%20width%3D%2216%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22216%22%20y%3D%22180%22%20width%3D%2216%22%20height%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22164%22%20y%3D%22208%22%20width%3D%2224%22%20height%3D%2224%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22200%22%20y%3D%22212%22%20width%3D%2232%22%20height%3D%2220%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3C!--%20Center%20Brand%20Badge%20--%3E%0A%20%20%3Crect%20x%3D%2292%22%20y%3D%2292%22%20width%3D%2276%22%20height%3D%2276%22%20rx%3D%2214%22%20fill%3D%22%23090d16%22%20stroke%3D%22%23facc15%22%20stroke-width%3D%224%22%2F%3E%0A%20%20%3Ctext%20x%3D%22130%22%20y%3D%22125%22%20text-anchor%3D%22middle%22%20fill%3D%22%23ffffff%22%20font-family%3D%22Arial%20Black%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-style%3D%22italic%22%20font-size%3D%2214%22%3ESHARK%3C%2Ftext%3E%0A%20%20%3Ctext%20x%3D%22130%22%20y%3D%22145%22%20text-anchor%3D%22middle%22%20fill%3D%22%23facc15%22%20font-family%3D%22Arial%20Black%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-style%3D%22italic%22%20font-size%3D%2214%22%3EEXCH%3C%2Ftext%3E%0A%3C%2Fsvg%3E%0A",
+    "bankName": "HDFC Bank Ltd",
+    "accountHolder": "SHARK EXCH SETTLEMENT A/C",
+    "accountNumber": "50200089412763",
+    "ifsc": "HDFC0001482",
+    "minDeposit": 500,
+    "minWithdrawal": 500,
+    "promoVideoUrl": "https://res.cloudinary.com/dxeuzdwkz/video/upload/v1794419293/lvhgrawz00aem6fvayez.mp4",
+    "authPosterUrl": "",
+    "homePosterUrl": "/assets/aistudio/file_00000000efc4821190c85e045f25eb1f_3e6a5a0f.png",
+    "updatedAt": "2026-11-11T17:53:54.546Z"
+  },
+  "banners": [
+    {
+      "id": "banner-prelogin-mega-offer",
+      "tag": "MEGA OFFER · ₹500 पर ₹500 FREE",
+      "title": "🔥 SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥",
+      "subtitle": "Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal",
+      "ctaText": "Sign Up & Claim ₹500 Free",
+      "accentColor": "#facc15",
+      "imageUrl": "/assets/aistudio/file_00000000032c821198d87fd2de4ca7de_303c7645.png",
+      "secondaryImageUrl": "/assets/aistudio/file_00000000efc4821190c85e045f25eb1f_3e6a5a0f.png"
+    },
+    {
+      "id": "banner-postlogin-1",
+      "tag": "SHARKVIP #PLAYSAFE",
+      "title": "Sexy VIP LIVE LOUNGE — SHARKVIP #PLAYSAFE",
+      "subtitle": "Exclusive VIP Live Lounge · Instant Exchange IDs & 24/7 Direct Withdrawal",
+      "ctaText": "Create ID",
+      "accentColor": "#ec4899",
+      "imageUrl": "/assets/aistudio/file_00000000efc4821190c85e045f25eb1f_3e6a5a0f.png"
+    },
+    {
+      "id": "banner-postlogin-2",
+      "tag": "PLAY • BET • WIN",
+      "title": "SHARK EXCHANGE — Ultimate Gaming Destination: PLAY • BET • WIN",
+      "subtitle": "Sports Betting · Live Casino · Casino Games · Virtual Games",
+      "ctaText": "Play Now",
+      "accentColor": "#facc15",
+      "imageUrl": "/assets/aistudio/file_00000000c7fc8211822ea0f4978f40de_8e80d27b.png"
+    },
+    {
+      "id": "banner-postlogin-3",
+      "tag": "NEXT-LEVEL GAMING",
+      "title": "SHARK EXCHANGE — Game. Win. Repeat. Experience Next-Level Online Gaming",
+      "subtitle": "Fast Play · Safe & Secure · 24/7 Support",
+      "ctaText": "Start Playing Now",
+      "accentColor": "#f43f5e",
+      "imageUrl": "/assets/aistudio/file_00000000bb848211b28da570b7cdeaa6_ad9b8667.png"
+    },
+    {
+      "id": "banner-postlogin-4",
+      "tag": "PREMIUM GAMING PLATFORM",
+      "title": "SHARK EXCHANGE — DIVE INTO REAL GAMING ACTION",
+      "subtitle": "Casino Games · Live Casino · Sports Betting · Virtual Games",
+      "ctaText": "Play Now",
+      "accentColor": "#38bdf8",
+      "imageUrl": "/assets/aistudio/file_00000000ab348211b4927714b776e20e_d079797d.png"
+    }
+  ],
+  "staff": {
+    "mohita1": {
+      "staffId": "Mohit A1",
+      "name": "Mohit A1",
+      "password": "1122",
+      "status": "Active",
+      "createdAt": "2026-11-01T10:00:00.000Z"
+    },
+    "staff2": {
+      "staffId": "staff2",
+      "name": "Staff 2",
+      "password": "2233",
+      "status": "Active",
+      "createdAt": "2026-11-01T10:05:00.000Z"
+    }
+  },
+  "chats": {
+    "usr_demo_aarav": {
+      "userId": "usr_demo_aarav",
+      "userName": "Aarav Singhania",
+      "userEmail": "aarav.vip@sharkexch.in",
+      "lastMessage": "Hello Support, please check my VIP bonus status.",
+      "lastTimestamp": "2026-11-03T09:10:00.000Z",
+      "unreadForAdmin": 1,
+      "unreadForCustomer": 0,
+      "messages": {
+        "msg_demo_1": {
+          "id": "msg_demo_1",
+          "sender": "admin",
+          "senderName": "SHARK EXCH Support",
+          "text": "Welcome to SHARK EXCH 24/7 In-App Live Support! How can we help you today?",
+          "timestamp": "2026-11-03T09:05:00.000Z"
+        },
+        "msg_demo_2": {
+          "id": "msg_demo_2",
+          "sender": "customer",
+          "senderName": "Aarav Singhania",
+          "text": "Hello Support, please check my VIP bonus status.",
+          "timestamp": "2026-11-03T09:10:00.000Z"
+        }
+      }
+    }
+  },
+  "updatedAt": "2026-11-11T17:53:54.549Z"
+}

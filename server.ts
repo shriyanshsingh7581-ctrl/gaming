@@ -30,6 +30,58 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const SERVER_SPIN_STORE_PATH = path.join(__dirname, '.spin-server-store.json');
 const SERVER_EXCHANGE_STORE_PATH = path.join(__dirname, '.exchange-realtime-store.json');
+const SERVER_LIVE_HYBRID_STORE_PATH = path.join(__dirname, '.exchange-live-store.json');
+const PUBLIC_UPLOADS_DIR = path.join(__dirname, 'public', 'uploads');
+
+try {
+  if (!fs.existsSync(PUBLIC_UPLOADS_DIR)) {
+    fs.mkdirSync(PUBLIC_UPLOADS_DIR, { recursive: true });
+  }
+} catch {
+  // ignore in read-only environments
+}
+
+interface ServerLiveHybridStore {
+  users?: Record<string, unknown>;
+  deposits?: Record<string, unknown>;
+  withdrawals?: Record<string, unknown>;
+  idRequests?: Record<string, unknown>;
+  paymentSettings?: Record<string, unknown>;
+  banners?: unknown[];
+  staff?: Record<string, unknown>;
+  chats?: Record<string, unknown>;
+  updatedAt: string;
+}
+
+function loadServerLiveHybridStore(): ServerLiveHybridStore | null {
+  try {
+    if (fs.existsSync(SERVER_LIVE_HYBRID_STORE_PATH)) {
+      const raw = fs.readFileSync(SERVER_LIVE_HYBRID_STORE_PATH, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return parsed as ServerLiveHybridStore;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function saveServerLiveHybridStore(store: ServerLiveHybridStore): void {
+  try {
+    fs.writeFileSync(
+      SERVER_LIVE_HYBRID_STORE_PATH,
+      JSON.stringify(store, null, 2),
+      'utf-8'
+    );
+  } catch {
+    // ignore
+  }
+}
+
+let serverLiveHybridStore: ServerLiveHybridStore | null =
+  loadServerLiveHybridStore();
 
 interface ServerSpinDatabase {
   spinsByUser: Record<string, Record<string, SpinRecord>>;
@@ -142,7 +194,130 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: '100mb' }));
+  app.use('/uploads', express.static(PUBLIC_UPLOADS_DIR));
+
+  /**
+   * GET /api/exchange/live-store
+   * Returns the cross-tab / cross-device authoritative store (paymentSettings, promoVideoUrl, homePosterUrl, users, etc.)
+   */
+  app.get('/api/exchange/live-store', (_req, res) => {
+    res.json({
+      hasStore: Boolean(serverLiveHybridStore),
+      store: serverLiveHybridStore,
+    });
+  });
+
+  /**
+   * POST /api/exchange/live-store
+   * Syncs full or partial store from Admin Panel / Customer actions to the server so all tabs, iframes, and devices stay in sync.
+   */
+  app.post('/api/exchange/live-store', (req, res) => {
+    const incoming = req.body || {};
+    const existing = serverLiveHybridStore || { updatedAt: new Date(0).toISOString() };
+    const nextStore: ServerLiveHybridStore = {
+      users: { ...(existing.users || {}), ...(incoming.users || {}) },
+      deposits: { ...(existing.deposits || {}), ...(incoming.deposits || {}) },
+      withdrawals: { ...(existing.withdrawals || {}), ...(incoming.withdrawals || {}) },
+      idRequests: { ...(existing.idRequests || {}), ...(incoming.idRequests || {}) },
+      paymentSettings: (() => {
+        const exPs = (existing.paymentSettings || {}) as Record<string, unknown>;
+        const inPs = (incoming.paymentSettings || {}) as Record<string, unknown>;
+        const exTime = exPs.updatedAt ? String(exPs.updatedAt) : '';
+        const inTime = inPs.updatedAt ? String(inPs.updatedAt) : '';
+        if (exTime && inTime && exTime > inTime) {
+          return exPs;
+        }
+        return { ...exPs, ...inPs };
+      })(),
+      banners: Array.isArray(incoming.banners)
+        ? incoming.banners
+        : existing.banners,
+      staff: { ...(existing.staff || {}), ...(incoming.staff || {}) },
+      chats: { ...(existing.chats || {}), ...(incoming.chats || {}) },
+      updatedAt: new Date().toISOString(),
+    };
+    serverLiveHybridStore = nextStore;
+    saveServerLiveHybridStore(nextStore);
+    res.json({ success: true, store: nextStore });
+  });
+
+  /**
+   * POST /api/exchange/media-settings
+   * Dedicated fast endpoint for saving Admin Panel promoVideoUrl and homePosterUrl.
+   */
+  app.post('/api/exchange/media-settings', (req, res) => {
+    const { promoVideoUrl, homePosterUrl, authPosterUrl } = req.body || {};
+    const existing = serverLiveHybridStore || { updatedAt: new Date().toISOString() };
+    const currentPs = (existing.paymentSettings || {}) as Record<string, unknown>;
+    const updatedPs: Record<string, unknown> = {
+      ...currentPs,
+      ...(promoVideoUrl !== undefined ? { promoVideoUrl } : {}),
+      ...(homePosterUrl !== undefined ? { homePosterUrl } : {}),
+      ...(authPosterUrl !== undefined ? { authPosterUrl } : {}),
+      updatedAt: new Date().toISOString(),
+    };
+    const nextStore: ServerLiveHybridStore = {
+      ...existing,
+      paymentSettings: updatedPs,
+      updatedAt: new Date().toISOString(),
+    };
+    serverLiveHybridStore = nextStore;
+    saveServerLiveHybridStore(nextStore);
+    res.json({ success: true, paymentSettings: updatedPs });
+  });
+
+  /**
+   * POST /api/exchange/upload-media
+   * Fallback/Direct server file upload for video or poster files so uploads never fail even if external network blocks.
+   */
+  app.post('/api/exchange/upload-media', (req, res) => {
+    try {
+      const { fileName, base64Data, targetField } = req.body || {};
+      if (!base64Data || typeof base64Data !== 'string') {
+        res.status(400).json({ error: 'Missing base64Data.' });
+        return;
+      }
+      const rawBase64 = base64Data.includes(',')
+        ? base64Data.split(',')[1]
+        : base64Data;
+      const extMatch = String(fileName || 'media.mp4').match(/\.[a-zA-Z0-9]+$/);
+      const ext = extMatch ? extMatch[0].toLowerCase() : '.mp4';
+      const safeFileName = `media_${Date.now()}_${crypto
+        .randomBytes(3)
+        .toString('hex')}${ext}`;
+      const filePath = path.join(PUBLIC_UPLOADS_DIR, safeFileName);
+      fs.writeFileSync(filePath, Buffer.from(rawBase64, 'base64'));
+      const publicUrl = `/uploads/${safeFileName}`;
+
+      if (targetField) {
+        const existing = serverLiveHybridStore || {
+          updatedAt: new Date().toISOString(),
+        };
+        const currentPs = (existing.paymentSettings || {}) as Record<
+          string,
+          unknown
+        >;
+        const updatedPs: Record<string, unknown> = {
+          ...currentPs,
+          [targetField]: publicUrl,
+          updatedAt: new Date().toISOString(),
+        };
+        serverLiveHybridStore = {
+          ...existing,
+          paymentSettings: updatedPs,
+          updatedAt: new Date().toISOString(),
+        };
+        saveServerLiveHybridStore(serverLiveHybridStore);
+      }
+
+      res.json({ success: true, url: publicUrl });
+    } catch (err: unknown) {
+      res.status(500).json({
+        error: err instanceof Error ? err.message : 'Server upload failed.',
+      });
+    }
+  });
 
   /**
    * GET /api/exchange/realtime-feed

@@ -113,10 +113,28 @@ export const CLOUDINARY_UPLOAD_PRESET = 'Sharkexchange';
 export const CLOUDINARY_VIDEO_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`;
 export const CLOUDINARY_IMAGE_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 export const DEFAULT_CLOUDINARY_PROMO_VIDEO_URL =
-  'https://res.cloudinary.com/dxeuzdwkz/video/upload/v1794402121/ihegf7oimbdgdq9zmlsb.mp4';
+  'https://res.cloudinary.com/dxeuzdwkz/video/upload/v1794419293/lvhgrawz00aem6fvayez.mp4';
 export const PROMO_GREEN_STRIP_TEXT = 'Pay 500 and get 1000 instant bonus';
 export const INSUFFICIENT_BALANCE_CREATE_ID_ERROR =
   'Insufficient wallet balance to create ID';
+
+/**
+ * Ensures any Cloudinary video URL (including .mov, .mkv, .3gp, .webm, or HEVC mobile uploads)
+ * is converted into a standard browser-playable MP4 stream URL.
+ */
+export function toPlayableCloudinaryVideoUrl(rawUrl?: string): string {
+  const trimmed = (rawUrl || '').trim();
+  if (!trimmed) return DEFAULT_CLOUDINARY_PROMO_VIDEO_URL;
+  if (
+    trimmed.includes('res.cloudinary.com') &&
+    trimmed.includes('/video/upload/')
+  ) {
+    // Convert non-mp4 extensions (.mov, .mkv, .3gp, .avi, .webm) to .mp4
+    return trimmed.replace(/\.(mov|mkv|3gp|avi|webm|flv|wmv)(\?.*)?$/i, '.mp4$2');
+  }
+  return trimmed;
+}
+
 
 export function validateCreateIdInput(params: {
   username: string;

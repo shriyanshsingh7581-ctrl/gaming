@@ -7,6 +7,7 @@ import {
   CLOUDINARY_CLOUD_NAME,
   CLOUDINARY_UPLOAD_PRESET,
   PROMO_GREEN_STRIP_TEXT,
+  toPlayableCloudinaryVideoUrl,
 } from '../utils/exchangeLogic';
 import {
   registerCustomerWithEmail,
@@ -32,47 +33,52 @@ export type GameCategoryType =
  * Reusable Cloudinary Single Video Player + Bold Green Strip Component (Used on Login & Signup Screen):
  * - Streams video via Cloudinary (Cloud Name: `dxeuzdwkz`, Upload Preset: `Sharkexchange`).
  * - NO poster attribute (`poster` is permanently removed so no poster flashes before or during video playback).
+ * - Automatically normalizes any uploaded video URL (`.mov`, `.mkv`, HEVC, etc.) to playable H.264/AAC MP4.
  * - Plays continuously in a loop (`loop`) with Audio Automatically ON (`muted = false`, `volume = 1.0`).
- * - Never pauses when tapped; if cold-start browser policy requires a user activation gesture,
- *   unmutes seamlessly on the very first `click` / `touchend` / `pointerup` / `keydown` (capture phase)
- *   without ever pausing the video.
  * - Under the video, displays a single-line, bold green strip (zoomed/prominent, no line-break)
  *   with the exact text: "Pay 500 and get 1000 instant bonus"
  */
 export const CloudinaryPromoVideoSection: React.FC<{
   videoUrl?: string;
 }> = ({ videoUrl }) => {
-  const activeVideoUrl = videoUrl || DEFAULT_CLOUDINARY_PROMO_VIDEO_URL;
+  const normalizedUrl = toPlayableCloudinaryVideoUrl(
+    videoUrl || DEFAULT_CLOUDINARY_PROMO_VIDEO_URL
+  );
+  const [resolvedSrc, setResolvedSrc] = useState<string>(normalizedUrl);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    setResolvedSrc(
+      toPlayableCloudinaryVideoUrl(videoUrl || DEFAULT_CLOUDINARY_PROMO_VIDEO_URL)
+    );
+  }, [videoUrl]);
+
+  const startPlaybackWithAudio = async (v: HTMLVideoElement | null) => {
+    if (!v) return;
+    v.loop = true;
+    v.defaultMuted = false;
+    v.volume = 1.0;
+
+    try {
+      v.muted = false;
+      await v.play();
+    } catch {
+      // Cold-start browser policy blocked unmuted autoplay before first gesture:
+      // start video immediately and unmute on the very first click/tap/key anywhere.
+      try {
+        v.muted = true;
+        await v.play();
+      } catch {
+        // ignore until loadeddata/canplay
+      }
+    }
+  };
 
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
 
-    const tryPlayWithSound = async () => {
-      if (!videoRef.current) return;
-      const v = videoRef.current;
-      v.loop = true;
-      v.defaultMuted = false;
-      v.volume = 1.0;
-
-      try {
-        v.muted = false;
-        await v.play();
-      } catch {
-        // Browser cold-start policy blocked unmuted autoplay before first gesture:
-        // start video playback immediately and unmute on the first valid user activation event
-        // (click / touchend / pointerup / keydown — never touchstart/pointerdown which causes Chromium to pause).
-        try {
-          v.muted = true;
-          await v.play();
-        } catch {
-          // ignore
-        }
-      }
-    };
-
-    void tryPlayWithSound();
+    void startPlaybackWithAudio(vid);
 
     // Unlock audio on valid Chromium User Activation events in capture phase
     const unlockAudioOnActivation = () => {
@@ -135,7 +141,7 @@ export const CloudinaryPromoVideoSection: React.FC<{
       });
       vid.removeEventListener('volumechange', handleVolumeChange);
     };
-  }, [activeVideoUrl]);
+  }, [resolvedSrc]);
 
   return (
     <section
@@ -146,7 +152,7 @@ export const CloudinaryPromoVideoSection: React.FC<{
       className="rounded-2xl overflow-hidden border-2 border-[#facc15]/70 bg-[#050811] shadow-[0_10px_30px_rgba(0,0,0,0.65)]"
     >
       <div
-        className="relative w-full bg-black cursor-pointer"
+        className="relative w-full min-h-[210px] sm:min-h-[280px] bg-black flex items-center justify-center cursor-pointer"
         onClick={() => {
           const v = videoRef.current;
           if (!v) return;
@@ -159,11 +165,11 @@ export const CloudinaryPromoVideoSection: React.FC<{
       >
         <video
           ref={videoRef}
-          key={activeVideoUrl}
+          key={resolvedSrc}
           data-testid="cloudinary-promo-video"
-          src={activeVideoUrl}
+          src={resolvedSrc}
           preload="auto"
-          className="w-full max-h-[260px] sm:max-h-[340px] object-contain bg-black block"
+          className="w-full min-h-[210px] sm:min-h-[280px] max-h-[280px] sm:max-h-[360px] object-contain bg-black block"
           autoPlay
           loop
           playsInline
@@ -173,10 +179,39 @@ export const CloudinaryPromoVideoSection: React.FC<{
             v.volume = 1.0;
             v.loop = true;
           }}
-          onPause={(e) => {
+          onCanPlay={(e) => {
             const v = e.currentTarget;
-            if (!v.ended) {
-              void v.play().catch(() => {});
+            if (v.paused) {
+              void startPlaybackWithAudio(v);
+            }
+          }}
+          onError={() => {
+            // 1. If an uploaded mobile video (e.g. HEVC/H.265) needs transcoding on Cloudinary,
+            // automatically apply Cloudinary's H.264 + AAC MP4 transformation.
+            if (
+              resolvedSrc.includes('res.cloudinary.com') &&
+              resolvedSrc.includes('/video/upload/') &&
+              !resolvedSrc.includes('vc_h264')
+            ) {
+              setResolvedSrc(
+                resolvedSrc.replace(
+                  '/video/upload/',
+                  '/video/upload/f_mp4,vc_h264,ac_aac/'
+                )
+              );
+              return;
+            }
+            // 2. If a stale or broken URL was cached, fall back to the verified Cloudinary loop video
+            if (
+              resolvedSrc !== DEFAULT_CLOUDINARY_PROMO_VIDEO_URL &&
+              resolvedSrc !== '/uploads/shark-promo-loop.mp4'
+            ) {
+              setResolvedSrc(DEFAULT_CLOUDINARY_PROMO_VIDEO_URL);
+              return;
+            }
+            // 3. Final local fallback
+            if (resolvedSrc !== '/uploads/shark-promo-loop.mp4') {
+              setResolvedSrc('/uploads/shark-promo-loop.mp4');
             }
           }}
         />
