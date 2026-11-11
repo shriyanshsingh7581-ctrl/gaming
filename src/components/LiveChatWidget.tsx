@@ -156,7 +156,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
                   <h3 className="font-shark italic font-black text-base tracking-wide truncate">
-                    SHARK EXCH SUPPORT
+                    SHARK EXCHANGE SUPPORT
                   </h3>
                   <ShieldCheck className="w-4 h-4 text-[#facc15] shrink-0" />
                 </div>

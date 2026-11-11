@@ -1231,7 +1231,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 ACCOUNT STATEMENT
               </h2>
               <p className="text-[11px] font-bold opacity-85 mt-0.5">
-                SharkX · Transactions, Exchange IDs &amp; Profile
+                Shark Exchange · Transactions, Exchange IDs &amp; Profile
               </p>
             </div>
           </div>
