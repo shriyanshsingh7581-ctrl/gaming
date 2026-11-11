@@ -453,8 +453,8 @@ test('SIGNUP_WELCOME_BONUS_AMOUNT is ₹500 and applySignupWelcomeBonus credits 
   );
   assert.equal(SIGNUP_WELCOME_BONUS_AMOUNT, 500);
   assert.equal(
-    OFFICIAL_POSTER_ASSETS.hindiWelcome500AdPoster,
-    '/assets/aistudio/file_000000003db482119b271b657ffd77dc_c3b494c1.png'
+    OFFICIAL_POSTER_ASSETS.megaOffer500Poster,
+    '/assets/aistudio/file_00000000032c821198d87fd2de4ca7de_303c7645.png'
   );
 
   const credited = applySignupWelcomeBonus({

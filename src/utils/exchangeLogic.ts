@@ -117,12 +117,9 @@ export interface BannerSlide {
 }
 
 export const OFFICIAL_POSTER_ASSETS = {
-  /** Official Hindi Advertisement & Banner Poster: "शार्क एक्सचेंज — कौशल का खेल — अभी जुड़ें और पाएं ₹500 स्वागत बोनस" */
-  hindiWelcome500AdPoster:
-    '/assets/aistudio/file_000000003db482119b271b657ffd77dc_c3b494c1.png',
   /** Pre-Login Front Page Poster 1: "SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE!" */
   megaOffer500Poster:
-    '/assets/aistudio/file_000000003db482119b271b657ffd77dc_c3b494c1.png',
+    '/assets/aistudio/file_00000000032c821198d87fd2de4ca7de_303c7645.png',
   /** Pre-Login Front Page Poster 2: "SHARK EXCHANGE — SPIN THE WHEEL: Spin & Win Exciting Rewards Instantly!" */
   spinWheelPoster:
     '/assets/aistudio/file_00000000d1648211a99db1a387660195_c953ab80.png',

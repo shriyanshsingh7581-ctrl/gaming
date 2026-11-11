@@ -30,7 +30,6 @@ import { SharkHeader } from './components/SharkHeader';
 import {
   BannerAndGames,
   PreLoginLandingPage,
-  SharkPromoAdOverlayModal,
   GameCategoryType,
 } from './components/BannerAndGames';
 import {
@@ -44,13 +43,6 @@ import { MiniGameModal } from './components/MiniGameModal';
 import { SpinWheelModal } from './components/SpinWheelModal';
 import { AdminPanel } from './components/AdminPanel';
 import { LiveChatWidget, OfficialWhatsAppLogoSvg } from './components/LiveChatWidget';
-import { TeaExchHomeHub, TeaExchBottomHubTab } from './components/TeaExchHomeHub';
-import { UniversalGameArenaModal } from './components/UniversalGameArenaModal';
-import {
-  ALL_200_EXCHANGE_GAMES,
-  PlayableExchangeGame,
-  ExchangeBetTicket,
-} from './utils/teaExchCatalog';
 import {
   Home,
   KeyRound,
@@ -66,7 +58,6 @@ import {
   Check,
   ExternalLink,
   Sparkles,
-  Menu,
 } from 'lucide-react';
 
 export default function App() {
@@ -152,11 +143,7 @@ export default function App() {
   const [copiedIdKey, setCopiedIdKey] = useState<string | null>(null);
   const [liveChatOpen, setLiveChatOpen] = useState<boolean>(false);
   const [activeGame, setActiveGame] = useState<GameCategoryType | null>(null);
-  const [activePlayableGame, setActivePlayableGame] = useState<PlayableExchangeGame | null>(null);
-  const [latestTicketTrigger, setLatestTicketTrigger] = useState<ExchangeBetTicket | null>(null);
   const [spinWheelModalOpen, setSpinWheelModalOpen] = useState<boolean>(false);
-  const [promoAdOpen, setPromoAdOpen] = useState<boolean>(true);
-  const [activeBottomHubTab, setActiveBottomHubTab] = useState<TeaExchBottomHubTab>('home');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [rightPanelTab, setRightPanelTab] = useState<'my-wallet' | 'live-feed'>('my-wallet');
 
@@ -241,17 +228,6 @@ export default function App() {
     }
   };
 
-  const handleSelectFeaturedGameCategory = (cat: GameCategoryType) => {
-    const gameMap: Record<GameCategoryType, PlayableExchangeGame> = {
-      aviatrix: ALL_200_EXCHANGE_GAMES[1] || ALL_200_EXCHANGE_GAMES[0],
-      mines: ALL_200_EXCHANGE_GAMES[2] || ALL_200_EXCHANGE_GAMES[0],
-      cricket: ALL_200_EXCHANGE_GAMES[28] || ALL_200_EXCHANGE_GAMES[0],
-      color: ALL_200_EXCHANGE_GAMES[10] || ALL_200_EXCHANGE_GAMES[0],
-      casino: ALL_200_EXCHANGE_GAMES[3] || ALL_200_EXCHANGE_GAMES[0],
-    };
-    setActivePlayableGame(gameMap[cat] || ALL_200_EXCHANGE_GAMES[0]);
-  };
-
   // Filter current user's personal history
   const myDeposits = currentUser
     ? deposits.filter((d) => d.uid === currentUser.uid)
@@ -309,22 +285,9 @@ export default function App() {
           banners={banners}
           onOpenSignUpModal={() => handleOpenAuth('signup')}
           onOpenLoginModal={() => handleOpenAuth('login')}
-          onOpenPromoAd={() => setPromoAdOpen(true)}
           onAuthSuccess={(user, msg) => {
             setCurrentUser(user);
-            setPromoAdOpen(true);
             showToast(msg);
-          }}
-        />
-
-        {/* Official Hindi ₹500 Welcome Bonus Advertisement Popup Overlay (`00:18 - 00:19` of video) */}
-        <SharkPromoAdOverlayModal
-          isOpen={promoAdOpen}
-          isLoggedIn={false}
-          onClose={() => setPromoAdOpen(false)}
-          onActionClick={() => {
-            setPromoAdOpen(false);
-            handleOpenAuth('signup');
           }}
         />
 
@@ -336,81 +299,12 @@ export default function App() {
           onOpenChange={setLiveChatOpen}
         />
 
-        {/* Floating Bottom-Left Spinning Casino Chip (`00:00 - 00:07` of video) */}
-        <button
-          type="button"
-          data-testid="prelogin-floating-spin-chip"
-          onClick={() => handleOpenAuth('signup')}
-          aria-label="Sign up to Spin & Win"
-          className="fixed bottom-16 left-3 z-40 w-12 h-12 rounded-full bg-gradient-to-br from-[#ffd739] via-amber-500 to-red-600 p-1 shadow-[0_0_25px_rgba(255,215,57,0.65)] border-2 border-white flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
-        >
-          <div className="w-full h-full rounded-full border-2 border-dashed border-black/80 bg-[#241e06] flex flex-col items-center justify-center animate-spin [animation-duration:9s]">
-            <Sparkles className="w-4 h-4 text-[#ffd739]" />
-          </div>
-          <span className="absolute -bottom-1 px-1.5 py-0.2 rounded bg-[#ffd739] text-black font-black text-[8px] uppercase tracking-tighter shadow">
-            SPIN
-          </span>
-        </button>
-
-        {/* Exact 5-Tab Bottom Navigation Bar on Pre-Login (`Sports` | `In-play` | `Home` | `Casino` | `Menu`) (`00:00 - 00:07` of video) */}
-        <nav
-          aria-label="Pre-Login Bottom Navigation Bar"
-          data-testid="prelogin-bottom-navigation-bar"
-          className="fixed bottom-0 left-0 right-0 z-40 h-14 bg-[#332b09]/98 border-t border-[#ffd739]/40 grid grid-cols-5 items-center px-1 shadow-[0_-8px_25px_rgba(0,0,0,0.65)]"
-        >
-          <button
-            type="button"
-            onClick={() => handleOpenAuth('login')}
-            className="flex flex-col items-center justify-center py-1 text-amber-100/85 hover:text-[#ffd739] cursor-pointer"
-          >
-            <Trophy className="w-4 h-4" />
-            <span className="text-[10px] font-extrabold mt-0.5">Sports</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleOpenAuth('login')}
-            className="flex flex-col items-center justify-center py-1 text-amber-100/85 hover:text-[#ffd739] cursor-pointer"
-          >
-            <Zap className="w-4 h-4" />
-            <span className="text-[10px] font-extrabold mt-0.5">In-play</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="flex flex-col items-center justify-center py-1 cursor-pointer"
-          >
-            <div className="w-8 h-8 -mt-3 rounded-full bg-[#ffd739] text-black border-2 border-white flex items-center justify-center shadow-lg">
-              <Home className="w-4 h-4" />
-            </div>
-            <span className="text-[10px] font-extrabold mt-0.5 text-[#ffd739]">
-              Home
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleOpenAuth('login')}
-            className="flex flex-col items-center justify-center py-1 text-amber-100/85 hover:text-[#ffd739] cursor-pointer"
-          >
-            <Flame className="w-4 h-4" />
-            <span className="text-[10px] font-extrabold mt-0.5">Casino</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleOpenAuth('signup')}
-            className="flex flex-col items-center justify-center py-1 text-amber-100/85 hover:text-[#ffd739] cursor-pointer"
-          >
-            <Menu className="w-4 h-4" />
-            <span className="text-[10px] font-extrabold mt-0.5">Menu</span>
-          </button>
-        </nav>
-
         <AuthModal
           isOpen={authModalOpen}
           initialMode={authInitialMode}
           onClose={() => setAuthModalOpen(false)}
           onSuccess={(user, msg) => {
             setCurrentUser(user);
-            setPromoAdOpen(true);
             showToast(msg);
           }}
         />
@@ -423,28 +317,17 @@ export default function App() {
     <div
       id="top"
       data-testid="page-2-postlogin-dashboard"
-      className="min-h-screen bg-[#241e06] text-white flex flex-col pb-20 md:pb-16"
+      className="min-h-screen bg-[#070a10] text-white flex flex-col pb-20 md:pb-16"
     >
       {/* Toast Notification Banner */}
       {toastMessage && (
         <div
           role="status"
-          className="fixed top-14 right-4 z-[60] max-w-md px-4 py-3 rounded-2xl bg-[#ffd739] text-black font-bold text-xs shadow-2xl border-2 border-black"
+          className="fixed top-14 right-4 z-[60] max-w-md px-4 py-3 rounded-2xl bg-[#facc15] text-black font-bold text-xs shadow-2xl border-2 border-black"
         >
           {toastMessage}
         </div>
       )}
-
-      {/* Official Hindi ₹500 Welcome Bonus Advertisement Popup Overlay (`00:18 - 00:19` of video) */}
-      <SharkPromoAdOverlayModal
-        isOpen={promoAdOpen}
-        isLoggedIn={true}
-        onClose={() => setPromoAdOpen(false)}
-        onActionClick={() => {
-          setPromoAdOpen(false);
-          setActiveBottomHubTab('casino');
-        }}
-      />
 
       {/* 1. EXACT "SHARK EXCH" TOP AUTH BAR & GOLDEN-YELLOW WALLET HEADER (Deposit ⏫ | SHARK EXCH WALLET BALANCE | Withdraw ⏬) */}
       <SharkHeader
@@ -457,7 +340,6 @@ export default function App() {
         }}
         onOpenDeposit={() => setDepositModalOpen(true)}
         onOpenWithdraw={() => setWithdrawModalOpen(true)}
-        onOpenPromoAd={() => setPromoAdOpen(true)}
       />
 
       {/* 2. ADAPTIVE DESKTOP 3-COLUMN / MOBILE FULL-WIDTH EXCHANGE LOBBY */}
@@ -465,7 +347,7 @@ export default function App() {
         {/* LEFT NAVIGATION SIDEBAR (Desktop >= 1024px) */}
         <aside
           aria-label="Exchange Categories Sidebar"
-          className="hidden lg:flex flex-col gap-4 rounded-2xl bg-[#42370b] border border-[#ffd739]/35 p-4 sticky top-4 shadow-xl"
+          className="hidden lg:flex flex-col gap-4 rounded-2xl bg-[#0c111d] border border-white/10 p-4 sticky top-4"
         >
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
@@ -523,7 +405,7 @@ export default function App() {
             <div className="space-y-1 select-none">
               <button
                 type="button"
-                onClick={() => handleSelectFeaturedGameCategory('aviatrix')}
+                onClick={() => setActiveGame('aviatrix')}
                 className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 font-semibold text-xs flex items-center justify-between cursor-pointer"
               >
                 <span className="flex items-center gap-2">
@@ -535,7 +417,7 @@ export default function App() {
 
               <button
                 type="button"
-                onClick={() => handleSelectFeaturedGameCategory('mines')}
+                onClick={() => setActiveGame('mines')}
                 className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 font-semibold text-xs flex items-center justify-between cursor-pointer"
               >
                 <span className="flex items-center gap-2">
@@ -547,7 +429,7 @@ export default function App() {
 
               <button
                 type="button"
-                onClick={() => handleSelectFeaturedGameCategory('cricket')}
+                onClick={() => setActiveGame('cricket')}
                 className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 font-semibold text-xs flex items-center justify-between cursor-pointer"
               >
                 <span className="flex items-center gap-2">
@@ -559,7 +441,7 @@ export default function App() {
 
               <button
                 type="button"
-                onClick={() => handleSelectFeaturedGameCategory('color')}
+                onClick={() => setActiveGame('color')}
                 className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 font-semibold text-xs flex items-center justify-between cursor-pointer"
               >
                 <span className="flex items-center gap-2">
@@ -571,7 +453,7 @@ export default function App() {
 
               <button
                 type="button"
-                onClick={() => handleSelectFeaturedGameCategory('casino')}
+                onClick={() => setActiveGame('casino')}
                 className="w-full py-2 px-3 rounded-xl hover:bg-white/5 text-slate-200 font-semibold text-xs flex items-center justify-between cursor-pointer"
               >
                 <span className="flex items-center gap-2">
@@ -584,7 +466,7 @@ export default function App() {
           </div>
         </aside>
 
-        {/* CENTER COLUMN: PROMOTIONAL BANNER CAROUSEL, CREATE IDs, GAME CARDS, LIVE SPORTS EXCHANGE, 200 GAMES & 6 EXCHANGE PLATFORMS */}
+        {/* CENTER COLUMN: PROMOTIONAL BANNER CAROUSEL, CREATE IDs, GAME CARDS & 6 EXCHANGE PLATFORMS */}
         <div className="space-y-5 min-w-0">
           <BannerAndGames
             banners={banners}
@@ -596,35 +478,23 @@ export default function App() {
             onOpenProfile={() => setProfileModalOpen(true)}
             onOpenDeposit={() => setDepositModalOpen(true)}
             onOpenSpinWheel={() => setSpinWheelModalOpen(true)}
-            onOpenPromoAd={() => setPromoAdOpen(true)}
-            onSelectGame={handleSelectFeaturedGameCategory}
+            onSelectGame={(cat) => setActiveGame(cat)}
           />
 
-          {/* A-to-Z Live Sports Exchange, Recent Big Wins Ticker, Real-Time Bet Tickets & All 200 Playable Games */}
-          <TeaExchHomeHub
-            currentUser={currentUser}
-            onOpenGame={(game) => setActivePlayableGame(game)}
-            onRequireAuth={() => handleOpenAuth('login')}
-            onNotify={showToast}
-            externalTicketTrigger={latestTicketTrigger}
-            activeHubTab={activeBottomHubTab}
-            onHubTabChange={setActiveBottomHubTab}
-          />
-
-          {/* 6 Official Exchange Links Section (Replaced Old Live Exchange Markets) */}
+          {/* 6 Official Exchange Links Section (Directly below Featured Games as in 00:13 - 00:15 of video) */}
           <section
             aria-label="Official Gaming Exchanges"
             data-testid="official-exchanges-section"
-            className="rounded-2xl bg-[#241e06] border border-[#ffd739]/40 overflow-hidden shadow-xl"
+            className="rounded-2xl bg-[#0c111d] border border-white/10 overflow-hidden shadow-xl"
           >
-            <div className="px-4 py-3.5 bg-gradient-to-r from-[#42370b] via-[#5a4a12] to-[#42370b] border-b border-[#ffd739]/35 flex flex-wrap items-center justify-between gap-2">
+            <div className="px-4 py-3.5 bg-gradient-to-r from-[#11192c] to-[#0c111d] border-b border-white/10 flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <KeyRound className="w-4 h-4 text-[#ffd739]" />
-                <h2 className="font-shark italic font-black text-base sm:text-lg text-[#ffd739] tracking-wide uppercase">
+                <KeyRound className="w-4 h-4 text-[#facc15]" />
+                <h2 className="font-shark italic font-black text-base sm:text-lg text-white tracking-wide uppercase">
                   OFFICIAL EXCHANGE IDs &amp; INSTANT WITHDRAW
                 </h2>
               </div>
-              <span className="text-[11px] text-amber-100 font-mono-tabular">
+              <span className="text-[11px] text-slate-400 font-mono-tabular">
                 Instant ID Approval · 24/7 Direct Withdraw
               </span>
             </div>
@@ -786,16 +656,16 @@ export default function App() {
         <aside
           id="wallet-history-section"
           aria-label="Wallet Activity and Live Transactions"
-          className="rounded-2xl bg-[#42370b] border border-[#ffd739]/35 p-4 space-y-4 sticky top-4 shadow-xl"
+          className="rounded-2xl bg-[#0c111d] border border-white/10 p-4 space-y-4 sticky top-4"
         >
-          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-[#241e06] border border-[#ffd739]/25">
+          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-[#090d16] border border-white/10">
             <button
               type="button"
               onClick={() => setRightPanelTab('my-wallet')}
               className={`py-2 rounded-lg font-bold text-xs cursor-pointer transition-colors ${
                 rightPanelTab === 'my-wallet'
-                  ? 'bg-[#ffd739] text-black'
-                  : 'text-amber-100/80 hover:text-white'
+                  ? 'bg-[#facc15] text-black'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               My Wallet History
@@ -805,8 +675,8 @@ export default function App() {
               onClick={() => setRightPanelTab('live-feed')}
               className={`py-2 rounded-lg font-bold text-xs cursor-pointer transition-colors ${
                 rightPanelTab === 'live-feed'
-                  ? 'bg-[#ffd739] text-black'
-                  : 'text-amber-100/80 hover:text-white'
+                  ? 'bg-[#facc15] text-black'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               Platform Feed
@@ -1073,114 +943,59 @@ export default function App() {
         </aside>
       </main>
 
-      {/* 3A. FLOATING BOTTOM-LEFT SPINNING CASINO POKER CHIP (`00:00 - 02:04` of video) */}
-      <button
-        type="button"
-        data-testid="floating-spin-wheel-chip"
-        onClick={() => setSpinWheelModalOpen(true)}
-        aria-label="Open Daily Spin & Win Wheel"
-        className="fixed bottom-16 left-3 z-40 w-12 h-12 rounded-full bg-gradient-to-br from-[#ffd739] via-amber-500 to-red-600 p-1 shadow-[0_0_25px_rgba(255,215,57,0.65)] border-2 border-white flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
-      >
-        <div className="w-full h-full rounded-full border-2 border-dashed border-black/80 bg-[#241e06] flex flex-col items-center justify-center animate-spin [animation-duration:9s]">
-          <Sparkles className="w-4 h-4 text-[#ffd739]" />
-        </div>
-        <span className="absolute -bottom-1 px-1.5 py-0.2 rounded bg-[#ffd739] text-black font-black text-[8px] uppercase tracking-tighter shadow">
-          SPIN
-        </span>
-      </button>
-
-      {/* 3B. EXACT 5-TAB STICKY BOTTOM NAVIGATION BAR (`Sports` | `In-play` | `Home` | `Casino` | `Menu`) (`00:00 - 02:04` of video) */}
+      {/* 3. MOBILE STICKY BOTTOM NAVIGATION BAR (5 Customer Buttons Only) */}
       <nav
-        aria-label="Bottom Navigation Bar"
-        data-testid="video-bottom-navigation-bar"
-        className="fixed bottom-0 left-0 right-0 z-40 h-14 bg-[#332b09]/98 border-t border-[#ffd739]/40 grid grid-cols-5 items-center px-1 shadow-[0_-8px_25px_rgba(0,0,0,0.65)]"
+        aria-label="Mobile Bottom Navigation"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-[#090d16]/95 backdrop-blur-md border-t border-white/10 grid grid-cols-5 items-center px-1"
       >
         <button
           type="button"
-          data-testid="bottom-nav-sports"
-          onClick={() => {
-            setActiveBottomHubTab('sports');
-            window.scrollTo({ top: 280, behavior: 'smooth' });
-          }}
-          className={`flex flex-col items-center justify-center py-1 cursor-pointer transition-colors ${
-            activeBottomHubTab === 'sports'
-              ? 'text-[#ffd739] font-black'
-              : 'text-amber-100/80 hover:text-[#ffd739]'
-          }`}
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="flex flex-col items-center justify-center py-1 text-[#facc15] cursor-pointer"
         >
-          <Trophy className="w-4 h-4" />
-          <span className="text-[10px] font-extrabold mt-0.5">Sports</span>
+          <Home className="w-4 h-4" />
+          <span className="text-[10px] font-bold mt-0.5">Home</span>
         </button>
 
         <button
           type="button"
-          data-testid="bottom-nav-inplay"
-          onClick={() => {
-            setActiveBottomHubTab('inplay');
-            window.scrollTo({ top: 280, behavior: 'smooth' });
-          }}
-          className={`flex flex-col items-center justify-center py-1 cursor-pointer transition-colors ${
-            activeBottomHubTab === 'inplay'
-              ? 'text-[#ffd739] font-black'
-              : 'text-amber-100/80 hover:text-[#ffd739]'
-          }`}
+          onClick={() => handleOpenCreateIdForExchange(OFFICIAL_EXCHANGE_PLATFORMS[0].name)}
+          className="flex flex-col items-center justify-center py-1 text-slate-300 hover:text-[#facc15] cursor-pointer"
         >
-          <Zap className="w-4 h-4" />
-          <span className="text-[10px] font-extrabold mt-0.5">In-play</span>
+          <KeyRound className="w-4 h-4 text-[#facc15]" />
+          <span className="text-[10px] font-bold mt-0.5">Create IDs</span>
         </button>
 
         <button
           type="button"
-          data-testid="bottom-nav-home"
-          onClick={() => {
-            setActiveBottomHubTab('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          className="flex flex-col items-center justify-center py-1 cursor-pointer"
+          onClick={() => setDepositModalOpen(true)}
+          className="flex flex-col items-center justify-center py-1 text-emerald-400 cursor-pointer"
         >
-          <div
-            className={`w-8 h-8 -mt-3 rounded-full flex items-center justify-center border-2 shadow-lg transition-all ${
-              activeBottomHubTab === 'home'
-                ? 'bg-[#ffd739] text-black border-white'
-                : 'bg-[#42370b] text-[#ffd739] border-[#ffd739]/50'
-            }`}
-          >
-            <Home className="w-4 h-4" />
-          </div>
-          <span
-            className={`text-[10px] font-extrabold mt-0.5 ${
-              activeBottomHubTab === 'home' ? 'text-[#ffd739]' : 'text-amber-100/80'
-            }`}
-          >
-            Home
-          </span>
+          <ArrowUpCircle className="w-4 h-4" />
+          <span className="text-[10px] font-bold mt-0.5">Deposit</span>
         </button>
 
         <button
           type="button"
-          data-testid="bottom-nav-casino"
-          onClick={() => {
-            setActiveBottomHubTab('casino');
-            window.scrollTo({ top: 280, behavior: 'smooth' });
-          }}
-          className={`flex flex-col items-center justify-center py-1 cursor-pointer transition-colors ${
-            activeBottomHubTab === 'casino'
-              ? 'text-[#ffd739] font-black'
-              : 'text-amber-100/80 hover:text-[#ffd739]'
-          }`}
+          onClick={() => setWithdrawModalOpen(true)}
+          className="flex flex-col items-center justify-center py-1 text-amber-400 cursor-pointer"
         >
-          <Flame className="w-4 h-4" />
-          <span className="text-[10px] font-extrabold mt-0.5">Casino</span>
+          <ArrowDownCircle className="w-4 h-4" />
+          <span className="text-[10px] font-bold mt-0.5">Withdraw</span>
         </button>
 
         <button
           type="button"
-          data-testid="bottom-nav-menu"
-          onClick={() => window.dispatchEvent(new CustomEvent('shark-open-side-drawer'))}
-          className="flex flex-col items-center justify-center py-1 text-amber-100/80 hover:text-[#ffd739] cursor-pointer"
+          onClick={() => {
+            setRightPanelTab('my-wallet');
+            document
+              .getElementById('wallet-history-section')
+              ?.scrollIntoView({ behavior: 'smooth' });
+          }}
+          className="flex flex-col items-center justify-center py-1 text-slate-300 hover:text-white cursor-pointer"
         >
-          <Menu className="w-4 h-4" />
-          <span className="text-[10px] font-extrabold mt-0.5">Menu</span>
+          <Wallet className="w-4 h-4 text-[#facc15]" />
+          <span className="text-[10px] font-bold mt-0.5">My Wallet</span>
         </button>
       </nav>
 
@@ -1269,19 +1084,6 @@ export default function App() {
         currentUser={currentUser}
         onClose={() => setSpinWheelModalOpen(false)}
         onNotify={(msg) => showToast(msg)}
-      />
-
-      <UniversalGameArenaModal
-        game={activePlayableGame}
-        currentUser={currentUser}
-        onClose={() => setActivePlayableGame(null)}
-        onSelectGame={(game) => setActivePlayableGame(game)}
-        onRequireAuth={() => {
-          setActivePlayableGame(null);
-          handleOpenAuth('login');
-        }}
-        onNotify={(msg) => showToast(msg)}
-        onTicketUpdated={(tkt) => setLatestTicketTrigger(tkt)}
       />
     </div>
   );

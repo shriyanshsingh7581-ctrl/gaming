@@ -172,7 +172,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // 5 Promotional Posters State (Master Admin Editable: 1 Pre-Login/Popup Ad Poster + 4 Post-Login Dashboard Posters)
   const [bannerHeroImageUrl, setBannerHeroImageUrl] = useState<string>(
-    banners[0]?.imageUrl || OFFICIAL_POSTER_ASSETS.hindiWelcome500AdPoster
+    banners[0]?.imageUrl || OFFICIAL_POSTER_ASSETS.megaOffer500Poster
   );
   const [postLoginPoster1Url, setPostLoginPoster1Url] = useState<string>(
     banners[1]?.imageUrl || OFFICIAL_POSTER_ASSETS.sexyVipLoungePoster
@@ -188,17 +188,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   );
   const [bannerHeadline, setBannerHeadline] = useState<string>(
     banners[0]?.title ||
-      '🔥 शार्क एक्सचेंज — अभी जुड़ें और पाएं ₹500 स्वागत बोनस! 🔥'
+      '🔥 SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥'
   );
   const [bannerSubtitle, setBannerSubtitle] = useState<string>(
     banners[0]?.subtitle ||
-      'Sign Up & Get ₹500 Instant Welcome Bonus Free | तुरंत जमा (डिपॉजिट) • तुरंत निकासी (विथड्रॉल) • 24×7 ग्राहक सहायता'
+      'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal'
   );
 
   useEffect(() => {
     if (banners && banners.length > 0) {
       setBannerHeroImageUrl(
-        banners[0]?.imageUrl || OFFICIAL_POSTER_ASSETS.hindiWelcome500AdPoster
+        banners[0]?.imageUrl || OFFICIAL_POSTER_ASSETS.megaOffer500Poster
       );
       setPostLoginPoster1Url(
         banners[1]?.imageUrl || OFFICIAL_POSTER_ASSETS.sexyVipLoungePoster
@@ -214,11 +214,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       );
       setBannerHeadline(
         banners[0]?.title ||
-          '🔥 शार्क एक्सचेंज — अभी जुड़ें और पाएं ₹500 स्वागत बोनस! 🔥'
+          '🔥 SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥'
       );
       setBannerSubtitle(
         banners[0]?.subtitle ||
-          'Sign Up & Get ₹500 Instant Welcome Bonus Free | तुरंत जमा (डिपॉजिट) • तुरंत निकासी (विथड्रॉल) • 24×7 ग्राहक सहायता'
+          'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal'
       );
     }
   }, [banners]);
@@ -1718,12 +1718,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         type="button"
                         onClick={() =>
                           setBannerHeroImageUrl(
-                            OFFICIAL_POSTER_ASSETS.hindiWelcome500AdPoster
+                            OFFICIAL_POSTER_ASSETS.megaOffer500Poster
                           )
                         }
                         className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/15 text-[11px] text-amber-300 cursor-pointer"
                       >
-                        Reset Hindi ₹500 स्वागत बोनस Poster
+                        Reset Default Mega Offer Poster
                       </button>
                     </div>
                   </div>

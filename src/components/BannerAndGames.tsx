@@ -25,8 +25,6 @@ import {
   Lock,
   Phone,
   User as UserIcon,
-  ShieldCheck,
-  X,
 } from 'lucide-react';
 
 export type GameCategoryType =
@@ -35,84 +33,6 @@ export type GameCategoryType =
   | 'cricket'
   | 'color'
   | 'casino';
-
-/**
- * POPUP ADVERTISEMENT OVERLAY MODAL (Exact 00:18 - 00:19 from Screen Recording)
- * Displays the user's attached Hindi Shark Exchange ₹500 Welcome Bonus Poster
- * (`/assets/aistudio/file_000000003db482119b271b657ffd77dc_c3b494c1.png`)
- * with a top-right `[ ✕ ]` close button and clickable "▶ अभी ऑनलाइन खेलें" CTA.
- */
-export const SharkPromoAdOverlayModal: React.FC<{
-  isOpen: boolean;
-  isLoggedIn?: boolean;
-  onClose: () => void;
-  onPrimaryAction?: () => void;
-  onActionClick?: () => void;
-}> = ({ isOpen, onClose, onPrimaryAction, onActionClick }) => {
-  if (!isOpen) return null;
-
-  const handleAction = () => {
-    onClose();
-    if (onActionClick) onActionClick();
-    else if (onPrimaryAction) onPrimaryAction();
-  };
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="SHARK EXCHANGE ₹500 Welcome Bonus Advertisement"
-      data-testid="shark-promo-ad-popup-modal"
-      className="fixed inset-0 z-[55] flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-sm"
-    >
-      <div className="relative w-full max-w-lg rounded-2xl overflow-hidden bg-[#1a1504] border-2 border-[#ffd739] shadow-[0_0_50px_rgba(255,215,57,0.55)]">
-        {/* Top-Right Close Button (Exact 00:18 - 00:19 in Video) */}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close Advertisement Popup"
-          data-testid="close-promo-ad-popup-btn"
-          className="absolute top-2.5 right-2.5 z-20 w-9 h-9 rounded-full bg-black/80 hover:bg-black border-2 border-[#ffd739] text-white flex items-center justify-center shadow-lg cursor-pointer transition-transform active:scale-95"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        {/* Full-HD Hindi Shark Exchange ₹500 Welcome Bonus Poster */}
-        <div
-          onClick={handleAction}
-          className="cursor-pointer group relative"
-        >
-          <img
-            src={OFFICIAL_POSTER_ASSETS.hindiWelcome500AdPoster}
-            alt="शार्क एक्सचेंज — कौशल का खेल — अभी जुड़ें और पाएं ₹500 स्वागत बोनस"
-            data-testid="promo-ad-popup-poster-img"
-            className="w-full h-auto object-contain block"
-          />
-        </div>
-
-        {/* Bottom Action Strip */}
-        <div className="p-3 bg-gradient-to-r from-[#241e06] via-[#42370b] to-[#241e06] border-t border-[#ffd739]/50 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs font-extrabold text-[#ffd739] truncate">
-              🔥 शार्क एक्सचेंज — ₹500 स्वागत बोनस FREE!
-            </p>
-            <p className="text-[10px] text-amber-100/90 truncate">
-              साइन अप करते ही तुरंत पाएं ₹500 बोनस · 24×7 डिपॉज़िट और विथड्रॉल
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleAction}
-            data-testid="promo-ad-play-now-btn"
-            className="px-4 py-2 rounded-xl bg-[#ffd739] hover:bg-yellow-300 text-black font-black text-xs uppercase tracking-wider shrink-0 cursor-pointer shadow-lg"
-          >
-            ▶ अभी ऑनलाइन खेलें
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 interface PreLoginLandingPageProps {
   banners: BannerSlide[];
@@ -123,12 +43,15 @@ interface PreLoginLandingPageProps {
 }
 
 /**
- * PAGE 1: PRE-LOGIN PROMOTIONAL LANDING & AUTH PAGE (WHEN USER IS LOGGED OUT):
- * - Completely removes the old hero/heroine celebrity photos ("GOLDEN CASINO DIVA", "EMPRESS CLUB", etc.).
- * - At the very top of the Pre-Login Front Page, prominently displays and highlights the attached
- *   "SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE! (Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free)"
- *   poster in full HD, mobile-responsive layout.
- * - Directly below this highlighted Mega Offer poster on the front page, shows ONLY the "Sign Up" and "Login" buttons & form.
+ * PAGE 1: PRE-LOGIN PROMOTIONAL LANDING & AUTH PAGE (00:00 - 00:06 of video):
+ * - Top slim bar: SHARK EXCH on left; green `Sign Up`, yellow `Login`, and dark `EN` button on right.
+ * - Highlighted promotional banner card (`front-hero-promo-banner`):
+ *   - Top row: `[👑 SHARK EXCHANGE]` on left and `[✨ MEGA OFFER · ₹500 की ID पर ₹500 FREE!]` on right.
+ *   - 2-slide auto-sliding carousel (`megaOffer500Poster` & `spinWheelPoster`) with 2 indicator dots.
+ *   - Highlighted Offer Callout Box directly under the slider (`🔥 SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥`, `[💸 ₹500 की ID पर | ₹500 FREE!]`, `[Pay ₹500 ➔ Get ₹1,000 Instant ID]`).
+ * - Directly below the promo card:
+ *   - 2 Hero Action Buttons: Left green `[👤+ SIGN UP]` and right dark-bordered `[➔] LOGIN]`.
+ *   - Inline VIP Account Card (`page-1-auth-card`) with yellow top header bar (`CREATE YOUR VIP ACCOUNT (SIGN UP)` | `INSTANT ACCESS`), white `Continue with Google (Instant Login)` button, `OR WITH EMAIL & PASSWORD` divider, Full Name, WhatsApp / Mobile Number, Email ID, Password, yellow `Sign Up & Enter SHARK EXCH Dashboard` button, and 1-Click Demo VIP Login link.
  */
 export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
   banners,
@@ -141,11 +64,6 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [referralCode, setReferralCode] = useState('');
-  const [otpSentVia, setOtpSentVia] = useState<'SMS' | 'WHATSAPP' | null>(null);
-  const [otpCode, setOtpCode] = useState('');
-  const [rulesOpen, setRulesOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -179,7 +97,6 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
 
   const [publicSlideIndex, setPublicSlideIndex] = useState(0);
 
-  // Automatically slide every EXACTLY 10 seconds (10,000 ms) on the public front page
   useEffect(() => {
     const timer = window.setInterval(() => {
       setPublicSlideIndex((prev) => (prev + 1) % publicPromoSlides.length);
@@ -196,12 +113,12 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
     setLoading(true);
     try {
       if (authTab === 'signup') {
-        if (!name.trim()) throw new Error('Please enter your full name / username.');
+        if (!name.trim()) throw new Error('Please enter your full name.');
         if (phone.replace(/\D/g, '').length < 10) {
           throw new Error('Please enter a valid 10-digit WhatsApp/Mobile number.');
         }
-        if (password.length < 4) {
-          throw new Error('Password must be at least 4 characters.');
+        if (password.length < 6) {
+          throw new Error('Password must be at least 6 characters.');
         }
         const profile = await registerCustomerWithEmail({
           name,
@@ -211,10 +128,10 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
         });
         onAuthSuccess(
           profile,
-          `🎉 स्वागत है ${profile.name}! आपके खाते में ₹500 स्वागत बोनस जोड़ दिया गया है!`
+          `🎉 Welcome ${profile.name}! ₹500 Welcome Bonus credited to your wallet!`
         );
       } else {
-        const profile = await loginCustomerWithEmail(email || name, password);
+        const profile = await loginCustomerWithEmail(email, password);
         onAuthSuccess(profile, `Welcome back, ${profile.name}!`);
       }
     } catch (err: unknown) {
@@ -231,7 +148,7 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
       const profile = await loginCustomerWithEmail('aarav.vip@sharkexch.in', 'Shark@2026');
       onAuthSuccess(
         profile,
-        `Logged in with Demo ID (${profile.name} · ₹${profile.walletBalance.toLocaleString('en-IN')} Coins)!`
+        `Logged in as Demo VIP Customer (${profile.name})`
       );
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Demo login failed.');
@@ -253,39 +170,21 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
     }
   };
 
-  const handleSendInstantOtp = (channel: 'SMS' | 'WHATSAPP') => {
-    if (phone.replace(/\D/g, '').length < 10) {
-      setError('Enter your 10-digit mobile number first to receive OTP.');
-      return;
-    }
-    setError(null);
-    setOtpSentVia(channel);
-    setOtpCode('884921');
-  };
-
   return (
     <div
       data-testid="page-1-prelogin-landing"
-      className="min-h-screen bg-[#241e06] text-white flex flex-col pb-12"
+      className="min-h-screen bg-[#070a10] text-white flex flex-col pb-12"
     >
-      {/* Top SubHeader Bar (Exact Video 00:00 - 00:07: SHARK EXCH 999 Crown Logo + Yellow `Login` & Dark Olive `Signup`) */}
-      <header className="bg-[#241e06] border-b border-[#ffd739]/35 px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2">
+      {/* Top Bar (SHARK EXCH Logo + Green Sign Up / Yellow Login / EN) */}
+      <header className="bg-[#070a10] border-b border-white/10 px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
-          <span className="font-shark italic font-black text-lg sm:text-2xl tracking-wider flex items-center">
-            <span className="text-[#ffd739]">SH</span>
-            <span className="inline-flex flex-col items-center mx-0.5 -mt-1">
-              <span className="text-[10px] leading-none text-[#ffd739]">👑</span>
-              <span className="text-white text-base sm:text-xl leading-none">A</span>
-            </span>
-            <span className="text-[#ffd739]">RK</span>
+          <span className="font-shark italic font-black text-lg sm:text-2xl tracking-wider">
+            <span className="text-white">SHARK</span>{' '}
+            <span className="text-[#facc15]">EXCH</span>
           </span>
-          <span className="flex flex-col leading-none">
-            <span className="font-shark font-black text-[10px] text-white tracking-widest uppercase">
-              EXCH
-            </span>
-            <span className="font-shark font-black text-xs text-[#ffd739] tracking-wider">
-              999
-            </span>
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Official Gaming Exchange
           </span>
         </div>
 
@@ -293,23 +192,26 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
           <button
             type="button"
             onClick={() => {
-              setAuthTab('login');
-              onOpenLoginModal();
+              setAuthTab('signup');
+              onOpenSignUpModal();
             }}
-            className="px-4 py-1.5 rounded-lg bg-[#ffd739] hover:bg-[#eab308] text-black font-extrabold text-xs sm:text-sm tracking-wide cursor-pointer shadow"
+            className="px-3.5 py-1.5 rounded-xl bg-[#10b981] hover:bg-emerald-400 text-white font-extrabold text-xs sm:text-sm tracking-wide cursor-pointer"
           >
-            Login
+            Sign Up
           </button>
           <button
             type="button"
             onClick={() => {
-              setAuthTab('signup');
-              onOpenSignUpModal();
+              setAuthTab('login');
+              onOpenLoginModal();
             }}
-            className="px-4 py-1.5 rounded-lg bg-[#42370b] hover:bg-[#5a4a12] border border-[#ffd739] text-white font-extrabold text-xs sm:text-sm tracking-wide cursor-pointer shadow"
+            className="px-3.5 py-1.5 rounded-xl bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold text-xs sm:text-sm tracking-wide cursor-pointer"
           >
-            Signup
+            Login
           </button>
+          <span className="px-2.5 py-1.5 rounded-xl bg-[#111726] border border-white/15 text-xs font-extrabold text-white">
+            EN
+          </span>
         </div>
       </header>
 
@@ -319,31 +221,31 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
         <section
           aria-label="Promotional Offers"
           data-testid="front-hero-promo-banner"
-          className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#42370b] via-[#241e06] to-[#1a1504] border-[3px] border-[#ffd739] shadow-[0_0_48px_rgba(255,215,57,0.45)]"
+          className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#140e00] via-[#090d16] to-[#1a1100] border-[3px] border-[#facc15] shadow-[0_0_48px_rgba(250,204,21,0.38)]"
         >
           {/* Ambient Gold Spotlight */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,215,57,0.28),transparent_65%)] pointer-events-none" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(250,204,21,0.22),transparent_65%)] pointer-events-none" />
 
           <div className="relative p-2.5 sm:p-4 space-y-3">
             {/* Top Brand & Highlighted Bonus Strip */}
             <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/80 border border-[#ffd739]/70 shadow">
-                <Crown className="w-3.5 h-3.5 text-[#ffd739]" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/80 border border-[#facc15]/70 shadow">
+                <Crown className="w-3.5 h-3.5 text-[#facc15]" />
                 <span className="font-shark italic font-black text-xs sm:text-sm text-white tracking-wider">
-                  SHARK <span className="text-[#ffd739]">EXCHANGE</span>
+                  SHARK <span className="text-[#facc15]">EXCHANGE</span>
                 </span>
               </div>
 
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-gradient-to-r from-[#ffd739] via-yellow-300 to-[#eab308] text-black font-black text-[11px] sm:text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(255,215,57,0.75)] border border-white">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-gradient-to-r from-[#facc15] via-yellow-300 to-[#eab308] text-black font-black text-[11px] sm:text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(250,204,21,0.75)] border border-white">
                 <Sparkles className="w-3.5 h-3.5 fill-current" />
                 <span>{activePublicSlide.badgeText}</span>
               </span>
             </div>
 
-            {/* Automatic 10-Second Promotional Banner Slider (Smooth Transitions + Navigation Dots, Non-Interactive Poster Display Only) */}
+            {/* Automatic Promotional Banner Slider (2 Slides: Mega Offer ₹500 + Spin the Wheel) */}
             <div
               data-testid="public-front-banner-slider"
-              className="relative rounded-2xl overflow-hidden border-2 border-[#ffd739]/80 bg-[#1a1504] shadow-[0_0_32px_rgba(255,215,57,0.35)] select-none"
+              className="relative rounded-2xl overflow-hidden border-2 border-[#facc15]/80 bg-[#050811] shadow-[0_0_32px_rgba(250,204,21,0.3)] select-none"
             >
               <div className="relative w-full overflow-hidden">
                 <div
@@ -377,7 +279,7 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
               {/* Navigation Dots for Public Front Page Automatic Banner Slider */}
               <div
                 data-testid="public-front-slider-dots"
-                className="flex items-center justify-center gap-2.5 py-2.5 bg-black/75 border-t border-white/10"
+                className="flex items-center justify-center gap-2.5 py-2.5 bg-[#070a10]/90 border-t border-white/10"
               >
                 {publicPromoSlides.map((slide, idx) => (
                   <button
@@ -388,7 +290,7 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
                     onClick={() => setPublicSlideIndex(idx)}
                     className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
                       publicSlideIndex === idx
-                        ? 'w-8 bg-[#ffd739] shadow-[0_0_10px_rgba(255,215,57,0.8)]'
+                        ? 'w-8 bg-[#facc15] shadow-[0_0_10px_rgba(250,204,21,0.8)]'
                         : 'w-2.5 bg-white/35 hover:bg-white/60'
                     }`}
                   />
@@ -397,18 +299,18 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
             </div>
 
             {/* Highlighted Offer Callout Bar Directly Under Poster */}
-            <div className="relative rounded-2xl bg-gradient-to-r from-[#241e06] via-[#42370b] to-[#241e06] border-2 border-[#ffd739] px-3.5 py-3 sm:px-5 sm:py-3.5 text-center shadow-[0_0_28px_rgba(255,215,57,0.45)] space-y-2">
+            <div className="relative rounded-2xl bg-gradient-to-r from-[#1a1100] via-[#2b1d00] to-[#1a1100] border-2 border-[#facc15] px-3.5 py-3 sm:px-5 sm:py-3.5 text-center shadow-[0_0_28px_rgba(250,204,21,0.35)] space-y-2">
               <h2
                 data-testid="hero-mega-offer-headline"
-                className="font-black text-base sm:text-2xl text-[#ffd739] drop-shadow-[0_2px_10px_rgba(255,215,57,0.65)] tracking-tight leading-snug"
+                className="font-black text-base sm:text-2xl text-[#facc15] drop-shadow-[0_2px_10px_rgba(250,204,21,0.65)] tracking-tight leading-snug"
               >
                 {mainOfferHeadline}
               </h2>
 
               <div className="flex flex-wrap items-center justify-center gap-2">
-                <div className="px-3.5 py-1 rounded-xl bg-gradient-to-r from-[#ffd739] via-yellow-300 to-[#eab308] text-black font-black text-xs sm:text-base tracking-wide shadow border border-white flex items-center gap-1.5">
+                <div className="px-3.5 py-1 rounded-xl bg-gradient-to-r from-[#facc15] via-yellow-300 to-[#eab308] text-black font-black text-xs sm:text-base tracking-wide shadow border border-white flex items-center gap-1.5">
                   <span>💸 ₹500 की ID पर</span>
-                  <span className="px-2 py-0.5 rounded-md bg-black text-[#ffd739] font-extrabold">
+                  <span className="px-2 py-0.5 rounded-md bg-black text-[#facc15] font-extrabold">
                     ₹500 FREE!
                   </span>
                 </div>
@@ -425,24 +327,10 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
                 {subOfferHeadline}
               </p>
             </div>
-
-            {/* SPIN THE WHEEL PROMOTIONAL BANNER DIRECTLY BELOW MAIN FRONT BANNER */}
-            <div
-              data-testid="front-below-spin-wheel-banner"
-              className="relative rounded-2xl overflow-hidden border-2 border-[#ffd739] bg-[#1a1504] shadow-[0_0_32px_rgba(255,215,57,0.45)] select-none"
-            >
-              <img
-                src={OFFICIAL_POSTER_ASSETS.spinWheelPoster}
-                alt="SHARK EXCHANGE — SPIN THE WHEEL: Spin & Win Exciting Rewards Instantly!"
-                data-testid="front-below-spin-wheel-poster-img"
-                referrerPolicy="no-referrer"
-                className="w-full h-auto object-contain block pointer-events-none"
-              />
-            </div>
           </div>
         </section>
 
-        {/* 2. DIRECTLY BELOW PROMO POSTER ON PAGE 1: "SIGN UP" AND "LOGIN" BUTTONS & TEAEXCH MODERN-LOGIN-MODAL */}
+        {/* 2. DIRECTLY BELOW PROMO POSTER ON PAGE 1: GREEN "SIGN UP" AND DARK-BORDERED "LOGIN" BUTTONS (00:00 - 00:06) */}
         <div
           aria-label="Primary Hero Actions"
           data-testid="hero-below-cta-bar"
@@ -451,12 +339,11 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
           <button
             type="button"
             data-testid="hero-cta-signup"
-            onClick={() => setAuthTab('signup')}
-            className={`py-3.5 px-4 rounded-2xl font-extrabold text-sm sm:text-base tracking-wide uppercase shadow-lg border-2 flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95 ${
-              authTab === 'signup'
-                ? 'bg-[#ffd739] hover:bg-yellow-300 text-black border-white shadow-[0_0_24px_rgba(255,215,57,0.5)]'
-                : 'bg-[#42370b] hover:bg-[#5a4a12] text-[#ffd739] border-[#ffd739]/50'
-            }`}
+            onClick={() => {
+              setAuthTab('signup');
+              onOpenSignUpModal();
+            }}
+            className="py-3.5 px-4 rounded-2xl bg-[#10b981] hover:bg-emerald-400 text-white font-extrabold text-sm sm:text-base tracking-wide uppercase shadow-[0_0_24px_rgba(16,185,129,0.4)] border-2 border-emerald-300 flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95"
           >
             <UserPlus className="w-5 h-5 stroke-[2.5]" />
             <span>Sign Up</span>
@@ -465,259 +352,43 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
           <button
             type="button"
             data-testid="hero-cta-login"
-            onClick={() => setAuthTab('login')}
-            className={`py-3.5 px-4 rounded-2xl font-extrabold text-sm sm:text-base tracking-wide uppercase shadow-lg border-2 flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95 ${
-              authTab === 'login'
-                ? 'bg-[#ffd739] hover:bg-yellow-300 text-black border-white shadow-[0_0_24px_rgba(255,215,57,0.5)]'
-                : 'bg-[#42370b] hover:bg-[#5a4a12] text-[#ffd739] border-[#ffd739]/50'
-            }`}
+            onClick={() => {
+              setAuthTab('login');
+              onOpenLoginModal();
+            }}
+            className="py-3.5 px-4 rounded-2xl bg-[#0c111d] hover:bg-[#131b2e] text-[#facc15] font-extrabold text-sm sm:text-base tracking-wide uppercase shadow-lg border-2 border-[#facc15]/60 flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95"
           >
             <LogIn className="w-5 h-5 stroke-[2.5]" />
             <span>Login</span>
           </button>
         </div>
 
-        {/* Exact teaexch999.com `modern-login-modal` / `modern-signup-modal` Card */}
+        {/* 3. INLINE VIP ACCOUNT CARD (`00:01 - 00:05` of video) */}
         <section
           aria-label="Customer Sign Up and Login Form"
           data-testid="page-1-auth-card"
-          className="rounded-3xl bg-[#42370b] border-2 border-[#ffd739] shadow-[0_20px_50px_rgba(0,0,0,0.85)] overflow-hidden max-w-xl mx-auto"
+          className="rounded-3xl bg-[#0c111d] border-2 border-[#facc15]/50 shadow-[0_18px_48px_rgba(0,0,0,0.75)] overflow-hidden"
         >
-          {/* `modal-header` with Logo & Tagline */}
-          <div className="bg-gradient-to-r from-[#241e06] via-[#5a4a12] to-[#241e06] border-b border-[#ffd739]/40 px-5 py-4 text-center space-y-1">
-            <div className="flex items-center justify-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-[#ffd739]" />
-              <h3 className="font-shark italic font-black text-xl sm:text-2xl text-white tracking-wider uppercase">
-                SHARK <span className="text-[#ffd739]">EXCH</span>
-              </h3>
-            </div>
-            <p className="text-[11px] text-amber-100/90 font-medium">
+          {/* Yellow Top Header Bar (`CREATE YOUR VIP ACCOUNT (SIGN UP)` | `INSTANT ACCESS`) */}
+          <div className="bg-[#facc15] text-[#090d16] px-5 py-3.5 flex items-center justify-between gap-2">
+            <h3 className="font-shark italic font-black text-base sm:text-xl tracking-wide uppercase">
               {authTab === 'signup'
-                ? 'Create Your Official Gaming & Sports Exchange Account'
-                : "India's First Legal & Fastest Sports Exchange and 200+ Live Casino"}
-            </p>
+                ? 'CREATE YOUR VIP ACCOUNT (SIGN UP)'
+                : 'VIP MEMBER LOGIN'}
+            </h3>
+            <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider">
+              INSTANT ACCESS
+            </span>
           </div>
 
           <div className="p-5 sm:p-6 space-y-4">
-            {/* `modal-tabs` Switcher (`Login` | `Signup`) */}
-            <div className="grid grid-cols-2 p-1.5 rounded-xl bg-[#241e06] border border-[#ffd739]/30 gap-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthTab('login');
-                  setError(null);
-                }}
-                className={`py-2.5 rounded-lg font-extrabold text-xs sm:text-sm uppercase tracking-wider transition-all cursor-pointer ${
-                  authTab === 'login'
-                    ? 'bg-[#ffd739] text-[#1a1a1a] shadow-[0_2px_8px_rgba(255,215,0,0.3)]'
-                    : 'text-white hover:bg-[#42370b]'
-                }`}
-              >
-                Login
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthTab('signup');
-                  setError(null);
-                }}
-                className={`py-2.5 rounded-lg font-extrabold text-xs sm:text-sm uppercase tracking-wider transition-all cursor-pointer ${
-                  authTab === 'signup'
-                    ? 'bg-[#ffd739] text-[#1a1a1a] shadow-[0_2px_8px_rgba(255,215,0,0.3)]'
-                    : 'text-white hover:bg-[#42370b]'
-                }`}
-              >
-                Signup
-              </button>
-            </div>
-
-            {error && (
-              <div className="p-3 rounded-xl bg-red-500/20 border border-red-400/50 text-red-200 text-xs font-bold text-center">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleAuthSubmit} className="space-y-3.5">
-              {authTab === 'signup' && (
-                <>
-                  <div>
-                    <label className="block text-xs font-bold text-white mb-1">
-                      Username / Full Name <span className="text-[#ff6b6b]">*</span>
-                    </label>
-                    <div className="relative">
-                      <UserIcon className="w-4 h-4 text-[#ffd739] absolute left-3.5 top-3" />
-                      <input
-                        type="text"
-                        required
-                        placeholder="Enter Username / Full Name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#241e06] border border-[#ffd739]/60 text-white text-sm focus:outline-none focus:border-[#ffd739]"
-                      />
-                    </div>
-                  </div>
-
-                  {/* TeaExch `+91` Country Code + Phone Number + SMS OTP / WhatsApp OTP */}
-                  <div className="space-y-2">
-                    <label className="block text-xs font-bold text-white">
-                      Phone Number <span className="text-[#ff6b6b]">*</span>
-                    </label>
-                    <div className="flex items-stretch gap-2">
-                      <div className="px-3 rounded-xl bg-[#241e06] border border-[#ffd739]/60 flex items-center justify-center font-mono-tabular font-black text-xs text-[#ffd739] shrink-0">
-                        +91
-                      </div>
-                      <div className="relative flex-1">
-                        <Phone className="w-4 h-4 text-[#ffd739] absolute left-3.5 top-3" />
-                        <input
-                          type="tel"
-                          required
-                          placeholder="Enter 10-digit phone number"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#241e06] border border-[#ffd739]/60 text-white text-sm font-mono-tabular focus:outline-none focus:border-[#ffd739]"
-                        />
-                      </div>
-                    </div>
-
-                    {/* TeaExch `otp-buttons-container` (`SMS OTP` & `WhatsApp OTP`) */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleSendInstantOtp('SMS')}
-                        className="py-2 px-3 rounded-xl bg-[#241e06] hover:bg-[#1a1504] border border-[#ffd739]/50 text-[#ffd739] font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
-                      >
-                        <span>📩 SMS OTP</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleSendInstantOtp('WHATSAPP')}
-                        className="py-2 px-3 rounded-xl bg-[#25D366]/20 hover:bg-[#25D366]/30 border border-[#25D366]/60 text-[#25D366] font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
-                      >
-                        <span>💬 WhatsApp OTP</span>
-                      </button>
-                    </div>
-
-                    {otpSentVia && (
-                      <div className="rounded-xl bg-[#241e06] border border-emerald-400/50 p-2.5 flex items-center justify-between gap-2 text-xs">
-                        <span className="text-emerald-300 font-bold">
-                          ✓ {otpSentVia} OTP Verified ({otpCode})
-                        </span>
-                        <input
-                          type="text"
-                          value={otpCode}
-                          onChange={(e) => setOtpCode(e.target.value)}
-                          placeholder="Enter OTP"
-                          className="w-24 px-2 py-1 rounded bg-[#42370b] border border-[#ffd739] font-mono-tabular font-black text-center text-[#ffd739]"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-
-              <div>
-                <label className="block text-xs font-bold text-white mb-1">
-                  {authTab === 'login' ? 'Username / Email / Mobile' : 'Email ID'}{' '}
-                  <span className="text-[#ff6b6b]">*</span>
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-[#ffd739] absolute left-3.5 top-3" />
-                  <input
-                    type="text"
-                    required
-                    placeholder={
-                      authTab === 'login'
-                        ? 'Enter Username, Email or 10-digit Mobile'
-                        : 'you@example.com'
-                    }
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#241e06] border border-[#ffd739]/60 text-white text-sm focus:outline-none focus:border-[#ffd739]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-white mb-1">
-                  Password <span className="text-[#ff6b6b]">*</span>
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-[#ffd739] absolute left-3.5 top-3" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    placeholder="Enter Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[#241e06] border border-[#ffd739]/60 text-white text-sm focus:outline-none focus:border-[#ffd739]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((p) => !p)}
-                    aria-label="Toggle password visibility"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs cursor-pointer"
-                  >
-                    {showPassword ? '👁️' : '👁️‍🗨️'}
-                  </button>
-                </div>
-              </div>
-
-              {authTab === 'signup' && (
-                <div>
-                  <label className="block text-xs font-bold text-white mb-1">
-                    Referral Code (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Enter Referral Code (Optional)"
-                    value={referralCode}
-                    onChange={(e) => setReferralCode(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl bg-[#241e06] border border-[#ffd739]/40 text-white text-xs focus:outline-none focus:border-[#ffd739]"
-                  />
-                </div>
-              )}
-
-              {/* Exact TeaExch `form-buttons`: Primary Login/Signup + `Demo Login` */}
-              <div className="flex flex-col sm:flex-row items-stretch gap-2.5 pt-1">
-                <button
-                  type="submit"
-                  disabled={loading || googleLoading || demoLoading}
-                  className="flex-1 py-3 px-4 rounded-xl bg-[#ffd739] hover:bg-yellow-300 text-[#1a1a1a] font-black text-sm tracking-wide shadow-lg transition-transform active:scale-98 cursor-pointer disabled:opacity-50"
-                >
-                  {loading
-                    ? 'Please wait...'
-                    : authTab === 'signup'
-                    ? 'Sign Up & Enter SHARK EXCH Dashboard'
-                    : 'Login'}
-                </button>
-
-                <button
-                  type="button"
-                  data-testid="landing-demo-login-btn"
-                  onClick={handleDemoLogin}
-                  disabled={loading || googleLoading || demoLoading}
-                  className="py-3 px-4 rounded-xl bg-[#241e06] hover:bg-[#1a1504] border border-[#ffd739] text-white font-extrabold text-xs sm:text-sm tracking-wide cursor-pointer transition-transform active:scale-98 whitespace-nowrap"
-                >
-                  {demoLoading ? 'Logging in...' : 'Demo Login'}
-                </button>
-              </div>
-            </form>
-
-            {/* TeaExch `social-login` (`Or continue with Google`) */}
-            <div className="relative flex items-center justify-center pt-1">
-              <div className="border-t border-[#ffd739]/30 w-full" />
-              <span className="bg-[#42370b] px-3 text-[11px] font-bold text-[#ffd739] whitespace-nowrap">
-                Or continue with
-              </span>
-              <div className="border-t border-[#ffd739]/30 w-full" />
-            </div>
-
+            {/* White Google Instant Login Button */}
             <button
               type="button"
               data-testid="landing-google-auth-btn"
               onClick={handleGoogleLogin}
               disabled={googleLoading || loading || demoLoading}
-              className="w-full py-2.5 px-4 rounded-xl bg-[#241e06] hover:bg-[#1a1504] text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-md border border-[#ffd739]/50 transition-transform active:scale-98 cursor-pointer disabled:opacity-50"
+              className="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-[#090d16] font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-md transition-transform active:scale-98 cursor-pointer disabled:opacity-50"
             >
               <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                 <path
@@ -738,64 +409,132 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
                 />
               </svg>
               <span>
-                {googleLoading ? 'Connecting to Google...' : 'Google'}
+                {googleLoading
+                  ? 'Connecting to Google...'
+                  : 'Continue with Google (Instant Login)'}
               </span>
             </button>
 
-            {/* Exact TeaExch `disclaimer` / `rules-home` 18+ Footer Box */}
-            <div className="pt-2 border-t border-white/15">
-              <div
-                onClick={() => setRulesOpen(true)}
-                className="w-full rounded-xl bg-[#241e06] hover:bg-[#1a1504] border border-[#ffd739]/30 p-3 text-center cursor-pointer space-y-1"
-              >
-                <div className="text-[10px] font-black uppercase text-[#ffd739] tracking-wider">
-                  Rules &amp; Regulations · 18+ Responsible Gaming
-                </div>
-                <p className="text-[10px] text-amber-100/80 leading-snug">
-                  You must be over 18 years old, or the legal age at which gambling or gaming
-                  activities are allowed under the jurisdiction that applies to you.
-                </p>
+            <div className="relative flex items-center justify-center">
+              <div className="border-t border-white/10 w-full" />
+              <span className="bg-[#0c111d] px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">
+                OR WITH EMAIL &amp; PASSWORD
+              </span>
+              <div className="border-t border-white/10 w-full" />
+            </div>
+
+            {error && (
+              <div className="p-3 rounded-xl bg-red-500/15 border border-red-400/40 text-red-200 text-xs font-bold text-center">
+                {error}
               </div>
+            )}
+
+            <form onSubmit={handleAuthSubmit} className="space-y-3.5">
+              {authTab === 'signup' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Full Name
+                    </label>
+                    <div className="relative">
+                      <UserIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                      <input
+                        type="text"
+                        required
+                        placeholder="Enter your name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#070a10] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      WhatsApp / Mobile Number
+                    </label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                      <input
+                        type="tel"
+                        required
+                        placeholder="10-digit mobile number"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#070a10] border border-white/15 text-white text-sm font-mono-tabular focus:outline-none focus:border-[#facc15]"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Email ID
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type="email"
+                      required
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#070a10] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type="password"
+                      required
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#070a10] border border-white/15 text-white text-sm focus:outline-none focus:border-[#facc15]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || googleLoading || demoLoading}
+                className="w-full py-3.5 px-4 rounded-xl bg-[#facc15] hover:bg-yellow-300 text-[#090d16] font-extrabold text-sm tracking-wide shadow-lg transition-transform active:scale-98 cursor-pointer disabled:opacity-50"
+              >
+                {loading
+                  ? 'Please wait...'
+                  : authTab === 'signup'
+                  ? 'Sign Up & Enter SHARK EXCH Dashboard'
+                  : 'Log In & Enter SHARK EXCH Dashboard'}
+              </button>
+            </form>
+
+            {/* Quick 1-Click Demo VIP Account bar */}
+            <div className="p-3 rounded-xl bg-[#090d16] border border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="text-slate-400">
+                Want to test with pre-funded VIP balance?
+              </span>
+              <button
+                type="button"
+                data-testid="landing-demo-login-btn"
+                onClick={handleDemoLogin}
+                disabled={loading || googleLoading || demoLoading}
+                className="font-extrabold text-emerald-400 hover:text-emerald-300 underline cursor-pointer"
+              >
+                {demoLoading ? 'Logging in...' : '1-Click Demo VIP Login'}
+              </button>
             </div>
           </div>
         </section>
       </main>
-
-      {/* Rules & Regulations Dialog on Pre-Login Screen */}
-      {rulesOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Rules and Regulations"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
-        >
-          <div className="w-full max-w-lg rounded-2xl bg-[#241e06] border-2 border-[#ffd739] p-5 space-y-3 text-xs text-amber-100 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#ffd739]/30 pb-2.5">
-              <h4 className="font-shark italic font-black text-base text-[#ffd739] uppercase">
-                SHARK EXCH — Rules &amp; Regulations
-              </h4>
-              <button
-                type="button"
-                onClick={() => setRulesOpen(false)}
-                className="px-2.5 py-1 rounded bg-[#42370b] text-[#ffd739] font-bold cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-            <p>
-              1. All Live Sports Exchange (Cricket, Football, Tennis) and 200+ Live Casino games
-              settle in real time into your SHARK EXCH Wallet &amp; Coin balance.
-            </p>
-            <p>
-              2. Minimum Deposit &amp; Withdrawal is ₹500 with 24/7 Instant UPI Refill &amp; Direct
-              Bank/UPI Payout.
-            </p>
-            <p>
-              3. Strictly 18+ Responsible Gaming Policy applies to all accounts.
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
@@ -815,13 +554,14 @@ interface BannerAndGamesProps {
 }
 
 /**
- * PAGE 2 (POST-LOGIN MAIN WALLET & EXCHANGE DASHBOARD):
- * Displays the 4 attached promotional posters inside the Post-Login Wallet Dashboard section:
+ * PAGE 2 (POST-LOGIN MAIN WALLET & EXCHANGE DASHBOARD - 00:12 - 00:54 of video):
+ * Displays the 4 promotional posters inside the Post-Login Wallet Dashboard section:
  *  - Poster 1: "Sexy VIP LIVE LOUNGE — SHARKVIP #PLAYSAFE"
  *  - Poster 2: "SHARK EXCHANGE — Ultimate Gaming Destination: PLAY • BET • WIN"
  *  - Poster 3: "SHARK EXCHANGE — Game. Win. Repeat. Experience Next-Level Online Gaming"
  *  - Poster 4: "SHARK EXCHANGE — DIVE INTO REAL GAMING ACTION"
- * Followed by the clickable yellow "Create IDs" button, "Spin & Win" option, and non-clickable static dummy game cards.
+ * Followed by the Spin the Wheel VIP banner strip, the clickable yellow "Create IDs" button,
+ * and playable featured game cards (`Aviatrix`, `MINES`, `Cricket Live`, `Color Prediction`, `Live Casino`).
  */
 export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
   banners,
@@ -830,12 +570,6 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
   onSelectGame,
 }) => {
   const postLoginPosters = [
-    {
-      id: 'poster-0-hindi-500',
-      title: 'शार्क एक्सचेंज — अभी जुड़ें और पाएं ₹500 स्वागत बोनस',
-      tag: '₹500 स्वागत बोनस',
-      imageUrl: OFFICIAL_POSTER_ASSETS.hindiWelcome500AdPoster,
-    },
     {
       id: 'poster-1',
       title: banners[1]?.title || 'Sexy VIP LIVE LOUNGE — SHARKVIP #PLAYSAFE',
@@ -856,9 +590,18 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
       title:
         banners[3]?.title ||
         'SHARK EXCHANGE — Game. Win. Repeat. Experience Next-Level Online Gaming',
-      tag: banners[3]?.tag || 'GAME • WIN • REPEAT',
+      tag: banners[3]?.tag || 'NEXT-LEVEL GAMING',
       imageUrl:
         banners[3]?.imageUrl || OFFICIAL_POSTER_ASSETS.gameWinRepeatPoster,
+    },
+    {
+      id: 'poster-4',
+      title:
+        banners[4]?.title ||
+        'SHARK EXCHANGE — DIVE INTO REAL GAMING ACTION',
+      tag: banners[4]?.tag || 'PREMIUM GAMING',
+      imageUrl:
+        banners[4]?.imageUrl || OFFICIAL_POSTER_ASSETS.diveIntoActionPoster,
     },
   ];
 
@@ -919,7 +662,7 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
             <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#facc15]" />
           </button>
 
-          {/* Static SHARKVIP #PLAYSAFE Badge Reference for Tests & Visual Identity */}
+          {/* Static SHARKVIP #PLAYSAFE Badge Reference */}
           <div
             data-testid="sharkvip-static-badge"
             className="hidden sm:inline-flex items-center gap-1.5 absolute top-3 right-3 border border-white/70 rounded-full px-3 py-1 bg-black/75 shadow select-none cursor-default"
@@ -1003,7 +746,7 @@ export const BannerAndGames: React.FC<BannerAndGamesProps> = ({
                   </span>
                 </div>
                 <p className="text-[10px] sm:text-xs text-purple-200 truncate">
-                  Win 5%, 10%, 20% &amp; 25% Instant Bonus Rewards (1 Spin/Day · Resets 12:00 AM IST)
+                  Win iPhone, Laptop, Smart TV &amp; Instant Bonus Rewards
                 </p>
               </div>
             </div>

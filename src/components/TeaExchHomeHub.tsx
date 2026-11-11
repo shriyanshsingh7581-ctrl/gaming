@@ -644,48 +644,6 @@ export const TeaExchHomeHub: React.FC<TeaExchHomeHubProps> = ({
   return (
     <div data-testid="teaexch-home-hub" className="space-y-5">
       {/* ========================================================================
-       * VIDEO SCREEN MODE SWITCHER BAR (`Home` | `In-play` | `Casino` | `Sports 1x2`)
-       * Syncs with Fixed 5-Tab Bottom Navigation Bar (`00:00 - 02:04` of video)
-       * ======================================================================== */}
-      <div
-        data-testid="teaexch-video-view-switcher"
-        className="rounded-2xl bg-[#332b09] border border-[#ffd739]/40 p-1.5 grid grid-cols-4 gap-1.5 shadow-xl"
-      >
-        {(
-          [
-            { id: 'home', label: '🏠 Home', sub: 'Lobby' },
-            { id: 'inplay', label: '⚡ In-Play', sub: 'Exchange (21)' },
-            { id: 'casino', label: '🎰 Casino', sub: '200 Games' },
-            { id: 'sports', label: '🏆 Sports', sub: 'Sportsbook 1x2' },
-          ] as const
-        ).map((tab) => {
-          const active = internalHubTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              data-testid={`hub-tab-btn-${tab.id}`}
-              onClick={() => setHubTab(tab.id)}
-              className={`py-2 px-2 rounded-xl font-extrabold text-xs flex flex-col items-center justify-center transition-all cursor-pointer ${
-                active
-                  ? 'bg-[#ffd739] text-black shadow-md'
-                  : 'bg-[#241e06] text-amber-100 hover:text-white border border-[#ffd739]/20'
-              }`}
-            >
-              <span>{tab.label}</span>
-              <span
-                className={`text-[9px] font-mono-tabular ${
-                  active ? 'text-black/80 font-black' : 'text-[#ffd739]'
-                }`}
-              >
-                {tab.sub}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ========================================================================
        * DEDICATED VIEW A: CASINO TAB (`00:25 - 01:29` & `01:37 - 01:43` of video)
        * `[🟡 CASINO]` + `[Search games (X)]` + Provider Tabs + Category Icon Cards + Grid
        * ======================================================================== */}

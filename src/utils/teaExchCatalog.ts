@@ -168,12 +168,6 @@ export function formatTeaExchCdnImage(url: string, width = 336, quality = 75): s
 
 export const TEAEXCH_HOME_BANNERS = [
   {
-    id: "tb-shark-500-bonus",
-    title: "शार्क एक्सचेंज — अभी जुड़ें और पाएं ₹500 स्वागत बोनस",
-    desktopUrl: "/assets/aistudio/file_000000003db482119b271b657ffd77dc_c3b494c1.png",
-    mobileUrl: "/assets/aistudio/file_000000003db482119b271b657ffd77dc_c3b494c1.png",
-  },
-  {
     id: "tb-1",
     title: "IND vs NZ {5 ODIs}",
     desktopUrl: "https://prod-cdn.king18.co/indigo/83298a51-085f-4967-9dcb-d97b4bb96829",

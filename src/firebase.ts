@@ -250,13 +250,13 @@ export interface HybridDatabaseSchema {
 export const INITIAL_BANNERS: BannerSlide[] = [
   {
     id: 'banner-prelogin-mega-offer',
-    tag: 'शार्क एक्सचेंज — ₹500 स्वागत बोनस',
-    title: '🔥 शार्क एक्सचेंज — अभी जुड़ें और पाएं ₹500 स्वागत बोनस! 🔥',
+    tag: 'MEGA OFFER · ₹500 पर ₹500 FREE',
+    title: '🔥 SHARK EXCHANGE — MEGA OFFER: ₹500 की ID पर ₹500 FREE! 🔥',
     subtitle:
-      'तुरंत जमा (डिपॉज़िट) · तुरंत निकासी (विथड्रॉल) · 24×7 ग्राहक सहायता · 100% सुरक्षित और भरोसेमंद',
-    ctaText: 'अभी ऑनलाइन खेलें',
+      'Deposit ₹500 & Get ₹500 Instant Welcome Bonus Free | 24/7 Instant Refill & Withdrawal',
+    ctaText: 'Sign Up & Claim ₹500 Free',
     accentColor: '#facc15',
-    imageUrl: OFFICIAL_POSTER_ASSETS.hindiWelcome500AdPoster,
+    imageUrl: OFFICIAL_POSTER_ASSETS.megaOffer500Poster,
     secondaryImageUrl: OFFICIAL_POSTER_ASSETS.sexyVipLoungePoster,
   },
   {
@@ -454,7 +454,7 @@ function normalizeBannersStore(rawBanners?: BannerSlide[]): BannerSlide[] {
       first.title === 'SEXY LIVE CASINO & VIP TABLES' ||
       first.imageUrl === '/assets/aistudio/IMG-20261103-WA0184_268471ee.jpg' ||
       first.imageUrl === '/assets/aistudio/images__3__432421dc.jpeg' ||
-      first.imageUrl === '/assets/aistudio/file_00000000032c821198d87fd2de4ca7de_303c7645.png')
+      first.imageUrl === '/assets/aistudio/file_000000003db482119b271b657ffd77dc_c3b494c1.png')
   ) {
     return INITIAL_BANNERS;
   }
