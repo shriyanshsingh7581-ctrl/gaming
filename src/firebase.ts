@@ -635,7 +635,9 @@ function loadHybridStore(): HybridDatabaseSchema {
             promoVideoUrl:
               parsed.paymentSettings?.promoVideoUrl &&
               !String(parsed.paymentSettings.promoVideoUrl).includes('h0w6fc2fpwp2ff95d5d4') &&
-              !String(parsed.paymentSettings.promoVideoUrl).includes('ihegf7oimbdgdq9zmlsb')
+              !String(parsed.paymentSettings.promoVideoUrl).includes('ihegf7oimbdgdq9zmlsb') &&
+              !String(parsed.paymentSettings.promoVideoUrl).includes('lvhgrawz00aem6fvayez') &&
+              !String(parsed.paymentSettings.promoVideoUrl).includes('shark-promo-loop.mp4')
                 ? toPlayableCloudinaryVideoUrl(parsed.paymentSettings.promoVideoUrl)
                 : DEFAULT_CLOUDINARY_PROMO_VIDEO_URL,
             promoVideoOrientation:
@@ -908,7 +910,9 @@ export function subscribeToRealtimeData(callback: ListenerCallback): () => void 
       const candidateVideoUrl =
         srvPs.promoVideoUrl &&
         !String(srvPs.promoVideoUrl).includes('h0w6fc2fpwp2ff95d5d4') &&
-        !String(srvPs.promoVideoUrl).includes('ihegf7oimbdgdq9zmlsb')
+        !String(srvPs.promoVideoUrl).includes('ihegf7oimbdgdq9zmlsb') &&
+        !String(srvPs.promoVideoUrl).includes('lvhgrawz00aem6fvayez') &&
+        !String(srvPs.promoVideoUrl).includes('shark-promo-loop.mp4')
           ? srvPs.promoVideoUrl
           : current.paymentSettings.promoVideoUrl;
       const nextPromoVideoUrl = toPlayableCloudinaryVideoUrl(

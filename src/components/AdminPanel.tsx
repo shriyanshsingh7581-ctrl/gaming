@@ -904,15 +904,42 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </button>
 
           {isMasterAdmin && (
-            <button
-              type="button"
-              onClick={() => setActiveTab('payment')}
-              data-testid="header-upload-video-poster-btn"
-              className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs flex items-center gap-1.5 cursor-pointer shadow"
-            >
-              <Upload className="w-4 h-4" />
-              <span>🎬 Upload Login Video &amp; Poster</span>
-            </button>
+            <div className="inline-flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setActiveTab('payment')}
+                data-testid="header-upload-video-poster-btn"
+                className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs flex items-center gap-1.5 cursor-pointer shadow"
+              >
+                <Upload className="w-4 h-4" />
+                <span>🎬 Login Video &amp; Poster</span>
+              </button>
+              <button
+                type="button"
+                data-testid="header-toggle-video-orientation-btn"
+                onClick={async () => {
+                  const nextMode =
+                    promoVideoOrientationInput === 'portrait'
+                      ? 'landscape'
+                      : 'portrait';
+                  setPromoVideoOrientationInput(nextMode);
+                  await adminSaveMediaSettings({
+                    promoVideoUrl:
+                      promoVideoUrlInput.trim() ||
+                      DEFAULT_CLOUDINARY_PROMO_VIDEO_URL,
+                    promoVideoOrientation: nextMode,
+                  });
+                  onNotify(
+                    `✅ Login/Signup Video set to ${nextMode.toUpperCase()} mode!`
+                  );
+                }}
+                className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-[#facc15]/50 text-[#facc15] font-extrabold text-xs cursor-pointer shadow"
+              >
+                {promoVideoOrientationInput === 'portrait'
+                  ? '📱 Video: Portrait (Full Page)'
+                  : '📺 Video: Landscape'}
+              </button>
+            </div>
           )}
 
           <button
@@ -1632,7 +1659,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           <button
                             type="button"
                             data-testid="admin-orientation-landscape-btn"
-                            onClick={() => setPromoVideoOrientationInput('landscape')}
+                            onClick={async () => {
+                              setPromoVideoOrientationInput('landscape');
+                              await adminSaveMediaSettings({
+                                promoVideoUrl:
+                                  promoVideoUrlInput.trim() ||
+                                  DEFAULT_CLOUDINARY_PROMO_VIDEO_URL,
+                                promoVideoOrientation: 'landscape',
+                              });
+                              onNotify(
+                                '✅ Login/Signup Video set to LANDSCAPE mode!'
+                              );
+                            }}
                             className={`py-2 px-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 cursor-pointer border transition-colors ${
                               promoVideoOrientationInput === 'landscape'
                                 ? 'bg-[#facc15] text-black border-[#facc15] shadow'
@@ -1644,7 +1682,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           <button
                             type="button"
                             data-testid="admin-orientation-portrait-btn"
-                            onClick={() => setPromoVideoOrientationInput('portrait')}
+                            onClick={async () => {
+                              setPromoVideoOrientationInput('portrait');
+                              await adminSaveMediaSettings({
+                                promoVideoUrl:
+                                  promoVideoUrlInput.trim() ||
+                                  DEFAULT_CLOUDINARY_PROMO_VIDEO_URL,
+                                promoVideoOrientation: 'portrait',
+                              });
+                              onNotify(
+                                '✅ Login/Signup Video set to PORTRAIT (Full Page) mode!'
+                              );
+                            }}
                             className={`py-2 px-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 cursor-pointer border transition-colors ${
                               promoVideoOrientationInput === 'portrait'
                                 ? 'bg-emerald-400 text-black border-emerald-400 shadow'
@@ -1656,8 +1705,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         </div>
                         <p className="text-[10px] text-slate-400 mt-1">
                           {promoVideoOrientationInput === 'portrait'
-                            ? '✨ Portrait mode active: Video will stretch to full page height on customer Login/Signup screens.'
-                            : '✨ Landscape mode active: Video displays in standard banner format.'}
+                            ? '✨ Portrait mode active: Video stretches to full page height on customer Login/Signup screens.'
+                            : '✨ Landscape mode active: Video displays in full 16:9 widescreen format.'}
                         </p>
                       </div>
 

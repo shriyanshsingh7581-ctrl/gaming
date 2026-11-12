@@ -217,17 +217,9 @@ export const CloudinaryPromoVideoSection: React.FC<{
                 );
                 return;
               }
-              // 2. If a stale or broken URL was cached, fall back to the verified Cloudinary loop video
-              if (
-                resolvedSrc !== DEFAULT_CLOUDINARY_PROMO_VIDEO_URL &&
-                resolvedSrc !== '/uploads/shark-promo-loop.mp4'
-              ) {
+              // 2. Fall back permanently to the user's official Shark Exchange video
+              if (resolvedSrc !== DEFAULT_CLOUDINARY_PROMO_VIDEO_URL) {
                 setResolvedSrc(DEFAULT_CLOUDINARY_PROMO_VIDEO_URL);
-                return;
-              }
-              // 3. Final local fallback
-              if (resolvedSrc !== '/uploads/shark-promo-loop.mp4') {
-                setResolvedSrc('/uploads/shark-promo-loop.mp4');
               }
             }}
           />
@@ -518,7 +510,6 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
 
 interface BannerAndGamesProps {
   banners: BannerSlide[];
-  promoVideoUrl?: string;
   homePosterUrl?: string;
   currentUser?: UserProfile | null;
   activeIdCount?: number;

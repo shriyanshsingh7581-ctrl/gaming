@@ -114,7 +114,7 @@ export const CLOUDINARY_UPLOAD_PRESET = 'Sharkexchange';
 export const CLOUDINARY_VIDEO_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`;
 export const CLOUDINARY_IMAGE_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 export const DEFAULT_CLOUDINARY_PROMO_VIDEO_URL =
-  'https://res.cloudinary.com/dxeuzdwkz/video/upload/v1794419293/lvhgrawz00aem6fvayez.mp4';
+  '/assets/aistudio/lv_0_20261112080514_ed5acede.mp4';
 export const PROMO_GREEN_STRIP_TEXT = 'Pay 500 and get 1000 instant bonus';
 export const INSUFFICIENT_BALANCE_CREATE_ID_ERROR =
   'Insufficient wallet balance to create ID';

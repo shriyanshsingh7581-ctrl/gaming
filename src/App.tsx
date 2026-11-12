@@ -422,11 +422,10 @@ export default function App() {
           </div>
         </aside>
 
-        {/* CENTER COLUMN: CLOUDINARY VIDEO, FIXED LARGE BANNER, [Create IDs | Aviatrix | MINES], & NUMBERED EXCHANGE LIST */}
+        {/* CENTER COLUMN: FIXED LARGE BANNER, [Create IDs | Aviatrix | MINES], & NUMBERED EXCHANGE LIST */}
         <div className="space-y-5 min-w-0">
           <BannerAndGames
             banners={banners}
-            promoVideoUrl={paymentSettings.promoVideoUrl}
             homePosterUrl={paymentSettings.homePosterUrl}
             currentUser={currentUser}
             activeIdCount={myIdRequests.filter((r) => r.status === 'Created').length}

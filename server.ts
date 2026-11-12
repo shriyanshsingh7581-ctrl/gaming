@@ -196,6 +196,7 @@ async function startServer() {
 
   app.use(express.json({ limit: '100mb' }));
   app.use('/uploads', express.static(PUBLIC_UPLOADS_DIR));
+  app.use('/assets', express.static(path.join(__dirname, 'public', 'assets')));
 
   /**
    * GET /api/exchange/live-store
