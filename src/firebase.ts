@@ -71,6 +71,7 @@ import {
   selectWeightedSpinSegment,
   sanitizeSpinRecordToEligibleBonus,
   SIGNUP_WELCOME_BONUS_AMOUNT,
+  calculateAdminBonusCredit,
 } from './utils/exchangeLogic';
 
 const STORAGE_CONFIG_KEY = 'shark_exch_firebase_config_v1';
@@ -1024,8 +1025,8 @@ export function subscribeToAuthState(callback: AuthListenerCallback): () => void
                 (fbEmail ? fbEmail.split('@')[0] : 'VIP Player'),
               email: fbEmail || `${fbUser.uid}@sharkexch.in`,
               phone: fbUser.phoneNumber || '+91 98000 00000',
-              walletBalance: SIGNUP_WELCOME_BONUS_AMOUNT,
-              signupBonus: SIGNUP_WELCOME_BONUS_AMOUNT,
+              walletBalance: 0,
+              signupBonus: 0,
               status: 'Active',
               createdAt: new Date().toISOString(),
             };
@@ -1109,10 +1110,6 @@ export async function registerCustomerWithEmail(
     existingUser.name = cleanName || existingUser.name;
     existingUser.phone = cleanPhone || existingUser.phone;
     existingUser.password = password;
-    if (!existingUser.signupBonus && (existingUser.walletBalance || 0) === 0) {
-      existingUser.walletBalance = SIGNUP_WELCOME_BONUS_AMOUNT;
-      existingUser.signupBonus = SIGNUP_WELCOME_BONUS_AMOUNT;
-    }
     store.users[existingUser.uid] = existingUser;
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_SESSION_UID_KEY, existingUser.uid);
@@ -1146,8 +1143,8 @@ export async function registerCustomerWithEmail(
     email: cleanEmail,
     phone: cleanPhone,
     password,
-    walletBalance: SIGNUP_WELCOME_BONUS_AMOUNT,
-    signupBonus: SIGNUP_WELCOME_BONUS_AMOUNT,
+    walletBalance: 0,
+    signupBonus: 0,
     status: 'Active',
     createdAt: new Date().toISOString(),
   };
@@ -1331,8 +1328,8 @@ export async function loginWithGoogleFirebase(optionalPhone?: string): Promise<U
         name: fbUser.displayName || fbEmail.split('@')[0] || 'Google VIP User',
         email: fbEmail,
         phone: optionalPhone?.trim() || fbUser.phoneNumber || '+91 98000 00000',
-        walletBalance: SIGNUP_WELCOME_BONUS_AMOUNT,
-        signupBonus: SIGNUP_WELCOME_BONUS_AMOUNT,
+        walletBalance: 0,
+        signupBonus: 0,
         status: 'Active',
         createdAt: new Date().toISOString(),
       };
@@ -1383,8 +1380,8 @@ export async function loginWithGoogleFirebase(optionalPhone?: string): Promise<U
     name: 'VIP Google Member',
     email: fallbackGoogleEmail,
     phone: optionalPhone?.trim() || '+91 98000 00000',
-    walletBalance: SIGNUP_WELCOME_BONUS_AMOUNT,
-    signupBonus: SIGNUP_WELCOME_BONUS_AMOUNT,
+    walletBalance: 0,
+    signupBonus: 0,
     status: 'Active',
     createdAt: new Date().toISOString(),
   };
@@ -1908,6 +1905,80 @@ export async function adminAdjustUserBalance(uid: string, deltaAmount: number): 
     }
   }
   return updatedBalance;
+}
+
+/**
+ * Admin Action: Manually Credit Bonus to Customer (`/users/{uid}`)
+ * Credits bonus amount to customer's wallet and updates signupBonus / bonus tally.
+ * Also delivers an instant confirmation message to customer's live chat.
+ */
+export async function adminCreditBonus(
+  uid: string,
+  bonusAmount: number,
+  reason: string = 'Welcome Bonus'
+): Promise<{ newBalance: number; newBonus: number }> {
+  const store = loadHybridStore();
+  const target = store.users[uid];
+  if (!target) throw new Error('Customer not found.');
+
+  const safeBonus = Math.max(0, Math.round(bonusAmount));
+  if (safeBonus <= 0) {
+    throw new Error('Bonus amount must be greater than ₹0.');
+  }
+
+  const { newBalance, newBonus } = calculateAdminBonusCredit(
+    target.walletBalance,
+    target.signupBonus || 0,
+    safeBonus
+  );
+
+  store.users[uid] = {
+    ...target,
+    walletBalance: newBalance,
+    signupBonus: newBonus,
+  };
+
+  const thread = store.chats[uid] || {
+    userId: uid,
+    userName: target.name,
+    userEmail: target.email,
+    lastMessage: '',
+    lastTimestamp: new Date().toISOString(),
+    unreadForAdmin: 0,
+    unreadForCustomer: 0,
+    messages: {},
+  };
+
+  const msgId = `msg_${Date.now()}_bonus`;
+  const bonusMsg: ChatMessage = {
+    id: msgId,
+    sender: 'admin',
+    senderName: 'Master Admin (SHARK EXCH)',
+    text: `🎁 Bonus Credited: ₹${safeBonus.toLocaleString('en-IN')} ${reason ? `(${reason})` : ''} has been added directly to your wallet! Your new balance is ₹${newBalance.toLocaleString('en-IN')}. Good luck!`,
+    timestamp: new Date().toISOString(),
+  };
+
+  thread.messages[msgId] = bonusMsg;
+  thread.lastMessage = bonusMsg.text;
+  thread.lastTimestamp = bonusMsg.timestamp;
+  thread.unreadForCustomer = (thread.unreadForCustomer || 0) + 1;
+  store.chats[uid] = thread;
+
+  saveHybridStore(store);
+
+  if (isLiveFirebaseConnected && firebaseDb) {
+    try {
+      await update(ref(firebaseDb, `users/${uid}`), {
+        walletBalance: newBalance,
+        signupBonus: newBonus,
+      });
+      await set(ref(firebaseDb, `chats/${uid}/messages/${msgId}`), bonusMsg);
+    } catch {
+      // ignore
+    }
+  }
+
+  return { newBalance, newBonus };
 }
 
 /**

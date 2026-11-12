@@ -7,7 +7,7 @@
  * - Master Admin (4455) & Staff (Mohit A1 / 1122) authentication & Live Chat helpers
  */
 
-export const SIGNUP_WELCOME_BONUS_AMOUNT = 500;
+export const SIGNUP_WELCOME_BONUS_AMOUNT = 0;
 
 export interface UserProfile {
   uid: string;
@@ -21,13 +21,26 @@ export interface UserProfile {
   createdAt: string;
 }
 
-export function applySignupWelcomeBonus(profile: UserProfile): UserProfile {
-  const bonus = SIGNUP_WELCOME_BONUS_AMOUNT;
+export function applySignupWelcomeBonus(
+  profile: UserProfile,
+  explicitBonus: number = 0
+): UserProfile {
   return {
     ...profile,
-    walletBalance: Math.max(profile.walletBalance || 0, bonus),
-    signupBonus: bonus,
+    walletBalance: Math.max(0, (profile.walletBalance || 0) + explicitBonus),
+    signupBonus: explicitBonus,
   };
+}
+
+export function calculateAdminBonusCredit(
+  currentBalance: number,
+  currentBonus: number = 0,
+  bonusAmount: number = 0
+): { newBalance: number; newBonus: number } {
+  const safeBonus = Math.max(0, Math.round(bonusAmount));
+  const newBalance = Math.max(0, Math.round((currentBalance || 0) + safeBonus));
+  const newBonus = Math.max(0, Math.round((currentBonus || 0) + safeBonus));
+  return { newBalance, newBonus };
 }
 
 export interface DepositRecord {

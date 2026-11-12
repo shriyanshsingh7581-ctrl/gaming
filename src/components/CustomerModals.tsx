@@ -101,7 +101,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         });
         onSuccess(
           user,
-          `🎉 Welcome ${user.name}! ₹500 Welcome Bonus credited to your wallet!`
+          `🎉 Welcome ${user.name}! Your account has been registered successfully.`
         );
         onClose();
       } else {

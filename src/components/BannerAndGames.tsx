@@ -56,99 +56,79 @@ export const CloudinaryPromoVideoSection: React.FC<{
     );
   }, [videoUrl]);
 
+  // Permanently play unmuted with full 100% audio on loop
   const startPlaybackWithAudio = async (v: HTMLVideoElement | null) => {
     if (!v) return;
     v.loop = true;
     v.defaultMuted = false;
+    v.muted = false;
     v.volume = 1.0;
 
     try {
-      v.muted = false;
       await v.play();
     } catch {
-      // Cold-start browser policy blocked unmuted autoplay before first gesture:
-      // start video immediately and unmute on the very first click/tap/key anywhere.
+      // If browser cold start temporarily blocks unmuted audio before user interaction,
+      // start muted so video is playing smoothly, and unlock sound permanently on ANY gesture.
       try {
         v.muted = true;
         await v.play();
       } catch {
-        // ignore until loadeddata/canplay
+        // Retry on canplay / loadeddata
       }
+    }
+  };
+
+  const forceUnmutePermanently = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.defaultMuted = false;
+    v.muted = false;
+    v.volume = 1.0;
+    v.loop = true;
+    if (v.paused) {
+      void v.play().catch(() => {});
     }
   };
 
   useEffect(() => {
     const vid = videoRef.current;
-    if (!vid) return;
+    if (vid) {
+      void startPlaybackWithAudio(vid);
+    }
 
-    void startPlaybackWithAudio(vid);
-
-    // Unlock audio on valid Chromium User Activation events in capture phase
-    const unlockAudioOnActivation = () => {
-      const v = videoRef.current;
-      if (!v) return;
-      v.defaultMuted = false;
-      v.muted = false;
-      v.volume = 1.0;
-      v.loop = true;
-      if (v.paused) {
-        void v.play().catch(() => {});
-      }
+    // Universal gesture unlock: listening on window & document across all modern pointer/touch/scroll events
+    // Any gesture anywhere immediately guarantees sound is ON and unmuted permanently.
+    const triggerAudioUnlock = () => {
+      forceUnmutePermanently();
     };
 
-    const handleVolumeChange = () => {
-      const v = videoRef.current;
-      if (!v) return;
-      if (v.volume < 1) {
-        v.volume = 1.0;
-      }
-    };
+    const gestureEvents = [
+      'pointerdown',
+      'touchstart',
+      'touchend',
+      'click',
+      'mousedown',
+      'keydown',
+      'scroll',
+      'wheel',
+    ] as const;
 
-    document.addEventListener('click', unlockAudioOnActivation, {
-      capture: true,
-      passive: true,
+    gestureEvents.forEach((evt) => {
+      window.addEventListener(evt, triggerAudioUnlock, { capture: true, passive: true });
+      document.addEventListener(evt, triggerAudioUnlock, { capture: true, passive: true });
     });
-    document.addEventListener('touchend', unlockAudioOnActivation, {
-      capture: true,
-      passive: true,
-    });
-    document.addEventListener('pointerup', unlockAudioOnActivation, {
-      capture: true,
-      passive: true,
-    });
-    document.addEventListener('mouseup', unlockAudioOnActivation, {
-      capture: true,
-      passive: true,
-    });
-    document.addEventListener('keydown', unlockAudioOnActivation, {
-      capture: true,
-      passive: true,
-    });
-    vid.addEventListener('volumechange', handleVolumeChange);
 
     return () => {
-      document.removeEventListener('click', unlockAudioOnActivation, {
-        capture: true,
+      gestureEvents.forEach((evt) => {
+        window.removeEventListener(evt, triggerAudioUnlock, { capture: true });
+        document.removeEventListener(evt, triggerAudioUnlock, { capture: true });
       });
-      document.removeEventListener('touchend', unlockAudioOnActivation, {
-        capture: true,
-      });
-      document.removeEventListener('pointerup', unlockAudioOnActivation, {
-        capture: true,
-      });
-      document.removeEventListener('mouseup', unlockAudioOnActivation, {
-        capture: true,
-      });
-      document.removeEventListener('keydown', unlockAudioOnActivation, {
-        capture: true,
-      });
-      vid.removeEventListener('volumechange', handleVolumeChange);
     };
   }, [resolvedSrc]);
 
   return (
     <div className="w-full space-y-3.5 pt-1.5 sm:pt-2">
-      {/* 1. Video Container (Landscape 16:9 banner or Portrait full-page view) */}
+      {/* 1. Video Container (Landscape 16:9 banner or Portrait full-page view) - Clean without mute/unmute buttons */}
       <section
         aria-label="Promotional Video"
         data-testid="cloudinary-video-section"
@@ -166,15 +146,7 @@ export const CloudinaryPromoVideoSection: React.FC<{
               ? 'h-[72vh] min-h-[500px] sm:min-h-[640px]'
               : 'min-h-[210px] sm:min-h-[290px]'
           }`}
-          onClick={() => {
-            const v = videoRef.current;
-            if (!v) return;
-            v.defaultMuted = false;
-            v.muted = false;
-            v.volume = 1.0;
-            v.loop = true;
-            void v.play().catch(() => {});
-          }}
+          onClick={forceUnmutePermanently}
         >
           <video
             ref={videoRef}
@@ -193,18 +165,26 @@ export const CloudinaryPromoVideoSection: React.FC<{
             onLoadedMetadata={(e) => {
               const v = e.currentTarget;
               v.defaultMuted = false;
+              v.muted = false;
               v.volume = 1.0;
               v.loop = true;
             }}
             onCanPlay={(e) => {
               const v = e.currentTarget;
-              if (v.paused) {
+              if (v.paused || v.muted) {
                 void startPlaybackWithAudio(v);
               }
             }}
+            onVolumeChange={(e) => {
+              const v = e.currentTarget;
+              if (v.muted || v.volume < 1) {
+                v.defaultMuted = false;
+                v.muted = false;
+                v.volume = 1.0;
+              }
+            }}
             onError={() => {
-              // 1. If an uploaded mobile video (e.g. HEVC/H.265) needs transcoding on Cloudinary,
-              // automatically apply Cloudinary's H.264 + AAC MP4 transformation.
+              // 1. If an uploaded mobile video needs transcoding on Cloudinary, apply H.264 + AAC
               if (
                 resolvedSrc.includes('res.cloudinary.com') &&
                 resolvedSrc.includes('/video/upload/') &&
@@ -310,7 +290,7 @@ export const PreLoginLandingPage: React.FC<PreLoginLandingPageProps> = ({
         });
         onAuthSuccess(
           profile,
-          `🎉 Welcome ${profile.name}! ₹500 Welcome Bonus credited to your wallet!`
+          `🎉 Welcome ${profile.name}! Your account has been registered successfully.`
         );
       } else {
         if (!email.trim()) {

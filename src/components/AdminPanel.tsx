@@ -50,6 +50,7 @@ import {
   uploadPromoVideoToCloudinary,
   uploadImageToCloudinary,
   adminSaveMediaSettings,
+  adminCreditBonus,
 } from '../firebase';
 import { OfficialWhatsAppLogoSvg } from './LiveChatWidget';
 import {
@@ -339,6 +340,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [customerSearch, setCustomerSearch] = useState<string>('');
   const [adjustingUser, setAdjustingUser] = useState<UserProfile | null>(null);
   const [adjustAmount, setAdjustAmount] = useState<string>('1000');
+
+  // Manual Bonus State (Admin can grant custom or preset bonus to any customer)
+  const [bonusTargetUser, setBonusTargetUser] = useState<UserProfile | null>(null);
+  const [bonusAmountInput, setBonusAmountInput] = useState<string>('500');
+  const [bonusReasonInput, setBonusReasonInput] = useState<string>('Welcome Bonus');
 
   // Create Customer User ID / Gaming Exchange ID Modal (Available to Staff & Master Admin)
   const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState<boolean>(false);
@@ -1286,7 +1292,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       <td className="py-3 px-3 font-mono-tabular font-bold text-sm text-[#facc15]">
                         <div>🪙 ₹{u.walletBalance.toLocaleString('en-IN')}</div>
                         <div className="text-[10px] text-emerald-400 font-bold">
-                          🎁 Bonus: ₹{(u.signupBonus ?? 500).toLocaleString('en-IN')}
+                          🎁 Bonus: ₹{(u.signupBonus || 0).toLocaleString('en-IN')}
                         </div>
                       </td>
                       <td className="py-3 px-3">
@@ -1304,15 +1310,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         <div className="flex items-center justify-end gap-2">
                           <button
                             type="button"
+                            data-testid={`btn-quick-bonus-${u.uid}`}
                             onClick={async () => {
-                              await adminAdjustUserBalance(u.uid, 500);
+                              const res = await adminCreditBonus(u.uid, 500, 'Welcome Bonus');
                               onNotify(
-                                `Credited +₹500 Welcome Bonus to ${u.name}'s Wallet!`
+                                `✅ Credited +₹500 Welcome Bonus to ${u.name}! (Wallet: ₹${res.newBalance.toLocaleString('en-IN')})`
                               );
                             }}
                             className="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-bold text-xs cursor-pointer whitespace-nowrap"
                           >
                             🎁 +₹500 Bonus
+                          </button>
+                          <button
+                            type="button"
+                            data-testid={`btn-custom-bonus-${u.uid}`}
+                            onClick={() => {
+                              setBonusTargetUser(u);
+                              setBonusAmountInput('500');
+                              setBonusReasonInput('Welcome Bonus');
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg bg-yellow-500/15 hover:bg-yellow-500/25 border border-yellow-500/40 text-yellow-300 font-bold text-xs cursor-pointer whitespace-nowrap"
+                          >
+                            🎁 Give Bonus
                           </button>
                           <button
                             type="button"
@@ -3321,6 +3340,142 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ====================================================================
+       * MODAL: GIVE MANUAL BONUS TO CUSTOMER (Admin / Staff Bonus Control)
+       * ==================================================================== */}
+      {bonusTargetUser && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          data-testid="modal-give-customer-bonus"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+        >
+          <div className="w-full max-w-md rounded-3xl bg-[#0c111d] border-2 border-emerald-400/50 p-6 space-y-4 shadow-[0_20px_60px_rgba(0,0,0,0.9)] text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🎁</span>
+                <div>
+                  <h3 className="font-bold text-base text-white">
+                    Give Bonus — {bonusTargetUser.name}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Manual Bonus credited directly to wallet &amp; recorded in profile
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBonusTargetUser(null)}
+                className="text-slate-400 hover:text-white cursor-pointer p-1 rounded-lg hover:bg-white/10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 p-3 rounded-2xl bg-[#090d16] border border-white/10 text-xs">
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Current Wallet</span>
+                <span className="font-mono-tabular font-extrabold text-[#facc15] text-sm">
+                  ₹{bonusTargetUser.walletBalance.toLocaleString('en-IN')}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Total Bonus Given</span>
+                <span className="font-mono-tabular font-extrabold text-emerald-400 text-sm">
+                  ₹{(bonusTargetUser.signupBonus || 0).toLocaleString('en-IN')}
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Preset Buttons */}
+            <div>
+              <label className="block text-xs text-slate-300 font-semibold mb-1.5">
+                Quick Preset Amounts
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[100, 250, 500, 1000, 2000, 5000].map((preset) => (
+                  <button
+                    key={`preset-bonus-${preset}`}
+                    type="button"
+                    onClick={() => setBonusAmountInput(String(preset))}
+                    className={`py-2 px-1 rounded-xl text-xs font-mono-tabular font-bold border transition-all cursor-pointer ${
+                      bonusAmountInput === String(preset)
+                        ? 'bg-emerald-500 text-black border-emerald-400 shadow-md shadow-emerald-500/30'
+                        : 'bg-white/5 hover:bg-white/10 border-white/10 text-emerald-300'
+                    }`}
+                  >
+                    +₹{preset.toLocaleString('en-IN')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom Amount */}
+            <div>
+              <label htmlFor="modal-bonus-amount" className="block text-xs text-slate-300 font-semibold mb-1">
+                Custom Bonus Amount (₹)
+              </label>
+              <input
+                id="modal-bonus-amount"
+                type="number"
+                min={1}
+                value={bonusAmountInput}
+                onChange={(e) => setBonusAmountInput(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-white/15 font-mono-tabular font-bold text-white text-sm focus:outline-none focus:border-emerald-400"
+              />
+            </div>
+
+            {/* Reason / Note */}
+            <div>
+              <label htmlFor="modal-bonus-reason" className="block text-xs text-slate-300 font-semibold mb-1">
+                Bonus Reason / Type
+              </label>
+              <input
+                id="modal-bonus-reason"
+                type="text"
+                placeholder="e.g. Welcome Bonus, Deposit Match, VIP Loyalty"
+                value={bonusReasonInput}
+                onChange={(e) => setBonusReasonInput(e.target.value)}
+                className="w-full px-3.5 py-2 rounded-xl bg-[#090d16] border border-white/15 text-xs text-white focus:outline-none focus:border-emerald-400"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setBonusTargetUser(null)}
+                className="py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                data-testid="btn-confirm-credit-bonus"
+                onClick={async () => {
+                  const amt = Math.max(0, Math.round(Number(bonusAmountInput) || 0));
+                  if (amt <= 0) {
+                    onNotify('Please enter a valid bonus amount greater than ₹0.');
+                    return;
+                  }
+                  const res = await adminCreditBonus(
+                    bonusTargetUser.uid,
+                    amt,
+                    bonusReasonInput.trim() || 'Welcome Bonus'
+                  );
+                  onNotify(
+                    `✅ Credited ₹${amt.toLocaleString('en-IN')} Bonus to ${bonusTargetUser.name}! (New Wallet: ₹${res.newBalance.toLocaleString('en-IN')})`
+                  );
+                  setBonusTargetUser(null);
+                }}
+                className="py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs cursor-pointer shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-1.5"
+              >
+                <span>🎁 Credit Bonus (₹{Number(bonusAmountInput) || 0})</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

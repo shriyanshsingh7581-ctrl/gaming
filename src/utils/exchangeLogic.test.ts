@@ -447,18 +447,18 @@ test('tickLiveSportsMatches updates live sports odds while keeping Lay > Back', 
   }
 });
 
-test('SIGNUP_WELCOME_BONUS_AMOUNT is ₹500 and applySignupWelcomeBonus credits ₹500 on new sign-ups', async () => {
-  const { SIGNUP_WELCOME_BONUS_AMOUNT, applySignupWelcomeBonus } = await import(
-    './exchangeLogic'
-  );
-  assert.equal(SIGNUP_WELCOME_BONUS_AMOUNT, 500);
+test('SIGNUP_WELCOME_BONUS_AMOUNT is 0 (no automatic bonus on sign up) and calculateAdminBonusCredit credits manual admin bonus', async () => {
+  const { SIGNUP_WELCOME_BONUS_AMOUNT, applySignupWelcomeBonus, calculateAdminBonusCredit } =
+    await import('./exchangeLogic');
+  assert.equal(SIGNUP_WELCOME_BONUS_AMOUNT, 0);
   assert.equal(
     OFFICIAL_POSTER_ASSETS.megaOffer500Poster,
     '/assets/aistudio/file_00000000032c821198d87fd2de4ca7de_303c7645.png'
   );
 
-  const credited = applySignupWelcomeBonus({
-    uid: 'usr_test_500',
+  // New sign up starts with 0 bonus automatically
+  const newUser = applySignupWelcomeBonus({
+    uid: 'usr_test_0',
     name: 'Test Player',
     email: 'test@sharkexch.in',
     phone: '9876543210',
@@ -466,8 +466,17 @@ test('SIGNUP_WELCOME_BONUS_AMOUNT is ₹500 and applySignupWelcomeBonus credits 
     status: 'Active',
     createdAt: '2026-11-10T00:00:00.000Z',
   });
-  assert.equal(credited.walletBalance, 500);
-  assert.equal(credited.signupBonus, 500);
+  assert.equal(newUser.walletBalance, 0);
+  assert.equal(newUser.signupBonus, 0);
+
+  // Admin manually credits bonus from Admin Panel
+  const adminBonus = calculateAdminBonusCredit(newUser.walletBalance, newUser.signupBonus || 0, 500);
+  assert.equal(adminBonus.newBalance, 500);
+  assert.equal(adminBonus.newBonus, 500);
+
+  const customBonus = calculateAdminBonusCredit(adminBonus.newBalance, adminBonus.newBonus, 1000);
+  assert.equal(customBonus.newBalance, 1500);
+  assert.equal(customBonus.newBonus, 1500);
 });
 
 test('Cloudinary config constants, green promo strip text, and Create ID wallet balance validation', async () => {
