@@ -4,6 +4,7 @@ import {
   UserProfile,
   OFFICIAL_POSTER_ASSETS,
   DEFAULT_CLOUDINARY_PROMO_VIDEO_URL,
+  LOCAL_OFFICIAL_PROMO_VIDEO_URL,
   CLOUDINARY_CLOUD_NAME,
   CLOUDINARY_UPLOAD_PRESET,
   PROMO_GREEN_STRIP_TEXT,
@@ -217,9 +218,14 @@ export const CloudinaryPromoVideoSection: React.FC<{
                 );
                 return;
               }
-              // 2. Fall back permanently to the user's official Shark Exchange video
-              if (resolvedSrc !== DEFAULT_CLOUDINARY_PROMO_VIDEO_URL) {
+              // 2. Try the primary high-speed Cloudinary CDN URL of the user's video
+              if ((resolvedSrc as string) !== DEFAULT_CLOUDINARY_PROMO_VIDEO_URL) {
                 setResolvedSrc(DEFAULT_CLOUDINARY_PROMO_VIDEO_URL);
+                return;
+              }
+              // 3. Fall back to local server file path if external network is slow/offline
+              if ((resolvedSrc as string) !== LOCAL_OFFICIAL_PROMO_VIDEO_URL) {
+                setResolvedSrc(LOCAL_OFFICIAL_PROMO_VIDEO_URL);
               }
             }}
           />

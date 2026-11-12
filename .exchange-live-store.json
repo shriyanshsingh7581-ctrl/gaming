@@ -112,11 +112,11 @@
     "ifsc": "HDFC0001482",
     "minDeposit": 500,
     "minWithdrawal": 500,
-    "promoVideoUrl": "/assets/aistudio/lv_0_20261112080514_ed5acede.mp4",
+    "promoVideoUrl": "https://res.cloudinary.com/dxeuzdwkz/video/upload/v1794453171/mx9bbzqkmb2nyzcncsry.mp4",
     "promoVideoOrientation": "landscape",
     "authPosterUrl": "",
     "homePosterUrl": "/assets/aistudio/file_00000000efc4821190c85e045f25eb1f_3e6a5a0f.png",
-    "updatedAt": "2026-11-12T02:53:12.713Z"
+    "updatedAt": "2026-11-12T03:15:42.526Z"
   },
   "banners": [
     {
@@ -209,5 +209,5 @@
       }
     }
   },
-  "updatedAt": "2026-11-12T02:53:22.423Z"
+  "updatedAt": "2026-11-12T03:15:42.856Z"
 }
